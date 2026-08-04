@@ -44,3 +44,20 @@
   .toolbar { align-items: stretch; flex-direction: column; }
   .toolbar .input, .toolbar .select, .toolbar .search-box { width: 100%; }
 }
+
+
+@media (max-width: 900px) {
+  .auth-layout-grid { grid-template-columns: 1fr; max-width: 620px; }
+  .auth-intro { text-align: center; }
+  .auth-brand { justify-content: center; margin-bottom: 26px; }
+  .auth-intro > p { margin-inline: auto; }
+  .auth-benefits { text-align: left; }
+}
+
+@media (max-width: 560px) {
+  .auth-page { padding: 24px 14px; }
+  .auth-intro h1 { font-size: 2.5rem; }
+  .auth-benefits { grid-template-columns: 1fr; }
+  .auth-card { padding: 21px 17px; border-radius: 20px; }
+  .demo-code { align-items: flex-start; flex-direction: column; }
+}

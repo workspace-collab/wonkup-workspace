@@ -1,67 +1,44 @@
 # PROJECT STATE
 
-Proyecto: WonkUp Workspace
-Fase actual: Entrega 1 - Nucleo visual
-Estado: En revision del usuario
-Version: 0.1.0-demo
+## Proyecto
+WonkUp Workspace
 
-## Modulos terminados en esta entrega
+## Fase actual
+Entrega 2 — Workspaces y acceso
 
-- App Shell.
-- Sidebar.
-- Header.
-- Router hash.
-- Tema claro, oscuro y sistema.
-- Dashboard demostrativo.
-- Selector de workspace.
-- Portafolio de proyectos.
-- Ficha de proyecto.
-- Kanban demostrativo.
-- Innovation Toolkit demostrativo.
-- Componentes de tarjetas, badges, paneles, toast y estados vacios.
+## Estado
+Completada técnicamente y pendiente de revisión del usuario.
 
-## Archivos principales creados
+## Entregas
+- Entrega 0 — Blueprint: APROBADA
+- Entrega 1 — Núcleo visual: APROBADA
+- Entrega 2 — Workspaces y acceso: EN REVISIÓN
 
-- index.html
-- css/tokens.css
-- css/themes.css
-- css/layout.css
-- css/components.css
-- css/responsive.css
-- js/app.js
-- js/router.js
-- js/state/store.js
-- js/services/demo-service.js
-- js/components/app-shell.js
-- js/components/toast.js
-- js/views/*
-- data/*
+## Implementado
+- Acceso por código.
+- Sesión temporal en `sessionStorage`.
+- Cinco perfiles demostrativos.
+- Alcance por workspace y proyecto.
+- Protección de rutas.
+- Navegación filtrada por rol.
+- Vista limitada de cliente e invitado.
+- Cierre de sesión.
+- Adaptador mock.
+- Adaptador Google Apps Script.
+- API inicial y setup del Sheets maestro.
 
-## Decisiones vigentes
+## Decisiones
+- El frontend inicia en modo `mock` para facilitar pruebas.
+- Apps Script será la fuente real para códigos y sesiones cuando se configure.
+- Los códigos no se almacenan en el navegador.
+- Apps Script guarda hashes SHA-256 de códigos y sesiones.
+- Cliente e invitado solo pueden abrir el resumen de su proyecto durante esta entrega.
 
-- Una sola plataforma multiworkspace.
-- Tema claro hibrido como predeterminado.
-- Sidebar y header en azul profundo.
-- Datos demo basados en proyectos reales.
-- Integraciones reales aplazadas a entregas posteriores.
+## Pendientes conocidos
+- La administración visual de usuarios y códigos se incorporará después.
+- Los proyectos aún provienen de datos demo estáticos.
+- Google Drive real corresponde a la Entrega 3.
+- Firebase no se utiliza todavía.
 
-## Pendientes
-
-- Insertar logotipo oficial WonkUp.
-- Probar visualmente en GitHub Pages.
-- Aprobar Entrega 1.
-- Crear Google Sheets maestro.
-- Crear Apps Script.
-- Crear proyecto Firebase.
-- Crear carpeta WONKUP_WORKSPACE.
-
-## Errores conocidos
-
-- Los botones de creacion muestran avisos demostrativos.
-- Los enlaces Drive, GitHub y Figma son placeholders.
-- El Kanban no persiste ni sincroniza aun.
-- Canvas Engine no esta implementado aun.
-
-## Proxima entrega
-
-Entrega 2 - Workspaces y acceso.
+## Próxima entrega
+Entrega 3 — Proyectos y Google Drive.

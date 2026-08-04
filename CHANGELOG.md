@@ -1,24 +1,23 @@
-# CHANGELOG
+# Changelog
 
-## 0.1.0-demo - Entrega 1
+## 0.2.0 — Entrega 2
 
-### Agregado
+### Añadido
+- Pantalla de acceso.
+- Códigos demostrativos por rol.
+- Sesiones temporales.
+- Protección de rutas.
+- Navegación basada en permisos.
+- Vista limitada para cliente e invitado.
+- Cierre de sesión.
+- Adaptadores mock y Apps Script.
+- API inicial para códigos, sesiones y workspaces.
+- Script de configuración del Google Sheets maestro.
 
-- Nucleo visual modular.
-- Router compatible con GitHub Pages.
-- Temas claro, oscuro y sistema.
-- Dashboard basado en la infografia aprobada.
-- Navegacion multiworkspace.
-- Datos demo de WonkUp, Agora Education, Personal Class y NIJA.
-- Proyectos demo TaxiChurro, CompraYa, Huellitas Conecta, Selva Viva, Personal Class y NIJA.
-- Vista de proyectos, detalle, Kanban y Toolkit.
-- Documentos de continuidad.
+### Cambiado
+- Dashboard y proyectos ahora respetan el alcance de la sesión.
+- El selector de workspace muestra solo empresas autorizadas.
+- Los indicadores financieros se ocultan para roles no autorizados.
 
-### Pendiente
-
-- Persistencia real.
-- Autenticacion y tokens.
-- Apps Script.
-- Google Sheets.
-- Firebase.
-- Google Drive.
+## 0.1.0 — Entrega 1
+- Núcleo visual navegable.

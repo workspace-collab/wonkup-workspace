@@ -1,21 +1,76 @@
 import { APP_CONFIG } from '../config/app-config.js';
 
 const listeners = new Set();
-const storedWorkspace = localStorage.getItem('wonkup.workspace') || APP_CONFIG.defaultWorkspaceId;
-const storedTheme = localStorage.getItem('wonkup.theme') || APP_CONFIG.defaultTheme;
+const SESSION_KEY = 'wonkup.session';
+const WORKSPACE_KEY = 'wonkup.workspace';
+const THEME_KEY = 'wonkup.theme';
+
+function readStoredSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (!session?.expiresAt || new Date(session.expiresAt).getTime() <= Date.now()) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return session;
+  } catch {
+    sessionStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+}
 
 const state = {
-  selectedWorkspaceId: storedWorkspace,
-  themePreference: storedTheme,
+  selectedWorkspaceId: localStorage.getItem(WORKSPACE_KEY) || APP_CONFIG.defaultWorkspaceId,
+  themePreference: localStorage.getItem(THEME_KEY) || APP_CONFIG.defaultTheme,
   sidebarOpen: false,
-  user: { id: 'demo-admin', name: 'Rodrigo', role: 'Superadministrador' }
+  session: readStoredSession(),
+  sessionStatus: 'idle'
 };
 
-export function getState() { return { ...state }; }
-export function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
+function emit() {
+  const snapshot = getState();
+  listeners.forEach(listener => listener(snapshot));
+}
+
+export function getState() {
+  return {
+    ...state,
+    session: state.session ? {
+      ...state.session,
+      user: { ...state.session.user },
+      scopes: {
+        workspaceIds: [...(state.session.scopes?.workspaceIds || [])],
+        projectIds: [...(state.session.scopes?.projectIds || [])]
+      }
+    } : null
+  };
+}
+
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 export function setState(patch) {
   Object.assign(state, patch);
-  if ('selectedWorkspaceId' in patch) localStorage.setItem('wonkup.workspace', state.selectedWorkspaceId);
-  if ('themePreference' in patch) localStorage.setItem('wonkup.theme', state.themePreference);
-  listeners.forEach(listener => listener(getState()));
+  if ('selectedWorkspaceId' in patch) localStorage.setItem(WORKSPACE_KEY, state.selectedWorkspaceId);
+  if ('themePreference' in patch) localStorage.setItem(THEME_KEY, state.themePreference);
+  emit();
+}
+
+export function setSession(session) {
+  state.session = session;
+  if (session) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  else sessionStorage.removeItem(SESSION_KEY);
+  emit();
+}
+
+export function clearSession() {
+  state.session = null;
+  state.selectedWorkspaceId = APP_CONFIG.defaultWorkspaceId;
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(WORKSPACE_KEY);
+  emit();
 }

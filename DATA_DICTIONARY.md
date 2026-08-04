@@ -1,43 +1,47 @@
-# DATA DICTIONARY - DEMO
+# Data Dictionary — Entrega 2
 
-## Workspace
+## Session
 
-| Campo | Tipo | Descripcion |
-|---|---|---|
-| id | string | Identificador estable del workspace |
-| code | string | Codigo humano |
-| name | string | Nombre visible |
-| shortName | string | Nombre corto |
-| description | string | Descripcion |
-| color | string | Color identificador |
-| logo | string | Ruta del logotipo |
-| status | string | Estado |
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| token | string | Sí | Token opaco entregado una sola vez |
+| source | enum | Sí | `mock` o `apps-script` |
+| issuedAt | datetime ISO | Sí | Inicio de sesión |
+| expiresAt | datetime ISO | Sí | Vencimiento |
+| role | enum | Sí | Rol técnico |
+| roleLabel | string | Sí | Nombre visible |
+| user | object | Sí | Usuario seguro para frontend |
+| scopes.workspaceIds | string[] | Sí | Workspaces autorizados o `*` |
+| scopes.projectIds | string[] | Sí | Proyectos autorizados o `*` |
 
-## Project
+## Access Grant
 
-| Campo | Tipo | Descripcion |
-|---|---|---|
-| id | string | Identificador estable |
-| code | string | Codigo humano |
-| workspaceId | string | Workspace propietario |
-| name | string | Nombre del proyecto |
-| tagline | string | Mensaje corto |
-| description | string | Descripcion ejecutiva |
-| status | string | Estado operativo |
-| stage | string | Etapa metodologica |
-| priority | string | Prioridad |
-| health | string | Salud green, amber o red |
-| progress | number | Porcentaje de avance |
-| owner | string | Responsable demo |
-| client | string | Cliente demo |
-| startDate | date | Fecha inicial ISO |
-| dueDate | date | Fecha final ISO |
-| budget | number | Presupuesto demo |
-| cost | number | Costo demo |
-| hours | number | Horas demo |
-| pendingTasks | number | Tareas pendientes |
-| logo | string | Ruta de imagen |
+| Campo | Tipo | Fuente | Descripción |
+|---|---|---|---|
+| id | UUID | Sheets | Identificador |
+| code_hash | SHA-256 | Sheets | Hash con pepper del código; nunca el código plano |
+| user_id | UUID/string | Sheets | Usuario asociado |
+| role | enum | Sheets | Rol concedido |
+| workspace_ids_json | JSON array | Sheets | Alcance de workspaces |
+| project_ids_json | JSON array | Sheets | Alcance de proyectos |
+| expires_at | datetime | Sheets | Vencimiento |
+| status | enum | Sheets | active, revoked, expired |
+| last_used_at | datetime | Sheets | Último intercambio |
 
-## Task y Activity
+## Server Session
 
-Son entidades demostrativas. Sus contratos definitivos se definiran al conectar Apps Script y Firebase.
+| Campo | Tipo | Fuente | Descripción |
+|---|---|---|---|
+| id | UUID | Sheets | Identificador interno |
+| session_hash | SHA-256 | Sheets | Hash con pepper del token de sesión |
+| user_id | string | Sheets | Usuario |
+| role | enum | Sheets | Rol |
+| workspace_ids_json | JSON array | Sheets | Alcance |
+| project_ids_json | JSON array | Sheets | Alcance |
+| expires_at | datetime | Sheets | Vencimiento |
+| status | enum | Sheets | active, revoked, expired |
+| last_seen_at | datetime | Sheets | Última validación |
+
+## Roles
+
+`superadmin`, `workspace_admin`, `project_lead`, `collaborator`, `client`, `guest`.

@@ -1,39 +1,36 @@
-# TEST CHECKLIST - ENTREGA 1
+# Test Checklist — Entrega 2
 
-## Navegacion
+## Acceso mock
+- [ ] `WONKUP-ADMIN` abre el Panel Maestro.
+- [ ] `AGORA-ADMIN` abre únicamente Ágora Education.
+- [ ] `TAXI-LIDER` solo ve TaxiChurro.
+- [ ] `TAXI-CLIENTE` solo abre el resumen de TaxiChurro.
+- [ ] `HUELLITAS-INVITADO` solo abre el resumen de Huellitas.
+- [ ] Un código incorrecto muestra un error.
+- [ ] El código no queda guardado en localStorage ni sessionStorage.
 
-- [ ] Carga `#/master/dashboard`.
-- [ ] Cambiar workspace actualiza la ruta.
-- [ ] Sidebar muestra la opcion activa.
-- [ ] Mis proyectos abre el portafolio.
-- [ ] Abrir proyecto muestra la ficha.
-- [ ] Pestañas de proyecto cambian la ruta.
-- [ ] Innovation Toolkit abre su vista.
-- [ ] Kanban abre su vista.
+## Permisos
+- [ ] Un cliente no puede abrir `#/master/dashboard`.
+- [ ] Un cliente no puede abrir Kanban, Canvases ni Finanzas.
+- [ ] Un administrador de Ágora no puede abrir NIJA modificando la URL.
+- [ ] Los indicadores financieros solo aparecen a administradores.
+- [ ] El selector muestra únicamente workspaces autorizados.
 
-## Tema
+## Sesión
+- [ ] La sesión persiste al recargar la pestaña.
+- [ ] La sesión desaparece al cerrar la pestaña o navegador.
+- [ ] Cerrar sesión devuelve a `#/access`.
+- [ ] Una sesión vencida obliga a ingresar nuevamente.
 
-- [ ] Tema claro funciona.
-- [ ] Tema oscuro funciona.
-- [ ] Tema sistema responde al dispositivo.
-- [ ] Preferencia persiste al recargar.
+## Temas y responsive
+- [ ] Claro, oscuro y sistema funcionan en acceso y plataforma.
+- [ ] El login funciona en móvil.
+- [ ] El sidebar móvil conserva el cierre mediante backdrop.
 
-## Responsive
-
-- [ ] Sidebar se oculta en tableta y movil.
-- [ ] Boton menu abre y cierra sidebar.
-- [ ] Tarjetas se adaptan a una columna.
-- [ ] Kanban permite desplazamiento horizontal.
-
-## Datos demo
-
-- [ ] Se muestran cuatro workspaces.
-- [ ] Se muestran proyectos reales acordados.
-- [ ] Filtros de proyectos funcionan.
-- [ ] Dashboard cambia por workspace.
-
-## Accesibilidad basica
-
-- [ ] Navegacion por teclado visible.
-- [ ] Botones tienen etiquetas.
-- [ ] Contraste legible en claro y oscuro.
+## Apps Script
+- [ ] `setupWonkUpMaster()` crea todas las hojas.
+- [ ] Los códigos se guardan como hashes.
+- [ ] `auth.exchangeCode` crea una sesión.
+- [ ] `auth.validate` valida una sesión vigente.
+- [ ] `auth.revoke` revoca una sesión.
+- [ ] `workspaces.list` filtra por alcance.

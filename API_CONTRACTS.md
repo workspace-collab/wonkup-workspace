@@ -1,29 +1,62 @@
-# API CONTRACTS
+# API Contracts — Entrega 2
 
-Estado: No implementado en Entrega 1.
+La API recibe `POST` con `URLSearchParams`:
 
-## Adaptador actual
+- `action`: operación.
+- `payload`: JSON serializado.
 
-`DemoService` expone:
+Respuesta estándar:
 
-- getWorkspaces()
-- getWorkspace(id)
-- getProjects(workspaceId)
-- getProject(id)
-- getActivities(workspaceId)
-- getTasks(workspaceId)
-- getKanban(projectId)
-- getCanvasTemplates()
+```json
+{ "ok": true, "data": {} }
+```
 
-## Contratos previstos para Entrega 2
+Error:
 
-- auth.exchangeInvite
-- auth.refreshSession
-- workspaces.list
-- workspaces.get
-- workspaces.create
-- workspaces.update
+```json
+{ "ok": false, "error": "Mensaje" }
+```
 
-## Regla de continuidad
+## `auth.exchangeCode`
 
-Las vistas no deben leer directamente Google Sheets ni Firebase. Deben consumir servicios o adaptadores.
+Entrada:
+
+```json
+{ "code": "WONKUP-ADMIN" }
+```
+
+Salida: objeto `Session` con token opaco, usuario, rol, alcance y vencimiento.
+
+## `auth.validate`
+
+Entrada:
+
+```json
+{ "sessionToken": "token-opaco" }
+```
+
+Salida: sesión vigente. Devuelve error cuando está vencida o revocada.
+
+## `auth.revoke`
+
+Entrada:
+
+```json
+{ "sessionToken": "token-opaco" }
+```
+
+Salida:
+
+```json
+{ "revoked": true }
+```
+
+## `workspaces.list`
+
+Entrada:
+
+```json
+{ "sessionToken": "token-opaco" }
+```
+
+Salida: lista de workspaces autorizados.
