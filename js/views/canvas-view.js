@@ -14,10 +14,10 @@ let cleanupEditor = null;
 let workspaceController = null;
 let refreshSequence = 0;
 let timerTicker = null;
+let timerAudioContext = null;
 let canvasMutationActive = false;
 let navigationBlockedUntil = 0;
 const VIEW_KEY = 'wonkup.canvas.view';
-const FOCUS_KEY = 'wonkup.canvas.focusMode';
 const TIMER_KEY = 'wonkup.canvas.teamTimer';
 const IMMERSIVE_CLASS = 'canvas-immersive-mode';
 
@@ -60,12 +60,12 @@ function renderCanvasEditor(container, context) {
   const completion = calculateCanvasProgress(instance);
   const canEdit = !readOnly && canEditCanvas(session);
   const canManage = !readOnly && canManageCanvas(session);
-  const focusMode = !readOnly && localStorage.getItem(FOCUS_KEY) === '1';
-  document.body.classList.toggle('canvas-focus-mode', focusMode);
+  document.body.classList.remove('canvas-focus-mode');
   container.dataset.activeCanvasId = instance.id;
+  const projectBrand = normalizeCanvasBrand(project.brandColor || template.color);
 
   container.innerHTML = `<section class="${readOnly ? 'shared-canvas-page' : 'page canvas-editor-page'}" data-canvas-id="${escapeHtml(instance.id)}" data-template-layout="${escapeHtml(template.layout || 'generic')}">
-    <header class="canvas-editor-header" style="--canvas-accent:${escapeHtml(template.color)}">
+    <header class="canvas-editor-header" style="--canvas-accent:${escapeHtml(template.color)};--canvas-brand:${escapeHtml(projectBrand)}">
       <div class="canvas-editor-identity">
         <button class="canvas-back-link" id="canvas-back" type="button" data-back-hash="${readOnly ? '#/access' : `#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`}">${icon('arrowLeft')} ${readOnly ? 'Acceso WonkUp' : 'Volver al Toolkit'}</button>
         <div class="canvas-title-row"><span class="canvas-title-icon">${icon(template.icon)}</span><div><span class="page-kicker">${escapeHtml(template.category)} · ${escapeHtml(project.name || 'Proyecto')}</span><h1>${escapeHtml(instance.title)}</h1><p>${escapeHtml(template.description)}</p></div></div>
@@ -76,7 +76,6 @@ function renderCanvasEditor(container, context) {
         ${readOnly ? '' : timerMarkup(instance.id)}
         <button class="button button-secondary" id="canvas-fullscreen" type="button">${icon('maximize')} Pantalla completa</button>
         ${readOnly ? `<span class="status-badge">Solo lectura</span>` : `
-          <button class="button button-secondary" id="canvas-focus" type="button">${icon('sidebar')} ${focusMode ? 'Mostrar barra lateral' : 'Modo enfoque'}</button>
           <button class="button button-secondary" id="canvas-history" type="button">${icon('history')} Historial</button>
           ${canManage ? `<button class="button button-secondary" id="canvas-share" type="button">${icon('link')} Compartir</button>` : ''}
           <button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>
@@ -97,7 +96,7 @@ function renderCanvasEditor(container, context) {
       ${viewMode === 'list' ? renderCanvasList(instance, canEdit) : renderCanvasBoard(instance, canEdit)}
     </div>
 
-    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.7.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
+    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.8.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
   </section>`;
 
   bindCanvasEvents(container, context, viewMode);
@@ -333,7 +332,6 @@ function bindCanvasEvents(container, context, currentView) {
     blockCanvasNavigation(1000);
     openCanvasSettings({ instance: context.instance, session, context, container });
   });
-  container.querySelector('#canvas-focus')?.addEventListener('click', () => toggleFocusMode(container, context));
   container.querySelector('#canvas-fullscreen')?.addEventListener('click', () => toggleFullscreen(container));
 }
 
@@ -444,7 +442,7 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
     body: `<div class="note-detail-layout"><form id="note-detail-form" class="form-grid" novalidate>
       <div class="field field-full"><label for="note-detail-text">Contenido *</label><textarea class="input textarea" id="note-detail-text" rows="6" maxlength="1200" required>${escapeHtml(note.text)}</textarea><small class="field-error" id="note-detail-error"></small></div>
       <div class="field"><label for="note-detail-section">Sección</label><select class="select" id="note-detail-section">${instance.template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === note.sectionId ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div>
-      <div class="field"><label for="note-detail-color">Color</label><select class="select" id="note-detail-color">${CANVAS_NOTE_COLORS.map(color => `<option value="${color.id}" ${color.id === note.colorId ? 'selected' : ''}>${escapeHtml(color.name)}</option>`).join('')}</select></div>
+      ${detailColorField(note.colorId)}
       <div class="note-meta field-full"><span>Creada por <strong>${escapeHtml(note.author?.name || 'Usuario')}</strong></span><span>${formatDate(note.createdAt)}</span>${note.sourceCanvasId ? `<span>${icon('link')} Resultado vinculado</span>` : ''}</div>
       <div class="modal-actions field-full note-actions"><button class="button button-danger" type="button" id="delete-note">${icon('trash')} Eliminar</button><button class="button button-secondary" type="button" id="link-note">${icon('link')} Vincular</button><button class="button button-secondary" type="button" id="convert-note">${icon('checkSquare')} Crear tarea</button><button class="button button-primary" type="submit">Guardar cambios</button></div>
     </form>
@@ -470,7 +468,7 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
         patch: {
           text,
           sectionId: modal.root.querySelector('#note-detail-section').value,
-          colorId: modal.root.querySelector('#note-detail-color').value
+          colorId: modal.root.querySelector('[name="note-detail-color"]:checked')?.value || note.colorId
         },
         session
       });
@@ -851,6 +849,15 @@ function openCanvasSettings({ instance, session, context, container }) {
   });
 }
 
+function normalizeCanvasBrand(value) {
+  const color = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : '#50a8f3';
+}
+
+function detailColorField(selected) {
+  return `<fieldset class="field field-full note-detail-color-field"><legend>Color de la nota</legend><div class="note-detail-color-palette">${CANVAS_NOTE_COLORS.map(color => `<label style="--swatch:${color.background};--swatch-border:${color.border}"><input type="radio" name="note-detail-color" value="${escapeHtml(color.id)}" ${color.id === selected ? 'checked' : ''}><span class="note-detail-color-swatch" aria-hidden="true"></span><span class="note-detail-color-copy"><strong>${escapeHtml(color.name)}</strong><code>${escapeHtml(color.background.toUpperCase())}</code></span></label>`).join('')}</div></fieldset>`;
+}
+
 function colorField(name, selected, compact = false) {
   return `<fieldset class="field field-full color-field ${compact ? 'color-field-compact' : ''}"><legend>Color</legend><div class="note-color-options">${CANVAS_NOTE_COLORS.map(color => `<label title="${escapeHtml(color.name)}" style="--swatch:${color.background};--swatch-border:${color.border}"><input type="radio" name="${name}" value="${color.id}" ${color.id === selected ? 'checked' : ''}><span></span><em>${escapeHtml(color.name)}</em></label>`).join('')}</div></fieldset>`;
 }
@@ -899,13 +906,6 @@ async function reloadCanvas(container, context) {
     if (requestId !== refreshSequence || container.dataset.activeCanvasId !== canvasId) return;
     applyCanvasInstance(container, context, next);
   } catch (error) { showToast(error.message, { type: 'error' }); }
-}
-
-function toggleFocusMode(container, context) {
-  const next = !document.body.classList.contains('canvas-focus-mode');
-  document.body.classList.toggle('canvas-focus-mode', next);
-  localStorage.setItem(FOCUS_KEY, next ? '1' : '0');
-  renderCanvasEditor(container, context);
 }
 
 async function toggleFullscreen(container) {
@@ -1035,6 +1035,37 @@ function openQrZoom(root, token) {
   overlay.querySelector('.qr-zoom-close').focus();
 }
 
+function ensureTimerAudio() {
+  try {
+    const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!timerAudioContext) timerAudioContext = new AudioContextClass();
+    if (timerAudioContext.state === 'suspended') timerAudioContext.resume?.();
+    return timerAudioContext;
+  } catch {
+    return null;
+  }
+}
+
+function playTimerAlarm() {
+  const audio = ensureTimerAudio();
+  if (!audio) return;
+  const start = audio.currentTime + 0.03;
+  [0, 0.32, 0.64].forEach((offset, index) => {
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    oscillator.type = index === 2 ? 'triangle' : 'sine';
+    oscillator.frequency.setValueAtTime(index === 2 ? 1046 : 880, start + offset);
+    gain.gain.setValueAtTime(0.0001, start + offset);
+    gain.gain.exponentialRampToValueAtTime(0.18, start + offset + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + offset + 0.23);
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
+    oscillator.start(start + offset);
+    oscillator.stop(start + offset + 0.25);
+  });
+}
+
 function readTimerState(canvasId) {
   try {
     const all = JSON.parse(localStorage.getItem(TIMER_KEY) || '{}');
@@ -1085,6 +1116,7 @@ function bindCanvasTimer(container, canvasId) {
     const state = readTimerState(canvasId);
     const display = container.querySelector('#canvas-timer-display');
     if (display) display.textContent = formatTimer(state.remaining);
+    container.querySelector('#canvas-team-timer')?.classList.toggle('is-finished', !state.running && state.remaining === 0);
     if (toggle) {
       toggle.innerHTML = icon(state.running ? 'pause' : 'play');
       toggle.setAttribute('aria-label', `${state.running ? 'Pausar' : 'Iniciar'} temporizador`);
@@ -1093,8 +1125,9 @@ function bindCanvasTimer(container, canvasId) {
       const finishedKey = `${TIMER_KEY}.finished.${canvasId}`;
       if (sessionStorage.getItem(finishedKey) !== String(state.endsAt || 'done')) {
         sessionStorage.setItem(finishedKey, String(state.endsAt || 'done'));
+        playTimerAlarm();
         showToast('⏱ Tiempo terminado. Es momento de cerrar la ideación.', { duration: 9000 });
-        navigator.vibrate?.([180, 100, 180]);
+        navigator.vibrate?.([180, 100, 180, 100, 240]);
       }
     }
   };
@@ -1104,6 +1137,7 @@ function bindCanvasTimer(container, canvasId) {
     render();
   });
   toggle?.addEventListener('click', () => {
+    ensureTimerAudio();
     const state = readTimerState(canvasId);
     if (state.running) {
       saveTimerState(canvasId, { ...state, remaining: Math.max(0, Math.ceil((state.endsAt - Date.now()) / 1000)), running: false, endsAt: 0 });

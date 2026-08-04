@@ -115,3 +115,15 @@
   min-width: 0;
   min-height: 0;
 }
+
+
+/* Ajuste 5.8 - menú principal colapsable en escritorio */
+@media (min-width: 981px) {
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "main";
+  }
+  .app-shell.sidebar-collapsed .app-sidebar { display: none; }
+}

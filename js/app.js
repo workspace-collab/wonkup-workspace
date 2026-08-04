@@ -9,7 +9,7 @@ import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
 import { renderProject } from './views/project-view.js';
 import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.7.0';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.8.0';
 import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
@@ -48,8 +48,15 @@ subscribe(state => {
   document.querySelector('#app-shell')?.classList.toggle('sidebar-open', state.sidebarOpen);
   const menuButton = document.querySelector('#menu-toggle');
   if (menuButton) {
-    menuButton.setAttribute('aria-expanded', String(Boolean(state.sidebarOpen)));
-    menuButton.setAttribute('aria-label', state.sidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
+    const desktopSidebar = matchMedia('(min-width: 981px)').matches;
+    const collapsed = document.querySelector('#app-shell')?.classList.contains('sidebar-collapsed');
+    const expanded = desktopSidebar ? !collapsed : Boolean(state.sidebarOpen);
+    const label = desktopSidebar
+      ? (collapsed ? 'Mostrar menú lateral' : 'Ocultar menú lateral')
+      : (state.sidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
+    menuButton.setAttribute('aria-expanded', String(expanded));
+    menuButton.setAttribute('aria-label', label);
+    menuButton.setAttribute('title', label);
   }
   const nextToken = state.session?.token || null;
   if (nextToken !== lastSessionToken) {

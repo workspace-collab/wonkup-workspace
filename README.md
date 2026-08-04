@@ -4,7 +4,7 @@ Centro operativo de WonkUp para gestión de proyectos, innovación y colaboraci�
 
 ## Estado actual
 
-**Ajuste 5.7 en revisión:** interacción ágil del Canvas Engine, compartir simplificado, impresión directa y modo inmersivo estable.
+**Ajuste 5.8 en revisión:** encabezado de marca, menú lateral colapsable, paleta visual de notas y alarma del timer.
 
 ## Núcleo estable
 
@@ -17,7 +17,7 @@ La reconstrucción 5.6 eliminó el reemplazo completo del lienzo durante las ope
 - revierte el movimiento visual si falla la persistencia;
 - utiliza delegación de eventos para evitar listeners duplicados.
 
-## Experiencia 5.7
+## Experiencia 5.7 y 5.8
 
 - Crear notas directamente con el `+` de cada sección.
 - Editar contenido inline sin modal para el flujo básico.
@@ -26,6 +26,10 @@ La reconstrucción 5.6 eliminó el reemplazo completo del lienzo durante las ope
 - Compartir con enlace y QR listos al abrir.
 - Imprimir / PDF sin modal intermedio.
 - Cerrar diálogos con Escape sin abandonar el modo inmersivo.
+- Personalizar el encabezado automáticamente con el color del proyecto.
+- Ocultar o mostrar el menú lateral desde las tres líneas.
+- Elegir colores con paleta y códigos desde el detalle de la nota.
+- Recibir sonido y alerta visual al finalizar el timer.
 
 ## Módulos funcionales
 
@@ -44,7 +48,7 @@ La reconstrucción 5.6 eliminó el reemplazo completo del lienzo durante las ope
 - Conversión de notas a tareas.
 - Enlaces de consulta con QR y vencimiento.
 - Exportación A4 resumen y detalle.
-- Modo enfoque, modo inmersivo y timer.
+- Menú lateral colapsable, modo inmersivo y timer con alarma.
 
 ## Configuración del MVP
 
@@ -56,10 +60,10 @@ canvasMode: 'mock'
 
 En modo mock, los cambios, enlaces y versiones se guardan en el navegador. Firebase y Apps Script se conectarán en fases posteriores.
 
-## Verificación 5.7
+## Verificación 5.8
 
-El script `tests/canvas-ux-smoke-5-7.py` reproduce el flujo real del Lean Canvas de TaxiChurro y valida alta inline, colores, arrastre, Escape, compartir, QR, impresión y eliminación rápida sin errores de página.
+El script `tests/canvas-ux-smoke-5-8.py` reproduce el flujo real del Lean Canvas de TaxiChurro y valida sidebar, encabezado de marca, alta inline, colores, arrastre, Escape, compartir, impresión, paleta detallada y alarma del timer.
 
 ## Publicación
 
-GitHub Pages puede desplegar directamente la rama `main` desde la carpeta raíz. Después de actualizar, el editor debe mostrar `Motor 5.7.0`.
+GitHub Pages puede desplegar directamente la rama `main` desde la carpeta raíz. Después de actualizar, el editor debe mostrar `Motor 5.8.0`.

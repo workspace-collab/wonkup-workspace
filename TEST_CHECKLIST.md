@@ -322,3 +322,18 @@ Validar:
 - [ ] Imprimir / PDF abre directamente el diálogo de impresión.
 - [ ] Escape cierra el diálogo antes de salir del modo inmersivo.
 - [ ] Escape sale del modo inmersivo cuando no hay diálogo.
+
+## Ajuste 5.8 - Encabezado, navegación y timer
+
+- [ ] El encabezado usa el color de marca del proyecto.
+- [ ] El título dispone de ancho suficiente y no deja un gran espacio vacío.
+- [ ] El botón de tres líneas aparece en escritorio.
+- [ ] El botón oculta y muestra el menú lateral.
+- [ ] La preferencia del menú se conserva al recargar.
+- [ ] El botón Modo enfoque ya no aparece en el canvas.
+- [ ] Detalle de nota muestra seis colores con códigos hexadecimales.
+- [ ] El color seleccionado queda claramente marcado.
+- [ ] Guardar cambios aplica el color elegido.
+- [ ] Al terminar, el timer emite tres tonos.
+- [ ] Al terminar, el timer cambia de estado visual.
+- [ ] Al terminar, aparece un aviso aunque el audio esté bloqueado.

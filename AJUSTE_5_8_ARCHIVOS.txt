@@ -1,0 +1,19 @@
+AJUSTE 5.8 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_8_DIAGNOSTICO.md
+- AJUSTE_5_8_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- README.md
+- TEST_CHECKLIST.md
+- TEST_RESULTS_5_8.md
+- css/components.css
+- css/layout.css
+- css/responsive.css
+- index.html
+- js/app.js
+- js/components/app-shell.js
+- js/views/canvas-view.js
+- tests/canvas-ux-smoke-5-8.png
+- tests/canvas-ux-smoke-5-8.py
+- AJUSTE_5_8_ARCHIVOS.txt

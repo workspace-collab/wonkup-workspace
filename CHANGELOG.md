@@ -204,3 +204,14 @@
 - El menú de tres puntos conserva edición, comentarios, vinculación y Kanban.
 - La pantalla completa nativa se reemplazó por modo inmersivo controlado.
 - Escape cierra primero el diálogo y conserva la vista ampliada.
+
+## Ajuste 5.8 - Encabezado de marca, sidebar y paleta de notas
+
+- Se convirtió el encabezado del canvas en un banner compacto basado en el color de marca del proyecto.
+- Se combinó el color del proyecto con el color metodológico de cada canvas.
+- El botón de tres líneas ahora colapsa el menú lateral también en escritorio.
+- La preferencia del sidebar se conserva localmente.
+- Se retiró el botón Modo enfoque del Canvas Engine.
+- El detalle de nota muestra una paleta visual con nombre y código hexadecimal.
+- El timer ahora emite tres tonos, muestra una alerta y mantiene vibración compatible al finalizar.
+- Se añadió identificación visible `Motor 5.8.0`.

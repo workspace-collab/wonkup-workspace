@@ -26,7 +26,8 @@
   .app-shell.sidebar-open .app-sidebar { transform: translateX(0); }
   .app-shell.sidebar-open .sidebar-backdrop { display: block; }
   .app-main { padding: 22px; }
-  .mobile-menu-button { display: inline-grid !important; }
+  .mobile-menu-button,
+  .shell-menu-button { display: inline-grid !important; }
   .header-search-wrap { display: none; }
   .content-grid-2 { grid-template-columns: 1fr; }
   .kanban-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }

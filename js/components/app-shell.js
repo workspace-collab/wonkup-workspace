@@ -25,6 +25,7 @@ const internalNavItems = [
 
 let keyboardShortcutsBound = false;
 let searchTimer = null;
+const SIDEBAR_COLLAPSED_KEY = 'wonkup.sidebar.collapsed';
 
 function workspaceBase(id) {
   return id === 'all' ? '#/master' : `#/w/${id}`;
@@ -65,8 +66,11 @@ export function renderShell(route = null) {
   const accessMode = route?.view === 'access';
 
   closePopovers();
+  const desktopSidebar = matchMedia('(min-width: 981px)').matches;
+  const sidebarCollapsed = desktopSidebar && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
   shell?.classList.toggle('auth-shell', accessMode);
   shell?.classList.toggle('sidebar-open', state.sidebarOpen && !accessMode);
+  shell?.classList.toggle('sidebar-collapsed', sidebarCollapsed && !accessMode);
 
   if (accessMode || !session) {
     document.querySelector('#sidebar').innerHTML = '';
@@ -146,8 +150,13 @@ export function renderShell(route = null) {
     body: `<div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small><span>${escapeHtml(session.roleLabel)}</span></div><button role="menuitem" data-profile-action="preferences">${icon('sun')} Apariencia</button><div class="dropdown-divider"></div><button role="menuitem" id="logout-button" class="danger-menu-item">${icon('logout')} Cerrar sesión</button>`
   });
 
+  const menuExpanded = desktopSidebar ? !sidebarCollapsed : Boolean(state.sidebarOpen);
+  const menuLabel = desktopSidebar
+    ? (sidebarCollapsed ? 'Mostrar menú lateral' : 'Ocultar menú lateral')
+    : (state.sidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
+
   document.querySelector('#header').innerHTML = `
-    <button class="header-icon-button mobile-menu-button" id="menu-toggle" aria-label="Abrir menú lateral" data-open-label="Abrir menú lateral" data-close-label="Cerrar menú lateral" aria-expanded="${state.sidebarOpen ? 'true' : 'false'}" aria-controls="sidebar">${icon('menu')}</button>
+    <button class="header-icon-button shell-menu-button" id="menu-toggle" aria-label="${menuLabel}" aria-expanded="${menuExpanded}" aria-controls="sidebar" title="${menuLabel}">${icon('menu')}</button>
     <div class="header-workspace"><strong>${escapeHtml(current?.name || 'WonkUp Workspace')}</strong><small>${escapeHtml(current?.shortName || 'Centro de operaciones')}</small></div>
     ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="sr-only" for="global-search">Búsqueda global de proyectos, tareas, clientes y canvases</label><div class="header-search">${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas, clientes o canvases..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></div>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
     <div class="header-actions">
@@ -196,11 +205,22 @@ function bindShellEvents(session, selectedWorkspaceId) {
 
   document.querySelector('#menu-toggle')?.addEventListener('click', () => {
     closePopovers();
+    const button = document.querySelector('#menu-toggle');
+    const shell = document.querySelector('#app-shell');
+    if (matchMedia('(min-width: 981px)').matches) {
+      const nextCollapsed = !shell?.classList.contains('sidebar-collapsed');
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, nextCollapsed ? '1' : '0');
+      shell?.classList.toggle('sidebar-collapsed', nextCollapsed);
+      button?.setAttribute('aria-expanded', String(!nextCollapsed));
+      button?.setAttribute('aria-label', nextCollapsed ? 'Mostrar menú lateral' : 'Ocultar menú lateral');
+      button?.setAttribute('title', nextCollapsed ? 'Mostrar menú lateral' : 'Ocultar menú lateral');
+      return;
+    }
     const nextOpen = !getState().sidebarOpen;
     setState({ sidebarOpen: nextOpen });
-    const button = document.querySelector('#menu-toggle');
     button?.setAttribute('aria-expanded', String(nextOpen));
     button?.setAttribute('aria-label', nextOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
+    button?.setAttribute('title', nextOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
   });
 
   bindPopoverTrigger('quick-add', 'quick-menu');
