@@ -41,7 +41,12 @@ function options(items, selected) {
 function fieldError(form, name, message = '') {
   const slot = form.querySelector(`[data-error-for="${name}"]`);
   if (slot) slot.textContent = message;
-  form.querySelector(`[name="${name}"]`)?.classList.toggle('field-invalid', Boolean(message));
+  const field = form.querySelector(`[name="${name}"]`);
+  if (!field) return;
+  field.classList.toggle('field-invalid', Boolean(message));
+  field.setAttribute('aria-invalid', message ? 'true' : 'false');
+  const errorId = slot?.id;
+  if (errorId) field.setAttribute('aria-describedby', errorId);
 }
 
 function readForm(form) {
@@ -54,9 +59,9 @@ function projectFormHtml({ project, workspaces, defaultWorkspaceId }) {
     <div class="form-section">
       <div class="form-section-title"><strong>Información principal</strong><span>Datos que identifican el proyecto.</span></div>
       <div class="form-grid form-grid-2">
-        <label class="form-field"><span>Workspace *</span><select class="select" name="workspaceId" ${project ? 'disabled' : ''}>${workspaces.map(workspace => `<option value="${workspace.id}" ${workspace.id === (project?.workspaceId || defaultWorkspaceId) ? 'selected' : ''}>${escapeHtml(workspace.name)}</option>`).join('')}</select><small data-error-for="workspaceId"></small></label>
+        <label class="form-field"><span>Workspace *</span><select class="select" id="project-workspace" name="workspaceId" required aria-required="true" aria-describedby="project-workspace-error" ${project ? 'disabled' : ''}>${workspaces.map(workspace => `<option value="${workspace.id}" ${workspace.id === (project?.workspaceId || defaultWorkspaceId) ? 'selected' : ''}>${escapeHtml(workspace.name)}</option>`).join('')}</select><small id="project-workspace-error" data-error-for="workspaceId"></small></label>
         <label class="form-field"><span>Cliente</span><select class="select" name="clientId" id="project-client-select"><option value="">Sin cliente</option></select><small data-error-for="clientId"></small></label>
-        <label class="form-field form-span-2"><span>Nombre del proyecto *</span><input class="input" name="name" maxlength="120" value="${value('name')}" placeholder="Ej. Plataforma de reservas"><small data-error-for="name"></small></label>
+        <label class="form-field form-span-2"><span>Nombre del proyecto *</span><input class="input" id="project-name" name="name" maxlength="120" required aria-required="true" aria-describedby="project-name-error" value="${value('name')}" placeholder="Ej. Plataforma de reservas"><small id="project-name-error" data-error-for="name"></small></label>
         <label class="form-field form-span-2"><span>Frase breve</span><input class="input" name="tagline" maxlength="180" value="${value('tagline')}" placeholder="Describe el proyecto en una frase"><small data-error-for="tagline"></small></label>
         <label class="form-field form-span-2"><span>Descripción</span><textarea class="textarea" name="description" rows="4" maxlength="2000" placeholder="Objetivo, alcance y resultado esperado">${value('description')}</textarea><small data-error-for="description"></small></label>
       </div>
@@ -65,7 +70,7 @@ function projectFormHtml({ project, workspaces, defaultWorkspaceId }) {
     <div class="form-section">
       <div class="form-section-title"><strong>Gestión</strong><span>Responsable, etapa, prioridad y fechas.</span></div>
       <div class="form-grid form-grid-3">
-        <label class="form-field"><span>Responsable *</span><select class="select" name="ownerUserId" id="project-owner-select"><option value="">Selecciona</option></select><small data-error-for="ownerUserId"></small></label>
+        <label class="form-field"><span>Responsable *</span><select class="select" name="ownerUserId" id="project-owner-select" required aria-required="true" aria-describedby="project-owner-error"><option value="">Selecciona</option></select><small id="project-owner-error" data-error-for="ownerUserId"></small></label>
         <label class="form-field"><span>Estado</span><select class="select" name="status">${options(STATUS_OPTIONS, project?.status || 'planned')}</select><small data-error-for="status"></small></label>
         <label class="form-field"><span>Etapa</span><select class="select" name="stage">${options(STAGE_OPTIONS, project?.stage || 'definition')}</select><small data-error-for="stage"></small></label>
         <label class="form-field"><span>Prioridad</span><select class="select" name="priority">${options(PRIORITY_OPTIONS, project?.priority || 'medium')}</select><small data-error-for="priority"></small></label>
@@ -91,7 +96,7 @@ function projectFormHtml({ project, workspaces, defaultWorkspaceId }) {
 
     ${project ? '' : `<label class="check-field"><input type="checkbox" name="createDrive" value="yes"><span><strong>Crear estructura documental</strong><small>En modo demo se genera una estructura simulada. Con Apps Script se crearán carpetas reales.</small></span></label>`}
 
-    <div class="form-global-error hidden" id="project-form-error"></div>
+    <div class="form-global-error hidden" id="project-form-error" role="alert" tabindex="-1"></div>
     <div class="modal-actions"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit" id="project-submit">${project ? 'Guardar cambios' : 'Crear proyecto'}</button></div>
   </form>`;
 }
@@ -152,9 +157,17 @@ export async function openProjectForm({ session = getState().session, workspaceI
     });
 
     form.querySelectorAll('[data-error-for]').forEach(slot => { slot.textContent = ''; });
+    form.querySelectorAll('[aria-invalid="true"]').forEach(field => field.setAttribute('aria-invalid', 'false'));
     form.querySelectorAll('.field-invalid').forEach(field => field.classList.remove('field-invalid'));
     Object.entries(errors).forEach(([name, message]) => fieldError(form, name, message));
-    if (Object.keys(errors).length) return;
+    if (Object.keys(errors).length) {
+      const globalError = form.querySelector('#project-form-error');
+      globalError.textContent = `Revisa ${Object.keys(errors).length} campo(s) antes de continuar.`;
+      globalError.classList.remove('hidden');
+      globalError.focus();
+      form.querySelector('[aria-invalid="true"]')?.focus();
+      return;
+    }
 
     submit.disabled = true;
     submit.innerHTML = '<span class="spinner"></span> Guardando...';

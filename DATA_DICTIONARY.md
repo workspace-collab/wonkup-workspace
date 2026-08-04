@@ -123,3 +123,7 @@ Las entidades administrativas de la Entrega 3.1 se mantienen sin cambios. Esta e
 | `archivedBy` | string | Usuario que archivó |
 | `restoredAt` | ISO date | Fecha de restauración |
 | `restoredBy` | string | Usuario que restauró |
+
+## Ajuste 4.2
+
+No se agregan entidades persistentes. La preferencia de vista del Kanban (`board` o `list`) se almacena localmente como preferencia de interfaz y no forma parte de la fuente oficial de verdad del proyecto.

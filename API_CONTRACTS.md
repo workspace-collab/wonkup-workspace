@@ -122,3 +122,7 @@ Restaura un cliente archivado.
 #### `clients.delete`
 
 Eliminación definitiva exclusiva del superadministrador. Solo procede si el cliente está archivado y no tiene proyectos vinculados.
+
+## Ajuste 4.2
+
+No se modifican contratos de backend, Google Apps Script ni Firebase. Los cambios pertenecen a presentacion, accesibilidad, navegacion, validacion de formularios y modos de visualizacion del Kanban.

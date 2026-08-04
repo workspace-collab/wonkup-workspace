@@ -7,7 +7,7 @@ import { icon } from '../utils/icons.js';
 export function renderAccess(container, options = {}) {
   const demoCodes = AccessService.getDemoCodes();
   const reason = options.reason === 'expired'
-    ? '<div class="auth-alert">Tu sesión terminó. Ingresa nuevamente para continuar.</div>'
+    ? '<div class="auth-alert" role="alert">Tu sesión terminó. Ingresa nuevamente para continuar.</div>'
     : '';
 
   container.innerHTML = `
@@ -21,10 +21,10 @@ export function renderAccess(container, options = {}) {
             <span class="auth-brand-logo"><img src="./assets/brand/logo-wonkup.png" alt="" onerror="this.remove(); this.parentElement.textContent='W';"></span>
             <div><strong>WonkUp Workspace</strong><small>Innovación y gestión de proyectos</small></div>
           </div>
-          <span class="auth-kicker">ENTREGA 2 · ACCESO Y WORKSPACES</span>
+          <span class="auth-kicker">ACCESO SEGURO</span>
           <h1>Todo tu portafolio, conectado en un solo lugar.</h1>
           <p>Ingresa con un código autorizado para acceder únicamente a los workspaces y proyectos asignados a tu rol.</p>
-          <div class="auth-benefits">
+          <div class="auth-benefits" aria-label="Beneficios principales">
             <span>${icon('briefcase')} Gestión multiworkspace</span>
             <span>${icon('shield')} Accesos con alcance y vencimiento</span>
             <span>${icon('users')} Roles internos y de cliente</span>
@@ -41,7 +41,7 @@ export function renderAccess(container, options = {}) {
           <form id="access-form" novalidate>
             <label class="form-field" for="access-code">
               <span>Código de acceso</span>
-              <input class="input auth-input" id="access-code" name="accessCode" autocomplete="one-time-code" placeholder="Ejemplo: WONKUP-ADMIN" required>
+              <input class="input auth-input" id="access-code" name="accessCode" autocomplete="one-time-code" placeholder="Ejemplo: WONKUP-ADMIN" required aria-required="true" aria-describedby="access-error">
             </label>
             <div class="form-error hidden" id="access-error" role="alert"></div>
             <button class="button button-primary auth-submit" id="access-submit" type="submit">
@@ -51,8 +51,8 @@ export function renderAccess(container, options = {}) {
           <p class="auth-security-note">El código se intercambia por una sesión temporal y no se guarda en el navegador.</p>
 
           ${demoCodes.length ? `
-            <div class="demo-access">
-              <div class="demo-access-title"><strong>Códigos de demostración</strong><span>Modo local</span></div>
+            <details class="demo-access">
+              <summary class="demo-access-title"><strong>Códigos de demostración</strong><span>Modo local</span></summary>
               <div class="demo-code-list">
                 ${demoCodes.map(item => `
                   <button class="demo-code" type="button" data-demo-code="${escapeHtml(item.code)}">
@@ -61,7 +61,7 @@ export function renderAccess(container, options = {}) {
                   </button>
                 `).join('')}
               </div>
-            </div>
+            </details>
           ` : ''}
         </article>
       </div>
@@ -76,6 +76,7 @@ export function renderAccess(container, options = {}) {
     button.addEventListener('click', () => {
       input.value = button.dataset.demoCode;
       input.focus();
+      input.setAttribute('aria-invalid', 'false');
       errorBox.classList.add('hidden');
     });
   });
@@ -106,10 +107,12 @@ export function renderAccess(container, options = {}) {
   function showError(message) {
     errorBox.textContent = message;
     errorBox.classList.remove('hidden');
+    input.setAttribute('aria-invalid', 'true');
   }
 
   function setLoading(loading) {
     submit.disabled = loading;
+    submit.setAttribute('aria-busy', String(loading));
     submit.innerHTML = loading
       ? '<span class="spinner"></span><span>Validando...</span>'
       : `<span>Ingresar</span>${icon('arrowRight')}`;

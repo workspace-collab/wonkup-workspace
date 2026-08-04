@@ -11,16 +11,16 @@ import { closePopovers, initializePopoverManager, togglePopover } from '../utils
 import { canCreateProject, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js';
 
 const internalNavItems = [
-  ['dashboard', 'Dashboard', 'home'],
-  ['projects', 'Mis proyectos', 'folder'],
-  ['toolkit', 'Innovation Toolkit', 'lightbulb'],
-  ['kanban', 'Kanban', 'kanban'],
-  ['calendar', 'Calendario', 'calendar'],
-  ['team', 'Equipo', 'users'],
-  ['clients', 'Clientes', 'user'],
-  ['documents', 'Documentos', 'file'],
-  ['reports', 'Reportes', 'chart'],
-  ['settings', 'Configuración', 'settings']
+  ['dashboard', 'Dashboard', 'home', null, true],
+  ['projects', 'Mis proyectos', 'folder', null, true],
+  ['toolkit', 'Innovation Toolkit', 'lightbulb', null, true],
+  ['kanban', 'Kanban', 'kanban', null, true],
+  ['calendar', 'Calendario', 'calendar', null, false],
+  ['team', 'Equipo', 'users', null, false],
+  ['clients', 'Clientes', 'user', null, true],
+  ['documents', 'Documentos', 'file', null, false],
+  ['reports', 'Reportes', 'chart', null, false],
+  ['settings', 'Configuración', 'settings', null, false]
 ];
 
 let keyboardShortcutsBound = false;
@@ -46,13 +46,13 @@ function createReadOnlyNav(session) {
 }
 
 function popover({ id, triggerId, className = '', body = '' }) {
-  return `<div class="dropdown ${className} hidden" id="${id}" data-popover-panel data-trigger-id="${triggerId}">${body}</div>`;
+  return `<div class="dropdown ${className} hidden" id="${id}" role="menu" aria-label="Menú contextual" data-popover-panel data-trigger-id="${triggerId}">${body}</div>`;
 }
 
 export function createAppShell() {
   initializePopoverManager();
   const app = document.querySelector('#app');
-  app.innerHTML = `<div class="app-shell" id="app-shell"><aside class="app-sidebar" id="sidebar"></aside><header class="app-header" id="header"></header><main class="app-main" id="main-view"></main><button class="sidebar-backdrop" id="sidebar-backdrop" aria-label="Cerrar menú"></button></div>`;
+  app.innerHTML = `<div class="app-shell" id="app-shell"><aside class="app-sidebar" id="sidebar"></aside><header class="app-header" id="header"></header><main class="app-main" id="main-view" tabindex="-1"></main><button class="sidebar-backdrop" id="sidebar-backdrop" aria-label="Cerrar menú lateral"></button></div>`;
   document.querySelector('#sidebar-backdrop').addEventListener('click', () => setState({ sidebarOpen: false }));
   bindGlobalKeyboardShortcuts();
   return { main: document.querySelector('#main-view'), renderShell };
@@ -112,26 +112,28 @@ export function renderShell(route = null) {
 
       <nav class="sidebar-nav" aria-label="Navegación principal">
         ${navItems.map((item, index) => {
-          const [key, label, iconName, customHref] = item;
+          const [key, label, iconName, customHref, enabled = true] = item;
           const href = customHref || navHref(key, selected);
           const itemActive = key === 'project' ? active === 'project' : active === key;
-          return `${index === navItems.length - 1 && key === 'settings' ? '<div class="nav-group-title">Administración</div>' : ''}<a class="nav-link ${itemActive ? 'active' : ''}" href="${href}"><span class="nav-icon">${icon(iconName)}</span>${escapeHtml(label)}</a>`;
+          const divider = index === navItems.length - 1 && key === 'settings' ? '<div class="nav-group-title">Administración</div>' : '';
+          if (!enabled) return `${divider}<span class="nav-link nav-link-disabled" aria-disabled="true"><span class="nav-icon">${icon(iconName)}</span><span>${escapeHtml(label)}</span><span class="nav-soon">Próximamente</span></span>`;
+          return `${divider}<a class="nav-link ${itemActive ? 'active' : ''}" href="${href}" ${itemActive ? 'aria-current="page"' : ''}><span class="nav-icon">${icon(iconName)}</span><span>${escapeHtml(label)}</span></a>`;
         }).join('')}
       </nav>
 
       <div class="sidebar-footer">
-        <div class="sidebar-tip"><strong>Ajuste 4.1</strong>Kanban configurable, búsqueda, notificaciones y mejoras de usabilidad.</div>
+        <div class="sidebar-tip"><strong>WonkUp Workspace</strong>Organiza proyectos, equipo e innovación en un solo lugar.</div>
       </div>
     </div>`;
 
   const quickMenu = popover({
     id: 'quick-menu', triggerId: 'quick-add', className: 'header-popover compact-menu',
-    body: `<div class="popover-title">Crear rápidamente</div><button data-action="project">${icon('folder')}<span><strong>Nuevo proyecto</strong><small>Registra una nueva iniciativa</small></span></button><button data-action="task">${icon('checkSquare')}<span><strong>Nueva tarea</strong><small>Abre el Kanban actual</small></span></button><button data-action="canvas">${icon('lightbulb')}<span><strong>Nuevo canvas</strong><small>Abre Innovation Toolkit</small></span></button>`
+    body: `<div class="popover-title">Crear rápidamente</div><button role="menuitem" data-action="project">${icon('folder')}<span><strong>Nuevo proyecto</strong><small>Registra una nueva iniciativa</small></span></button><button role="menuitem" data-action="task">${icon('checkSquare')}<span><strong>Nueva tarea</strong><small>Crea una tarjeta en el Kanban</small></span></button>`
   });
 
   const themeMenu = popover({
     id: 'theme-menu', triggerId: 'theme-button', className: 'header-popover theme-popover',
-    body: `<div class="popover-title">Apariencia</div><button data-theme="light">${icon('sun')}<span>Claro</span><i data-theme-check="light">${icon('check')}</i></button><button data-theme="dark">${icon('moon')}<span>Oscuro</span><i data-theme-check="dark">${icon('check')}</i></button><button data-theme="system">${icon('monitor')}<span>Sistema</span><i data-theme-check="system">${icon('check')}</i></button>`
+    body: `<div class="popover-title">Apariencia</div><button role="menuitemradio" data-theme="light">${icon('sun')}<span>Claro</span><i data-theme-check="light">${icon('check')}</i></button><button role="menuitemradio" data-theme="dark">${icon('moon')}<span>Oscuro</span><i data-theme-check="dark">${icon('check')}</i></button><button role="menuitemradio" data-theme="system">${icon('monitor')}<span>Sistema</span><i data-theme-check="system">${icon('check')}</i></button>`
   });
 
   const notificationMenu = popover({
@@ -141,18 +143,18 @@ export function renderShell(route = null) {
 
   const profileMenu = popover({
     id: 'profile-menu', triggerId: 'profile-button', className: 'header-popover profile-dropdown',
-    body: `<div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small><span>${escapeHtml(session.roleLabel)}</span></div><button data-profile-action="preferences">${icon('settings')} Preferencias</button><div class="dropdown-divider"></div><button id="logout-button" class="danger-menu-item">${icon('logout')} Cerrar sesión</button>`
+    body: `<div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small><span>${escapeHtml(session.roleLabel)}</span></div><button role="menuitem" data-profile-action="preferences">${icon('sun')} Apariencia</button><div class="dropdown-divider"></div><button role="menuitem" id="logout-button" class="danger-menu-item">${icon('logout')} Cerrar sesión</button>`
   });
 
   document.querySelector('#header').innerHTML = `
-    <button class="header-icon-button mobile-menu-button" id="menu-toggle" aria-label="Abrir menú lateral">${icon('menu')}</button>
+    <button class="header-icon-button mobile-menu-button" id="menu-toggle" aria-label="Abrir menú lateral" data-open-label="Abrir menú lateral" data-close-label="Cerrar menú lateral" aria-expanded="${state.sidebarOpen ? 'true' : 'false'}" aria-controls="sidebar">${icon('menu')}</button>
     <div class="header-workspace"><strong>${escapeHtml(current?.name || 'WonkUp Workspace')}</strong><small>${escapeHtml(current?.shortName || 'Centro de operaciones')}</small></div>
-    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="header-search"><span class="sr-only">Buscar</span>${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas o clientes..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></label>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
+    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="sr-only" for="global-search">Búsqueda global de proyectos, tareas y clientes</label><div class="header-search">${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas o clientes..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></div>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
     <div class="header-actions">
-      ${isInternalUser(session) ? `<div class="relative"><button class="header-icon-button" id="quick-add" aria-label="Crear" aria-expanded="false">${icon('plus')}</button>${quickMenu}</div>` : ''}
-      <div class="relative"><button class="header-icon-button" id="theme-button" aria-label="Cambiar apariencia" aria-expanded="false">${icon('sun')}</button>${themeMenu}</div>
-      <div class="relative"><button class="header-icon-button" id="notification-button" aria-label="Notificaciones" aria-expanded="false">${icon('bell')}${unreadCount ? `<span class="notification-dot">${unreadCount > 9 ? '9+' : unreadCount}</span>` : ''}</button>${notificationMenu}</div>
-      <div class="relative"><button class="profile-button" id="profile-button" aria-expanded="false"><span class="profile-avatar">${escapeHtml(session.user.initials || session.user.name.slice(0, 1))}</span><span class="profile-copy"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.roleLabel)}</small></span>${icon('chevronDown', 'profile-chevron')}</button>${profileMenu}</div>
+      ${isInternalUser(session) ? `<div class="relative"><button class="header-icon-button" id="quick-add" aria-label="Abrir menú Crear" aria-expanded="false" aria-controls="quick-menu">${icon('plus')}</button>${quickMenu}</div>` : ''}
+      <div class="relative"><button class="header-icon-button" id="theme-button" aria-label="Abrir opciones de apariencia" aria-expanded="false" aria-controls="theme-menu">${icon('sun')}</button>${themeMenu}</div>
+      <div class="relative"><button class="header-icon-button" id="notification-button" aria-label="Notificaciones${unreadCount ? `, ${unreadCount} sin leer` : ''}" aria-expanded="false" aria-controls="notification-menu">${icon('bell')}${unreadCount ? `<span class="notification-dot" aria-hidden="true">${unreadCount > 9 ? '9+' : unreadCount}</span>` : ''}</button>${notificationMenu}</div>
+      <div class="relative"><button class="profile-button" id="profile-button" aria-label="Abrir menú de perfil" aria-expanded="false" aria-controls="profile-menu"><span class="profile-avatar">${escapeHtml(session.user.initials || session.user.name.slice(0, 1))}</span><span class="profile-copy"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.roleLabel)}</small></span>${icon('chevronDown', 'profile-chevron')}</button>${profileMenu}</div>
     </div>`;
 
   bindShellEvents(session, selected);
@@ -194,7 +196,11 @@ function bindShellEvents(session, selectedWorkspaceId) {
 
   document.querySelector('#menu-toggle')?.addEventListener('click', () => {
     closePopovers();
-    setState({ sidebarOpen: !getState().sidebarOpen });
+    const nextOpen = !getState().sidebarOpen;
+    setState({ sidebarOpen: nextOpen });
+    const button = document.querySelector('#menu-toggle');
+    button?.setAttribute('aria-expanded', String(nextOpen));
+    button?.setAttribute('aria-label', nextOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
   });
 
   bindPopoverTrigger('quick-add', 'quick-menu');
@@ -217,10 +223,10 @@ function bindShellEvents(session, selectedWorkspaceId) {
         sessionStorage.setItem('wonkup.intent.newProject', '1');
         location.hash = selectedWorkspaceId === 'all' ? '#/master/projects' : `#/w/${selectedWorkspaceId}/projects`;
       } else if (action === 'task') {
-        location.hash = selectedWorkspaceId === 'all' ? '#/master/kanban' : `#/w/${selectedWorkspaceId}/kanban`;
-        showToast('Selecciona un proyecto para crear la tarea.');
-      } else if (action === 'canvas') {
-        location.hash = selectedWorkspaceId === 'all' ? '#/master/toolkit' : `#/w/${selectedWorkspaceId}/toolkit`;
+        sessionStorage.setItem('wonkup.intent.newTask', '1');
+        const target = selectedWorkspaceId === 'all' ? '#/master/kanban' : `#/w/${selectedWorkspaceId}/kanban`;
+        if (location.hash === target) window.dispatchEvent(new HashChangeEvent('hashchange'));
+        else location.hash = target;
       } else {
         showToast('Tu rol no permite realizar esta acción.');
       }
@@ -247,7 +253,9 @@ function bindShellEvents(session, selectedWorkspaceId) {
 
   document.querySelector('[data-profile-action="preferences"]')?.addEventListener('click', () => {
     closePopovers();
-    location.hash = selectedWorkspaceId === 'all' ? '#/master/settings' : `#/w/${selectedWorkspaceId}/settings`;
+    const trigger = document.querySelector('#theme-button');
+    const panel = document.querySelector('#theme-menu');
+    if (trigger && panel) togglePopover(trigger, panel);
   });
 
   bindGlobalSearch(session, selectedWorkspaceId);
@@ -339,6 +347,8 @@ function bindGlobalKeyboardShortcuts() {
 
 function updateThemeChecks(preference) {
   document.querySelectorAll('[data-theme-check]').forEach(check => {
-    check.classList.toggle('visible', check.dataset.themeCheck === preference);
+    const selected = check.dataset.themeCheck === preference;
+    check.classList.toggle('visible', selected);
+    check.closest('button')?.setAttribute('aria-checked', String(selected));
   });
 }

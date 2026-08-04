@@ -21,7 +21,7 @@ export function renderProjects(container, workspaceId, session) {
   container.innerHTML = `<section class="page">
     <div class="page-header"><div><span class="page-kicker">GESTIÓN DE PROYECTOS</span><h1>Mis proyectos</h1><p>Crea, edita, consulta y organiza los proyectos incluidos en tu alcance.</p></div>${canCreateProject(session) ? `<div class="page-header-actions"><button class="button button-primary" id="new-project">${icon('plus')} Nuevo proyecto</button></div>` : ''}</div>
     <div class="toolbar" style="margin-bottom:18px">
-      <label class="search-box">${icon('search')}<input id="project-search" type="search" placeholder="Buscar proyecto, código o cliente..."></label>
+      <label class="search-box" for="project-search"><span class="sr-only">Buscar proyectos por nombre, código o cliente</span>${icon('search')}<input id="project-search" type="search" placeholder="Buscar proyecto, código o cliente..." aria-label="Buscar proyectos"></label>
       <select class="select" id="status-filter"><option value="">Todos los estados</option>${Object.entries(STATUS).map(([key, value]) => `<option value="${key}">${value[0]}</option>`).join('')}</select>
       <label class="check-inline"><input type="checkbox" id="include-archived"> Mostrar archivados</label>
       <span class="service-mode">Fuente: ${ProjectService.mode === 'mock' ? 'demo local' : 'Google Apps Script'}</span>
@@ -52,7 +52,7 @@ export function renderProjects(container, workspaceId, session) {
 
     content.innerHTML = filtered.length
       ? `<div class="projects-grid">${filtered.map(project => projectCard(project, session)).join('')}</div>`
-      : `<div class="empty-state"><div class="empty-state-icon">${icon('search')}</div><h3>No encontramos proyectos</h3><p>Cambia los filtros o crea un proyecto nuevo.</p></div>`;
+      : `<div class="empty-state"><div class="empty-state-icon">${icon('search')}</div><h2>No encontramos proyectos</h2><p>Cambia los filtros o crea un proyecto nuevo.</p></div>`;
 
     content.querySelectorAll('[data-project-edit]').forEach(button => {
       button.addEventListener('click', async () => {
@@ -147,6 +147,7 @@ export function renderProjects(container, workspaceId, session) {
 function projectCard(project, session) {
   const status = STATUS[project.status] || STATUS.draft;
   const healthColor = { green: 'var(--success)', amber: 'var(--warning)', red: 'var(--danger)' }[project.health] || 'var(--text-muted)';
+  const healthLabel = { green: 'Salud estable', amber: 'Salud en riesgo', red: 'Salud crítica' }[project.health] || 'Salud sin evaluar';
   const canEdit = canEditProject(session, project.id, project.workspaceId) && project.status !== 'archived';
   const canArchive = canArchiveProject(session, project.workspaceId) && project.status !== 'archived';
   const canRestore = canArchiveProject(session, project.workspaceId) && project.status === 'archived';
@@ -154,7 +155,7 @@ function projectCard(project, session) {
   return `<article class="project-card ${project.status === 'archived' ? 'project-card-archived' : ''}">
     <div class="project-card-top">
       <div class="project-card-logo">${project.logo ? `<img src="${escapeHtml(project.logo)}" alt="">` : escapeHtml(project.name.slice(0, 2).toUpperCase())}</div>
-      <div class="project-card-copy"><h3>${escapeHtml(project.name)}</h3><p>${escapeHtml(project.code)} · ${escapeHtml(project.client || 'Sin cliente')}</p></div>
+      <div class="project-card-copy"><h2>${escapeHtml(project.name)}</h2><p>${escapeHtml(project.code)} · ${escapeHtml(project.client || 'Sin cliente')}</p></div>
       <span class="badge ${status[1]}">${status[0]}</span>
     </div>
     <div class="project-card-progress"><div class="progress-head"><span>Progreso</span><strong>${Number(project.progress || 0)}%</strong></div><div class="progress-track"><div class="progress-bar" style="width:${Number(project.progress || 0)}%"></div></div></div>
@@ -164,7 +165,7 @@ function projectCard(project, session) {
       <div class="meta-row"><span>Drive</span><strong>${project.driveFolderId ? 'Estructura creada' : 'Pendiente'}</strong></div>
     </div>
     <div class="project-card-footer">
-      <span class="health"><span class="health-dot" style="background:${healthColor}"></span>Salud del proyecto</span>
+      <span class="health"><span class="health-dot" style="background:${healthColor}" aria-hidden="true"></span>${escapeHtml(healthLabel)}</span>
       <div class="card-actions">
         ${canEdit ? `<button class="icon-button" data-project-edit="${project.id}" aria-label="Editar">${icon('edit')}</button>` : ''}
         ${canArchive ? `<button class="icon-button icon-button-danger" data-project-archive="${project.id}" aria-label="Archivar">${icon('archive')}</button>` : ''}
@@ -176,5 +177,5 @@ function projectCard(project, session) {
 }
 
 function errorState(message) {
-  return `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h3>No se pudieron cargar los proyectos</h3><p>${escapeHtml(message || 'Revisa la conexión e inténtalo nuevamente.')}</p><button class="button button-primary" data-retry>${icon('refresh')} Reintentar</button></div>`;
+  return `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudieron cargar los proyectos</h2><p>${escapeHtml(message || 'Revisa la conexión e inténtalo nuevamente.')}</p><button class="button button-primary" data-retry>${icon('refresh')} Reintentar</button></div>`;
 }

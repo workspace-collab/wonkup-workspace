@@ -23,15 +23,20 @@ const baseTabs = [
   ['timeline', 'Cronograma'],
   ['documents', 'Documentos'],
   ['team', 'Equipo'],
-  ['finance', 'Finanzas'],
-  ['hours', 'Horas'],
-  ['activity', 'Actividad'],
   ['settings', 'Configuración']
 ];
 
 const STATUS_LABELS = {
   draft: 'Borrador', planned: 'Planeamiento', active: 'En desarrollo', pending_client: 'Esperando cliente',
   on_hold: 'En pausa', blocked: 'Bloqueado', completed: 'Completado', archived: 'Archivado'
+};
+
+const PRIORITY_LABELS = {
+  low: 'Baja', medium: 'Media', high: 'Alta', critical: 'Crítica'
+};
+
+const HEALTH_LABELS = {
+  green: 'Salud estable', amber: 'Salud en riesgo', red: 'Salud crítica'
 };
 
 function safeBrandColor(value) {
@@ -57,12 +62,12 @@ async function loadProject(container, projectId, tab, session) {
   try {
     const project = await ProjectService.getProject({ projectId, session });
     if (!project) {
-      container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('lock')}</div><h3>Proyecto no encontrado o no autorizado</h3><p>Revisa tu enlace o vuelve a la lista de proyectos.</p></div></section>`;
+      container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('lock')}</div><h2>Proyecto no encontrado o no autorizado</h2><p>Revisa tu enlace o vuelve a la lista de proyectos.</p></div></section>`;
       return;
     }
     renderProjectShell(container, project, tab, session);
   } catch (error) {
-    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h3>No se pudo cargar el proyecto</h3><p>${escapeHtml(error.message)}</p></div></section>`;
+    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el proyecto</h2><p>${escapeHtml(error.message)}</p></div></section>`;
   }
 }
 
@@ -86,7 +91,7 @@ function renderProjectShell(container, project, tab, session) {
           <div class="project-hero-actions"><span class="project-cover-badge">${project.status === 'archived' ? 'Proyecto archivado' : readOnly ? escapeHtml(session.roleLabel) : `${Number(project.progress || 0)}% completado`}</span>${editable ? `<button class="button project-cover-button" id="edit-project">${icon('edit')} Editar</button>` : ''}${restorable ? `<button class="button button-gold" id="restore-project">${icon('refresh')} Restaurar</button>` : ''}</div>
         </div>
       </div>
-      <nav class="project-tabs">${tabs.map(([key, label]) => `<a class="project-tab ${safeTab === key ? 'active' : ''}" href="#/w/${project.workspaceId}/p/${project.id}/${key}">${label}</a>`).join('')}</nav>
+      <nav class="project-tabs" aria-label="Secciones del proyecto">${tabs.map(([key, label]) => `<a class="project-tab ${safeTab === key ? 'active' : ''}" href="#/w/${project.workspaceId}/p/${project.id}/${key}" ${safeTab === key ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>
     </article>
     <div id="project-tab-content"></div>
   </div>
@@ -97,7 +102,7 @@ function renderProjectShell(container, project, tab, session) {
       <div class="info-row"><span>Código</span><strong>${escapeHtml(project.code)}</strong></div>
       <div class="info-row"><span>Cliente</span><strong>${escapeHtml(project.client || 'Sin cliente')}</strong></div>
       <div class="info-row"><span>Responsable</span><strong>${escapeHtml(project.owner || 'Sin responsable')}</strong></div>
-      <div class="info-row"><span>Prioridad</span><strong>${escapeHtml(project.priority || '-')}</strong></div>
+      <div class="info-row"><span>Prioridad</span><strong>${escapeHtml(PRIORITY_LABELS[project.priority] || project.priority || '-')}</strong></div>
       <div class="info-row"><span>Inicio</span><strong>${formatDate(project.startDate)}</strong></div>
       <div class="info-row"><span>Entrega</span><strong>${formatDate(project.dueDate)}</strong></div>
       ${project.status === 'archived' && project.archivedAt ? `<div class="info-row"><span>Archivado</span><strong>${formatDate(project.archivedAt)}</strong></div>` : ''}
@@ -108,6 +113,7 @@ function renderProjectShell(container, project, tab, session) {
   </aside></div></section>`;
 
   applyProjectCover(container.querySelector('#project-cover'), project);
+  requestAnimationFrame(() => container.querySelector('.project-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'center' }));
 
   const slot = container.querySelector('#project-tab-content');
   if (safeTab === 'kanban') renderKanban(slot, project.workspaceId, project.id, true, session);
@@ -166,14 +172,14 @@ function renderTab(slot, project, tab, session) {
     return;
   }
   const label = baseTabs.find(item => item[0] === tab)?.[1] || 'Módulo';
-  slot.innerHTML = `<div class="empty-state" style="margin-top:18px"><div class="empty-state-icon">${icon('layers')}</div><h3>${label}</h3><p>Esta sección mantiene su estructura visual y se activará en la entrega funcional correspondiente.</p></div>`;
+  slot.innerHTML = `<div class="empty-state" style="margin-top:18px"><div class="empty-state-icon">${icon('layers')}</div><h2>${label}</h2><p>Esta sección mantiene su estructura visual y se activará en la entrega funcional correspondiente.</p></div>`;
 }
 
 function renderSummary(slot, project, session) {
   const readOnly = isReadOnlyRole(session);
   slot.innerHTML = `<div class="project-summary-grid">
     <article class="panel"><div class="panel-header"><div><h2>Objetivo y alcance</h2><p>Resumen ejecutivo del proyecto.</p></div></div><div class="panel-body"><p class="body-copy">${escapeHtml(project.description || 'Sin descripción registrada.')}</p><div class="progress-block"><div class="progress-head"><span>Avance general</span><strong>${Number(project.progress || 0)}%</strong></div><div class="progress-track"><div class="progress-bar" style="width:${Number(project.progress || 0)}%"></div></div></div></div></article>
-    <article class="panel"><div class="panel-header"><div><h2>${readOnly ? 'Estado visible' : 'Salud del proyecto'}</h2><p>${readOnly ? 'Información autorizada para consulta.' : 'Indicadores de gestión.'}</p></div></div><div class="panel-body"><div class="info-list"><div class="info-row"><span>Tiempo</span><strong>${project.health === 'red' ? 'Fuera de rango' : 'En rango'}</strong></div>${canViewFinancials(session) ? `<div class="info-row"><span>Costo</span><strong>${formatCurrency(project.cost)} ejecutado</strong></div>` : ''}<div class="info-row"><span>Alcance</span><strong>Estable</strong></div>${!readOnly ? `<div class="info-row"><span>Horas</span><strong>${Number(project.hours || 0)} h</strong></div>` : ''}</div></div></article>
+    <article class="panel"><div class="panel-header"><div><h2>${readOnly ? 'Estado visible' : 'Salud del proyecto'}</h2><p>${readOnly ? 'Información autorizada para consulta.' : 'Indicadores de gestión.'}</p></div></div><div class="panel-body"><div class="info-list"><div class="info-row"><span>Tiempo</span><strong>${project.health === 'red' ? 'Fuera de rango' : 'En rango'}</strong></div>${canViewFinancials(session) ? `<div class="info-row"><span>Costo</span><strong>${formatCurrency(project.cost)} ejecutado</strong></div>` : ''}<div class="info-row"><span>Alcance</span><strong>${escapeHtml(HEALTH_LABELS[project.health] || 'Salud estable')}</strong></div>${!readOnly ? `<div class="info-row"><span>Horas</span><strong>${Number(project.hours || 0)} h</strong></div>` : ''}</div></div></article>
     <article class="panel"><div class="panel-header"><div><h2>Próximos pasos</h2></div></div><div class="panel-body task-list"><div class="task-row"><span class="task-check"></span><span class="list-copy"><strong>Revisar el avance del proyecto</strong><small>Responsable: ${escapeHtml(project.owner || 'Sin responsable')}</small></span></div><div class="task-row"><span class="task-check"></span><span class="list-copy"><strong>Actualizar documentación</strong><small>Antes de ${formatDate(project.dueDate)}</small></span></div></div></article>
     <article class="panel"><div class="panel-header"><div><h2>Enlaces principales</h2></div></div><div class="panel-body resource-shortcuts">${linkButton('GitHub', project.githubUrl, 'external')}${linkButton('Figma', project.figmaUrl, 'layers')}${linkButton('Hosting', project.hostingUrl, 'external')}${project.driveUrl ? linkButton('Drive', project.driveUrl, 'folder') : '<span class="muted-copy">Drive aún no está vinculado.</span>'}</div></article>
   </div>`;
@@ -339,5 +345,5 @@ function loadingTab(text) {
 }
 
 function tabError(message) {
-  return `<div class="empty-state tab-panel"><div class="empty-state-icon">${icon('alert')}</div><h3>No se pudo cargar la sección</h3><p>${escapeHtml(message)}</p></div>`;
+  return `<div class="empty-state tab-panel"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar la sección</h2><p>${escapeHtml(message)}</p></div>`;
 }

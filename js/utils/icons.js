@@ -48,7 +48,8 @@ const icons = {
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
   chevronUp: '<path d="m18 15-6-6-6 6"/>',
   restore: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
-  columns: '<path d="M4 4h5v16H4zM11 4h4v16h-4zM17 4h3v16h-3z"/>'
+  columns: '<path d="M4 4h5v16H4zM11 4h4v16h-4zM17 4h3v16h-3z"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'
 };
 
 export function icon(name, className = '') {

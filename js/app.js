@@ -44,6 +44,11 @@ applyTheme(getState().themePreference);
 subscribe(state => {
   applyTheme(state.themePreference);
   document.querySelector('#app-shell')?.classList.toggle('sidebar-open', state.sidebarOpen);
+  const menuButton = document.querySelector('#menu-toggle');
+  if (menuButton) {
+    menuButton.setAttribute('aria-expanded', String(Boolean(state.sidebarOpen)));
+    menuButton.setAttribute('aria-label', state.sidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral');
+  }
   const nextToken = state.session?.token || null;
   if (nextToken !== lastSessionToken) {
     lastSessionToken = nextToken;
@@ -141,10 +146,20 @@ function handleRoute(route) {
       renderForbidden(shell.main, session);
       break;
     default:
-      shell.main.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h3>Ruta no encontrada</h3><p>Regresa a tu espacio autorizado para continuar.</p><a class="button button-primary" href="${getDefaultRoute(session)}">Volver</a></div></section>`;
+      shell.main.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h1>Ruta no encontrada</h1><p>Regresa a tu espacio autorizado para continuar.</p><a class="button button-primary" href="${getDefaultRoute(session)}">Volver</a></div></section>`;
   }
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+  requestAnimationFrame(() => {
+    const heading = shell.main.querySelector('h1');
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+    } else {
+      shell.main.focus({ preventScroll: true });
+    }
+  });
 }
 
 bootstrap();

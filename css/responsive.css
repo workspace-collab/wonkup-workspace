@@ -1,12 +1,23 @@
 @media (max-width: 1180px) {
   .content-grid-project { grid-template-columns: 1fr; }
-  .project-aside { order: -1; }
+  .project-aside { order: initial; }
   .dashboard-bottom-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1040px) {
+  .form-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .documents-grid { grid-template-columns: 1fr; }
+  .client-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kanban-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .board-column-row { grid-template-columns: 24px minmax(0, 1fr) 90px 105px; }
+  .board-column-row .column-check,
+  .board-column-count,
+  .board-column-actions { grid-column: auto; }
 }
 
 @media (max-width: 980px) {
   .app-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "header"
       "main";
@@ -15,137 +26,165 @@
   .app-shell.sidebar-open .app-sidebar { transform: translateX(0); }
   .app-shell.sidebar-open .sidebar-backdrop { display: block; }
   .app-main { padding: 22px; }
-  .mobile-menu-button { display: inline-grid; }
+  .mobile-menu-button { display: inline-grid !important; }
+  .header-search-wrap { display: none; }
   .content-grid-2 { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 760px) {
-  .app-header { padding: 0 14px; gap: 9px; }
-  .header-search { display: none; }
-  .header-workspace { flex: 1; min-width: 0; }
-  .app-main { padding: 18px 14px 28px; }
-  .page-header { align-items: stretch; flex-direction: column; }
-  .page-header-actions { width: 100%; }
-  .page-header-actions .button { flex: 1; }
-  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dashboard-middle-grid, .dashboard-bottom-grid { grid-template-columns: 1fr; }
-  .projects-grid { grid-template-columns: 1fr; }
-  .project-tabs { overflow-x: auto; justify-content: flex-start; }
-  .project-cover { min-height: 260px; padding: 21px; }
-  .project-cover-content { align-items: flex-start; flex-direction: column; }
-  .project-hero-identity { align-items: center; }
-  .kanban-board { grid-auto-columns: minmax(260px, 84vw); }
-}
-
-@media (max-width: 480px) {
-  .metrics-grid { grid-template-columns: 1fr; }
-  .brand-copy small { display: none; }
-  .profile-copy { display: none; }
-  .header-icon-button { width: 38px; height: 38px; }
-  .panel-header { align-items: flex-start; flex-direction: column; }
-  .toolbar { align-items: stretch; flex-direction: column; }
-  .toolbar .input, .toolbar .select, .toolbar .search-box { width: 100%; }
-}
-
-
-@media (max-width: 900px) {
-  .auth-layout-grid { grid-template-columns: 1fr; max-width: 620px; }
-  .auth-intro { text-align: center; }
-  .auth-brand { justify-content: center; margin-bottom: 26px; }
-  .auth-intro > p { margin-inline: auto; }
-  .auth-benefits { text-align: left; }
-}
-
-@media (max-width: 560px) {
-  .auth-page { padding: 24px 14px; }
-  .auth-intro h1 { font-size: 2.5rem; }
-  .auth-benefits { grid-template-columns: 1fr; }
-  .auth-card { padding: 21px 17px; border-radius: 20px; }
-  .demo-code { align-items: flex-start; flex-direction: column; }
-}
-
-@media (max-width: 1040px) {
-  .form-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .documents-grid { grid-template-columns: 1fr; }
-  .client-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 760px) {
-  .modal-backdrop { padding: 0; align-items: end; }
-  .modal-card { width: 100%; max-height: 94vh; border-radius: 22px 22px 0 0; }
-  .modal-header, .modal-body { padding-inline: 17px; }
-  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
-  .form-span-2 { grid-column: auto; }
-  .project-hero-actions { width: 100%; justify-content: flex-start; }
-  .card-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
-  .client-grid { grid-template-columns: 1fr; }
-  .settings-row { align-items: flex-start; flex-direction: column; }
-}
-
-@media (max-width: 480px) {
-  .modal-actions { align-items: stretch; flex-direction: column-reverse; }
-  .modal-actions .button { width: 100%; }
-  .project-card-footer { align-items: flex-start; flex-direction: column; }
-  .project-cover { min-height: 280px; padding: 18px; }
-  .project-hero-identity { align-items: flex-start; flex-direction: column; }
-  .project-hero-logo { width: 64px; height: 64px; border-radius: 17px; }
-  .project-hero-title h1 { font-size: 1.75rem; }
-  .project-tabs { padding-inline: 10px; }
-  .card-actions { justify-content: flex-start; }
-}
-
-/* Entrega 4: Kanban funcional */
-@media (max-width: 980px) {
   .kanban-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kanban-command-bar { align-items: stretch; }
   .kanban-mode { margin-left: 0; }
 }
 
+@media (max-width: 900px) {
+  .auth-layout-grid { grid-template-columns: 1fr; max-width: 620px; }
+  .auth-card { order: -1; }
+  .auth-intro { text-align: center; padding-top: 0; }
+  .auth-brand { justify-content: center; margin-bottom: 22px; }
+  .auth-intro > p { margin-inline: auto; }
+  .auth-benefits { text-align: left; }
+}
+
 @media (max-width: 760px) {
+  :root { --header-height: 64px; }
+  .app-header { padding: 0 12px; gap: 8px; }
+  .header-workspace { flex: 1; min-width: 0; }
+  .header-workspace strong,
+  .header-workspace small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-copy,
+  .profile-chevron { display: none; }
+  .profile-button { padding: 2px; background: transparent; }
+  .profile-avatar { width: 40px; height: 40px; }
+  .app-main { padding: 16px 12px 28px; }
+
+  .header-popover {
+    position: fixed;
+    top: calc(var(--header-height) + 8px);
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: calc(100vh - var(--header-height) - 24px);
+  }
+  .notification-popover { width: auto; }
+
+  .page-header { align-items: stretch; flex-direction: column; }
+  .page-header-actions { width: 100%; }
+  .page-header-actions .button { flex: 1; }
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-middle-grid,
+  .dashboard-bottom-grid { grid-template-columns: 1fr; }
+  .projects-grid,
+  .client-grid { grid-template-columns: 1fr; }
+
+  .project-cover { min-height: 240px; padding: 20px; }
+  .project-cover-content { align-items: flex-start; flex-direction: column; }
+  .project-hero-identity { align-items: center; }
+  .project-hero-actions { width: 100%; justify-content: flex-start; }
+  .project-tabs { padding-inline: 8px; }
+  .project-tab { min-height: 48px; padding-inline: 13px; }
+  .project-aside { order: initial; }
+
+  .modal-backdrop { padding: 0; align-items: end; }
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 94dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .modal-header,
+  .modal-body { padding-inline: 16px; }
+  .form-grid-2,
+  .form-grid-3 { grid-template-columns: 1fr; }
+  .form-span-2 { grid-column: auto; }
+
+  .toolbar,
+  .client-toolbar,
   .kanban-command-bar,
   .kanban-project-selector,
   .kanban-current-project { align-items: stretch; flex-direction: column; }
+  .toolbar .input,
+  .toolbar .select,
+  .toolbar .search-box,
   .kanban-project-selector .select { width: 100%; min-width: 0; }
   .kanban-mode { flex-direction: row; align-items: center; }
-  .kanban-board-functional { grid-auto-columns: minmax(276px, 86vw); }
+  .kanban-command-actions { width: 100%; margin-left: 0; }
+  .kanban-command-actions .button { flex: 1 1 150px; }
+  .kanban-view-switch { align-self: stretch; justify-content: center; }
+  .kanban-scroll-button { display: none; }
+  .kanban-scroll-shell::before,
+  .kanban-scroll-shell::after { width: 18px; }
+  .kanban-board-functional { grid-auto-columns: minmax(272px, 86vw); }
   .kanban-detail-grid { grid-template-columns: 1fr; }
   .form-field-wide { grid-column: auto; }
   .kanban-participants > label { display: flex; margin-right: 0; }
+
+  .archived-card-row { grid-template-columns: 1fr; align-items: stretch; }
+  .archived-card-actions { flex-wrap: wrap; }
+  .archived-card-actions .button { flex: 1; }
+  .kanban-template-grid { grid-template-columns: 1fr; }
+  .section-heading { flex-direction: column; }
+  .section-heading .button { width: 100%; }
+  .board-column-row { grid-template-columns: 24px minmax(0, 1fr); align-items: center; }
+  .board-column-row > *:not(.board-column-grip):not(.form-field:first-of-type) { grid-column: 2; }
+  .board-column-row .board-column-actions { grid-column: 2; justify-content: flex-end; }
+
+  .card-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+  .settings-row { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 560px) {
+  .auth-page { padding: 16px 12px; }
+  .auth-layout-grid { gap: 20px; }
+  .auth-card { padding: 20px 16px; border-radius: var(--radius-lg); }
+  .auth-intro h1 { font-size: 2.25rem; }
+  .auth-benefits { grid-template-columns: 1fr; }
+  .demo-code { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 480px) {
+  .app-header { gap: 5px; }
+  .header-actions { gap: 4px; }
+  .header-icon-button,
+  .profile-button,
+  .icon-button {
+    min-width: var(--control-touch);
+    min-height: var(--control-touch);
+    width: var(--control-touch);
+    height: var(--control-touch);
+  }
+  .header-workspace small { display: none; }
+  .brand-copy small { display: none; }
+  .metrics-grid,
   .kanban-metrics { grid-template-columns: 1fr; }
+  .panel-header { align-items: flex-start; flex-direction: column; }
+  .modal-actions { align-items: stretch; flex-direction: column-reverse; }
+  .modal-actions .button { width: 100%; min-height: var(--control-primary-mobile); }
+  .project-card-footer { align-items: flex-start; flex-direction: column; }
+  .project-cover { min-height: 270px; padding: 16px; }
+  .project-hero-identity { align-items: flex-start; flex-direction: column; }
+  .project-hero-logo { width: 64px; height: 64px; border-radius: var(--radius); }
+  .project-hero-title h1 { font-size: 1.75rem; }
+  .card-actions { justify-content: flex-start; }
   .kanban-metric { min-height: 68px; }
   .kanban-toolbar .button { width: 100%; }
   .kanban-inline-form { grid-template-columns: 1fr; }
   .kanban-inline-form .button { width: 100%; }
   .kanban-filter-empty { align-items: stretch; flex-direction: column; text-align: center; }
+  .kanban-list-card { grid-template-columns: minmax(0, 1fr) auto; }
+  .kanban-list-card > svg { display: none; }
 }
 
-@media (max-width: 980px) {
-  .mobile-menu-button { display: inline-grid !important; }
-  .header-search-wrap { display: none; }
-  .kanban-template-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .board-column-row { grid-template-columns: 24px minmax(0,1fr) 90px 105px; }
-  .board-column-row .column-check,
-  .board-column-count,
-  .board-column-actions { grid-column: auto; }
+@media (min-width: 981px) {
+  .mobile-menu-button { display: none !important; }
 }
 
-@media (max-width: 760px) {
-  .profile-chevron { display: none; }
-  .header-popover { position: fixed; top: calc(var(--header-height) + 8px); right: 12px; left: 12px; width: auto; max-height: calc(100vh - var(--header-height) - 24px); }
-  .notification-popover { width: auto; }
-  .archived-card-row { grid-template-columns: 1fr; align-items: stretch; }
-  .archived-card-actions { flex-wrap: wrap; }
-  .archived-card-actions .button { flex: 1; }
-  .kanban-command-actions { width: 100%; margin-left: 0; }
-  .kanban-command-actions .button { flex: 1; }
-  .kanban-template-grid { grid-template-columns: 1fr; }
-  .section-heading { flex-direction: column; }
-  .section-heading .button { width: 100%; }
-  .board-column-row { grid-template-columns: 20px minmax(0,1fr); align-items: center; }
-  .board-column-row > *:not(.board-column-grip):not(.form-field:first-of-type) { grid-column: 2; }
-  .board-column-row .board-column-actions { grid-column: 2; justify-content: flex-end; }
-  .client-toolbar { align-items: stretch; flex-direction: column; }
+/* Reflow cuando el usuario amplía el texto */
+@media (max-width: 1280px) {
+  .toolbar { align-items: stretch; }
+  .toolbar .search-box { flex: 1 1 280px; }
+  .toolbar .select { flex: 1 1 180px; }
+}
+
+@media (max-width: 480px) {
+  .header-workspace {
+    display: none;
+  }
 }

@@ -38,7 +38,7 @@ async function initializeKanban({ container, workspaceId, projectId, embedded, s
       : projects[0];
 
     if (!selectedProject) {
-      container.innerHTML = `<section class="${embedded ? '' : 'page'}"><div class="empty-state"><div class="empty-state-icon">${icon('kanban')}</div><h3>No hay proyectos disponibles</h3><p>Crea o selecciona un proyecto para inicializar su tablero Kanban.</p></div></section>`;
+      container.innerHTML = `<section class="${embedded ? '' : 'page'}"><div class="empty-state"><div class="empty-state-icon">${icon('kanban')}</div><h2>No hay proyectos disponibles</h2><p>Crea o selecciona un proyecto para inicializar su tablero Kanban.</p></div></section>`;
       return;
     }
 
@@ -68,13 +68,18 @@ async function initializeKanban({ container, workspaceId, projectId, embedded, s
       filters: { search: '', assigneeId: '', priority: '', label: '' },
       editable: canEditKanban(session) && selectedProject.status !== 'archived',
       configurable: canConfigureKanban(session) && selectedProject.status !== 'archived',
-      busy: false
+      busy: false,
+      viewMode: matchMedia('(max-width: 760px)').matches ? 'list' : (localStorage.getItem('wonkup.kanban.view') || 'board')
     };
 
     renderBoard();
+    if (sessionStorage.getItem('wonkup.intent.newTask') === '1' && activeContext.editable) {
+      sessionStorage.removeItem('wonkup.intent.newTask');
+      setTimeout(() => openCardEditor(), 0);
+    }
     attachRealtime();
   } catch (error) {
-    container.innerHTML = `<section class="${embedded ? '' : 'page'}"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h3>No se pudo cargar el Kanban</h3><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p></div></section>`;
+    container.innerHTML = `<section class="${embedded ? '' : 'page'}"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el Kanban</h2><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p></div></section>`;
   }
 }
 
@@ -148,6 +153,7 @@ function renderBoard() {
         ${context.editable ? `<button class="button button-secondary" id="archived-kanban-cards">${icon('archive')} Archivadas <span class="button-count">${context.board.archivedCards?.length || 0}</span></button>` : ''}
         ${context.configurable ? `<button class="button button-secondary" id="configure-kanban">${icon('columns')} Configurar tablero</button>` : ''}
         ${context.configurable && KanbanService.mode === 'mock' ? `<button class="button button-ghost" id="reset-kanban">${icon('refresh')} Restablecer demo</button>` : ''}
+        <div class="kanban-view-switch" aria-label="Cambiar vista del Kanban"><button class="icon-button ${context.viewMode === 'board' ? 'active' : ''}" type="button" data-kanban-view="board" aria-label="Vista de tablero" aria-pressed="${context.viewMode === 'board'}">${icon('columns')}</button><button class="icon-button ${context.viewMode === 'list' ? 'active' : ''}" type="button" data-kanban-view="list" aria-label="Vista de lista" aria-pressed="${context.viewMode === 'list'}">${icon('list')}</button></div>
       </div>
     </div>
 
@@ -159,16 +165,21 @@ function renderBoard() {
     </div>
 
     <div class="toolbar kanban-toolbar">
-      <label class="search-box">${icon('search')}<input id="kanban-search" value="${escapeHtml(context.filters.search)}" placeholder="Buscar tarjetas, etiquetas o contenido..."></label>
+      <label class="search-box" for="kanban-search"><span class="sr-only">Buscar tarjetas, etiquetas o contenido</span>${icon('search')}<input id="kanban-search" type="search" value="${escapeHtml(context.filters.search)}" placeholder="Buscar tarjetas, etiquetas o contenido..." aria-label="Buscar en el Kanban"></label>
       <select class="select" id="kanban-assignee"><option value="">Todos los responsables</option>${memberOptions(context.filters.assigneeId)}</select>
       <select class="select" id="kanban-priority"><option value="">Todas las prioridades</option>${Object.entries(PRIORITIES).map(([value, item]) => `<option value="${value}" ${context.filters.priority === value ? 'selected' : ''}>${item.label}</option>`).join('')}</select>
       <select class="select" id="kanban-label"><option value="">Todas las etiquetas</option>${allLabels().map(label => `<option value="${escapeHtml(label)}" ${context.filters.label === label ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>
       <button class="button button-ghost" id="clear-kanban-filters">${icon('filter')} Limpiar</button>
     </div>
 
-    <div class="kanban-board kanban-board-functional" id="kanban-board">
-      ${context.board.columns.map(column => renderColumn(column, visibleIds)).join('')}
-    </div>
+    ${context.viewMode === 'list' ? renderListView(cards) : `<div class="kanban-scroll-shell" data-kanban-scroll-shell>
+      <button class="kanban-scroll-button kanban-scroll-prev" type="button" data-kanban-scroll="prev" aria-label="Ver columnas anteriores">${icon('arrowLeft')}</button>
+      <div class="kanban-board kanban-board-functional" id="kanban-board" tabindex="0" aria-label="Tablero Kanban con ${context.board.columns.length} columnas">
+        ${context.board.columns.map(column => renderColumn(column, visibleIds)).join('')}
+      </div>
+      <button class="kanban-scroll-button kanban-scroll-next" type="button" data-kanban-scroll="next" aria-label="Ver columnas siguientes">${icon('arrowRight')}</button>
+      <div class="kanban-scroll-hint" aria-hidden="true"><span data-kanban-column-counter>Columna 1 de ${context.board.columns.length}</span><span>Desliza para ver más</span></div>
+    </div>`}
     ${cards.length === 0 ? `<div class="kanban-filter-empty"><strong>No encontramos tarjetas con estos filtros.</strong><button class="button button-ghost" id="empty-clear-filters">Limpiar filtros</button></div>` : ''}
   </section>`;
 
@@ -207,7 +218,7 @@ function renderCard(card) {
   const dueClass = isOverdue(card) && !doneColumn ? 'overdue' : '';
   return `<article class="kanban-card kanban-card-functional ${dueClass}" data-card-id="${escapeHtml(card.id)}" draggable="${activeContext.editable ? 'true' : 'false'}" tabindex="0" role="button" aria-label="Abrir tarjeta ${escapeHtml(card.title)}">
     <div class="kanban-card-top">${activeContext.editable ? `<span class="kanban-drag-handle" title="Arrastrar">${icon('grip')}</span>` : ''}<span class="badge ${priority.className}">${priority.label}</span>${card.visibility === 'client' ? `<span class="kanban-visibility" title="Visible al cliente">${icon('eye')}</span>` : ''}</div>
-    <h4>${escapeHtml(card.title)}</h4>
+    <div class="kanban-card-title">${escapeHtml(card.title)}</div>
     ${(card.labels || []).length ? `<div class="kanban-labels">${card.labels.slice(0, 3).map(label => `<span class="kanban-label" style="--label-color:${safeColor(label.color)}">${escapeHtml(label.name)}</span>`).join('')}</div>` : ''}
     ${total ? `<div class="kanban-check-progress"><div><span style="width:${percent}%"></span></div><small>${completed}/${total}</small></div>` : ''}
     <div class="kanban-card-meta">
@@ -216,6 +227,18 @@ function renderCard(card) {
     </div>
     <div class="kanban-card-footer"><span class="kanban-avatar" title="${escapeHtml(card.assignee?.name || 'Sin responsable')}">${escapeHtml(card.assignee?.initials || 'SR')}</span><small>${escapeHtml(card.assignee?.name || 'Sin responsable')}</small></div>
   </article>`;
+}
+
+
+function renderListView(cards) {
+  const columns = activeContext.board.columns;
+  return `<div class="kanban-list-view" id="kanban-list-view">${columns.map(column => {
+    const columnCards = cards.filter(card => card.columnId === column.id);
+    return `<section class="kanban-list-group" aria-labelledby="list-column-${escapeHtml(column.id)}"><header><h2 id="list-column-${escapeHtml(column.id)}">${escapeHtml(column.name)}</h2><span class="badge badge-gray">${columnCards.length}</span></header><div>${columnCards.length ? columnCards.map(card => {
+      const priority = PRIORITIES[card.priority] || PRIORITIES.medium;
+      return `<button class="kanban-list-card" type="button" data-open-card="${escapeHtml(card.id)}"><span><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.assignee?.name || 'Sin responsable')}${card.dueDate ? ` · ${formatDate(card.dueDate)}` : ''}</small></span><span class="badge ${priority.className}">${priority.label}</span>${icon('arrowRight')}</button>`;
+    }).join('') : '<p class="muted-copy">Sin tarjetas en esta columna.</p>'}</div></section>`;
+  }).join('')}</div>`;
 }
 
 function memberOptions(selectedId = '') {
@@ -238,6 +261,31 @@ function bindBoardEvents() {
   container.querySelector('#reset-kanban')?.addEventListener('click', resetBoard);
   container.querySelector('#archived-kanban-cards')?.addEventListener('click', openArchivedCards);
   container.querySelector('#configure-kanban')?.addEventListener('click', openBoardSettings);
+  container.querySelectorAll('[data-kanban-view]').forEach(button => button.addEventListener('click', () => {
+    context.viewMode = button.dataset.kanbanView;
+    localStorage.setItem('wonkup.kanban.view', context.viewMode);
+    renderBoard();
+  }));
+  container.querySelectorAll('[data-open-card]').forEach(button => button.addEventListener('click', () => {
+    const card = context.board.cards.find(item => item.id === button.dataset.openCard);
+    if (card) openCardEditor(card);
+  }));
+  const board = container.querySelector('#kanban-board');
+  const updateCounter = () => {
+    if (!board) return;
+    const columns = [...board.querySelectorAll('.kanban-column')];
+    if (!columns.length) return;
+    const index = columns.reduce((best, column, current) => Math.abs(column.offsetLeft - board.scrollLeft) < Math.abs(columns[best].offsetLeft - board.scrollLeft) ? current : best, 0);
+    const counter = container.querySelector('[data-kanban-column-counter]');
+    if (counter) counter.textContent = `Columna ${index + 1} de ${columns.length}`;
+  };
+  board?.addEventListener('scroll', updateCounter, { passive: true });
+  container.querySelectorAll('[data-kanban-scroll]').forEach(button => button.addEventListener('click', () => {
+    if (!board) return;
+    const direction = button.dataset.kanbanScroll === 'next' ? 1 : -1;
+    board.scrollBy({ left: direction * Math.max(280, board.clientWidth * 0.82), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    setTimeout(updateCounter, 220);
+  }));
 
   const applyFilter = () => {
     context.filters = {
@@ -650,7 +698,7 @@ function openBoardSettings() {
       name: 'Nueva columna', wipLimit: 0, tone: 'sky', isDone: false, active: true
     });
     renderRows();
-    list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    list.lastElementChild?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   });
 
   modal.root.querySelectorAll('[data-template-id]').forEach(button => button.addEventListener('click', async () => {

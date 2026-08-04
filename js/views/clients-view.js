@@ -11,7 +11,7 @@ export function renderClients(container, workspaceId, session) {
   const manageable = canManageClients(session);
   container.innerHTML = `<section class="page">
     <div class="page-header"><div><span class="page-kicker">RELACIONES COMERCIALES</span><h1>Clientes</h1><p>Administra clientes activos, edita sus datos y conserva el historial mediante archivo lógico.</p></div>${manageable ? `<div class="page-header-actions"><button class="button button-primary" id="new-client">${icon('plus')} Nuevo cliente</button></div>` : ''}</div>
-    <div class="toolbar client-toolbar" style="margin-bottom:18px"><label class="search-box">${icon('search')}<input id="client-search" type="search" placeholder="Buscar cliente o contacto..."></label>${manageable ? `<label class="toggle-field"><input id="show-archived-clients" type="checkbox"><span>Mostrar archivados</span></label>` : ''}<span class="service-mode">Fuente: ${ProjectService.mode === 'mock' ? 'demo local' : 'Google Apps Script'}</span></div>
+    <div class="toolbar client-toolbar" style="margin-bottom:18px"><label class="search-box" for="client-search"><span class="sr-only">Buscar clientes o contactos</span>${icon('search')}<input id="client-search" type="search" placeholder="Buscar cliente o contacto..." aria-label="Buscar clientes"></label>${manageable ? `<label class="toggle-field"><input id="show-archived-clients" type="checkbox"><span>Mostrar archivados</span></label>` : ''}<span class="service-mode">Fuente: ${ProjectService.mode === 'mock' ? 'demo local' : 'Google Apps Script'}</span></div>
     <div id="clients-content"><div class="loading-panel"><span class="spinner spinner-blue"></span><p>Cargando clientes...</p></div></div>
   </section>`;
 
@@ -23,7 +23,7 @@ export function renderClients(container, workspaceId, session) {
     const filtered = state.clients.filter(client => `${client.name} ${client.contactName} ${client.email}`.toLocaleLowerCase('es').includes(query));
     content.innerHTML = filtered.length
       ? `<div class="client-grid">${filtered.map(client => clientCard(client, session, manageable)).join('')}</div>`
-      : `<div class="empty-state"><div class="empty-state-icon">${icon('user')}</div><h3>No hay clientes para mostrar</h3><p>Crea el primer cliente, cambia la búsqueda o revisa los archivados.</p></div>`;
+      : `<div class="empty-state"><div class="empty-state-icon">${icon('user')}</div><h2>No hay clientes para mostrar</h2><p>Crea el primer cliente, cambia la búsqueda o revisa los archivados.</p></div>`;
     bindClientActions();
   };
 
@@ -32,7 +32,7 @@ export function renderClients(container, workspaceId, session) {
       state.clients = await ProjectService.listClients({ workspaceId, session, includeArchived: state.includeArchived });
       renderList();
     } catch (error) {
-      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h3>No se pudieron cargar los clientes</h3><p>${escapeHtml(error.message)}</p></div>`;
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudieron cargar los clientes</h2><p>${escapeHtml(error.message)}</p></div>`;
     }
   };
 
@@ -99,7 +99,7 @@ function clientCard(client, session, manageable) {
   const archived = client.status === 'archived';
   return `<article class="workspace-card client-card ${archived ? 'is-archived' : ''}">
     <div class="client-card-head"><div class="client-avatar">${escapeHtml(client.name.slice(0, 2).toUpperCase())}</div>${manageable ? `<details class="card-action-menu"><summary aria-label="Acciones del cliente">${icon('more')}</summary><div><button type="button" data-client-edit="${escapeHtml(client.id)}">${icon('edit')} Editar</button>${archived ? `<button type="button" data-client-restore="${escapeHtml(client.id)}">${icon('restore')} Restaurar</button>${session.role === 'superadmin' ? `<button type="button" class="danger-menu-item" data-client-delete="${escapeHtml(client.id)}">${icon('trash')} Eliminar definitivamente</button>` : ''}` : `<button type="button" data-client-archive="${escapeHtml(client.id)}">${icon('archive')} Archivar</button>`}</div></details>` : ''}</div>
-    <div class="client-copy"><h3>${escapeHtml(client.name)}</h3><p>${escapeHtml(client.contactName || 'Sin contacto principal')}</p></div>
+    <div class="client-copy"><h2>${escapeHtml(client.name)}</h2><p>${escapeHtml(client.contactName || 'Sin contacto principal')}</p></div>
     <div class="client-contact-list"><span>${icon('file')} ${escapeHtml(client.email || 'Sin correo')}</span>${client.phone ? `<span>${icon('user')} ${escapeHtml(client.phone)}</span>` : ''}</div>
     <div class="client-meta"><span>${archived ? 'Registro conservado' : 'Disponible para proyectos'}</span><span class="badge ${archived ? 'badge-gray' : 'badge-green'}">${archived ? 'Archivado' : 'Activo'}</span></div>
   </article>`;
@@ -114,13 +114,13 @@ async function openClientForm({ workspaceId, session, client = null, onSaved }) 
     subtitle: editing ? 'Actualiza los datos comerciales sin perder el historial.' : 'Registra la organización o persona que podrá vincularse a proyectos.',
     body: `<form id="client-form" class="project-form" novalidate>
       <div class="form-grid form-grid-2">
-        <label class="form-field"><span>Workspace *</span><select class="select" name="workspaceId" ${editing ? 'disabled' : ''}>${workspaces.map(item => `<option value="${item.id}" ${item.id === defaultWorkspaceId ? 'selected' : ''}>${escapeHtml(item.name)}</option>`).join('')}</select><small data-error-for="workspaceId"></small></label>
-        <label class="form-field"><span>Nombre *</span><input class="input" name="name" maxlength="120" value="${escapeHtml(client?.name || '')}"><small data-error-for="name"></small></label>
+        <label class="form-field"><span>Workspace *</span><select class="select" name="workspaceId" required aria-required="true" aria-describedby="client-workspace-error" ${editing ? 'disabled' : ''}>${workspaces.map(item => `<option value="${item.id}" ${item.id === defaultWorkspaceId ? 'selected' : ''}>${escapeHtml(item.name)}</option>`).join('')}</select><small id="client-workspace-error" data-error-for="workspaceId"></small></label>
+        <label class="form-field"><span>Nombre *</span><input class="input" name="name" maxlength="120" required aria-required="true" aria-describedby="client-name-error" value="${escapeHtml(client?.name || '')}"><small id="client-name-error" data-error-for="name"></small></label>
         <label class="form-field"><span>Contacto principal</span><input class="input" name="contactName" maxlength="120" value="${escapeHtml(client?.contactName || '')}"><small data-error-for="contactName"></small></label>
-        <label class="form-field"><span>Correo</span><input class="input" type="email" name="email" maxlength="254" value="${escapeHtml(client?.email || '')}"><small data-error-for="email"></small></label>
+        <label class="form-field"><span>Correo</span><input class="input" type="email" name="email" maxlength="254" aria-describedby="client-email-error" value="${escapeHtml(client?.email || '')}"><small id="client-email-error" data-error-for="email"></small></label>
         <label class="form-field form-span-2"><span>Teléfono</span><input class="input" name="phone" maxlength="40" value="${escapeHtml(client?.phone || '')}"><small data-error-for="phone"></small></label>
       </div>
-      <div class="form-global-error hidden" id="client-form-error"></div>
+      <div class="form-global-error hidden" id="client-form-error" role="alert" tabindex="-1"></div>
       <div class="modal-actions"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" id="client-submit">${editing ? 'Guardar cambios' : 'Guardar cliente'}</button></div>
     </form>`,
     size: 'md', closeOnBackdrop: false
@@ -140,11 +140,24 @@ async function openClientForm({ workspaceId, session, client = null, onSaved }) 
     if (input.name.length < 2) errors.name = 'Escribe el nombre del cliente.';
     if (!isValidEmail(input.email)) errors.email = 'Escribe un correo válido.';
     form.querySelectorAll('[data-error-for]').forEach(slot => { slot.textContent = ''; });
+    form.querySelectorAll('[aria-invalid="true"]').forEach(field => field.setAttribute('aria-invalid', 'false'));
     Object.entries(errors).forEach(([name, message]) => {
       const slot = form.querySelector(`[data-error-for="${name}"]`);
+      const field = form.querySelector(`[name="${name}"]`);
       if (slot) slot.textContent = message;
+      if (field) {
+        field.setAttribute('aria-invalid', 'true');
+        if (slot?.id) field.setAttribute('aria-describedby', slot.id);
+      }
     });
-    if (Object.keys(errors).length) return;
+    if (Object.keys(errors).length) {
+      const summary = form.querySelector('#client-form-error');
+      summary.textContent = `Revisa ${Object.keys(errors).length} campo(s) antes de continuar.`;
+      summary.classList.remove('hidden');
+      summary.focus();
+      form.querySelector('[aria-invalid="true"]')?.focus();
+      return;
+    }
 
     const submit = form.querySelector('#client-submit');
     submit.disabled = true;

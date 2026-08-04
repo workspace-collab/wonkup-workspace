@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.4.2 - Ajuste 4.2: responsive, accesibilidad y endurecimiento UI
+
+### Criticos corregidos
+- Reflow de la ficha interna de proyecto sin propagacion de ancho minimo.
+- Kanban embebido con overflow aislado, sin expandir toda la pagina.
+- Focus trap, fondo inerte y restauracion del foco en modales.
+- Colores de accion y textos secundarios ajustados a contraste WCAG AA.
+
+### Accesibilidad
+- Etiquetas programaticas para las busquedas.
+- aria-invalid y aria-describedby en formularios de proyecto, cliente y acceso.
+- aria-expanded, aria-controls y aria-current en menus, sidebar y tabs.
+- Regiones live dedicadas para estados y alertas.
+- Objetivos tactiles ampliados y checkboxes de 24 px.
+- Jerarquia de encabezados mejorada.
+- Soporte para prefers-reduced-motion.
+
+### Responsive y Kanban
+- Acceso principal colocado antes de los beneficios en movil.
+- Hero y tabs antes de la informacion administrativa del proyecto.
+- Vista lista de Kanban, contador de columnas, scroll-snap y controles laterales.
+- Toolbars y grids preparados para zoom de texto y pantallas estrechas.
+
+### Sistema visual y UX
+- Tokens semanticos de color, tipografia, radios y tamanos de control.
+- Contraste reforzado en tema oscuro, badges, avatares y notificaciones.
+- Prioridades y salud del proyecto localizadas al español.
+- Modulos futuros marcados como Proximamente.
+- Acciones rapidas limitadas a flujos funcionales.
+- Etiquetas internas de entregas retiradas de la interfaz.
+
 ## 0.4.1 — Ajuste 4.1: usabilidad y Kanban configurable
 
 ### Añadido

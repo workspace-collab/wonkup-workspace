@@ -4,42 +4,58 @@
 WonkUp Workspace
 
 ## Fase actual
-Ajuste 4.1 — Usabilidad, clientes y Kanban configurable
+Ajuste 4.2 - endurecimiento UI, responsive y accesibilidad
 
 ## Estado
-Construcción técnica completada. Pendiente de validación del usuario en GitHub Pages.
+Construccion tecnica completada. Pendiente de validacion en GitHub Pages y reauditacion en los cinco breakpoints.
 
 ## Entregas
-- Entrega 0 — Blueprint: APROBADA
-- Entrega 1 — Núcleo visual: APROBADA
-- Entrega 2 — Workspaces y acceso: APROBADA
-- Entrega 3 — Proyectos y Drive: APROBADA
-- Entrega 4 — Kanban: EN REVISIÓN
-- Ajuste 4.1: EN REVISIÓN
+- Entrega 0 - Blueprint: APROBADA
+- Entrega 1 - Nucleo visual: APROBADA
+- Entrega 2 - Workspaces y acceso: APROBADA
+- Entrega 3 - Proyectos y Drive: APROBADA
+- Entrega 4 - Kanban: EN REVISION
+- Ajuste 4.1 - Usabilidad y Kanban configurable: VALIDADO FUNCIONALMENTE
+- Ajuste 4.2 - Responsive, accesibilidad y sistema visual: EN REVISION
 
-## Implementado en el Ajuste 4.1
-- Vista de tarjetas archivadas.
-- Restauración a la columna anterior o a otra columna seleccionada.
-- Eliminación definitiva solo para administradores y desde archivo.
-- Configurador visual de columnas y límites WIP.
-- Plantillas Básico (4), Ágil (5), Producto digital (6) y WonkUp completo (9).
-- Nombre, orden, color, etapa final y activación de columnas.
-- Edición, archivo, restauración y eliminación controlada de clientes.
-- Buscador global funcional con resultados autorizados.
-- Notificaciones locales con estado leído/no leído.
-- Menús compactos y mutuamente excluyentes.
-- Confirmación de cierre de sesión.
-- Corrección del menú móvil y tamaños de iconos.
-- Adaptadores y contratos actualizados.
+## Base de calidad
+El Ajuste 4.2 responde a la auditoria profesional de UI del 4 de agosto de 2026, que registro 4 hallazgos criticos, 14 altos, 15 medios y 7 bajos.
+
+## Implementado en el Ajuste 4.2
+- Eliminacion del desbordamiento heredado de la ficha interna de proyecto.
+- Overflow horizontal del Kanban aislado dentro de su propio contenedor.
+- Vista de lista alternativa para Kanban, especialmente util en movil.
+- Indicador de columna, botones de desplazamiento y scroll-snap en vista tablero.
+- Formulario de acceso antes de la presentacion comercial en movil.
+- Hero y pestañas del proyecto antes de la informacion administrativa en movil.
+- Focus trap, fondo inerte y restauracion del foco en modales.
+- Cierre de dialogos con Escape y foco inicial significativo.
+- Paleta semantica con contraste WCAG AA para acciones y textos.
+- Correccion de contraste para tema oscuro, badges y notificaciones.
+- Etiquetas accesibles en busquedas global, proyectos, clientes y Kanban.
+- Errores de formularios asociados con aria-invalid y aria-describedby.
+- aria-expanded, aria-controls y aria-current en menus y navegacion.
+- Regiones live dedicadas para mensajes; se retiro aria-live del root de la app.
+- Objetivos tactiles de 44 px en movil y minimo de 24 px en controles secundarios.
+- Navegacion futura marcada como Proximamente y acciones demo retiradas o deshabilitadas.
+- Escala tipografica, radios, controles y colores semanticos documentados.
+- Soporte para prefers-reduced-motion.
+- Localizacion de prioridades y salud del proyecto.
 
 ## Decisiones
-- Las columnas no son obligatoriamente nueve; cada proyecto define su flujo.
-- Una columna con tarjetas no puede desactivarse hasta mover su contenido.
-- Debe existir al menos una columna marcada como etapa final.
-- `wipLimit: 0` significa sin límite.
-- Las tarjetas y clientes se archivan antes de considerar una eliminación definitiva.
-- La eliminación definitiva de tarjetas y clientes queda restringida a administradores.
-- El modo predeterminado continúa siendo `mock`.
+- El color cielo #50A8F3 se conserva como identidad y fondo decorativo.
+- Los botones con texto blanco usan el azul accesible #0868B8.
+- El Kanban movil inicia en vista lista; el usuario puede cambiar a tablero.
+- Las nueve columnas siguen siendo una plantilla, no una obligacion.
+- Los modulos sin flujo real no aparecen como enlaces operativos.
+- El modo predeterminado continua siendo mock.
 
-## Próxima entrega
-Entrega 5 — Innovation Toolkit y Canvas Engine, después de aprobar la Entrega 4 y el Ajuste 4.1.
+## Pendientes de validacion
+- Capturas y medicion en 320, 390, 768, 1280 y 1440 px.
+- Zoom de texto al 200 por ciento.
+- Navegacion completa por teclado y lector de pantalla.
+- Tema claro y oscuro con los cinco perfiles.
+- Reejecucion de la matriz profesional de 250 criterios.
+
+## Proxima entrega
+Entrega 5 - Innovation Toolkit y Canvas Engine, unicamente despues de aprobar el Ajuste 4.2.

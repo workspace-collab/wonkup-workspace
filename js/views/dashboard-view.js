@@ -78,7 +78,7 @@ async function loadDashboard(container, workspaceId, session) {
       </div>` : ''}
     </section>`;
   } catch (error) {
-    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h3>No se pudo cargar el dashboard</h3><p>${escapeHtml(error.message)}</p></div></section>`;
+    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el dashboard</h2><p>${escapeHtml(error.message)}</p></div></section>`;
   }
 }
 
