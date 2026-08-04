@@ -13,20 +13,35 @@ const FOCUSABLE_SELECTOR = [
 
 let lastTrigger = null;
 let backgroundState = [];
+let activeHost = null;
 
 function getFocusable(root) {
   return [...root.querySelectorAll(FOCUSABLE_SELECTOR)]
     .filter(element => !element.hidden && element.getClientRects().length > 0);
 }
 
-function lockBackground(modalRoot) {
-  backgroundState = [...document.body.children]
-    .filter(element => element !== modalRoot && element.tagName !== 'SCRIPT')
-    .map(element => ({
-      element,
-      inert: Boolean(element.inert),
-      ariaHidden: element.getAttribute('aria-hidden')
-    }));
+function resolveOverlayHost() {
+  const fullscreen = document.fullscreenElement;
+  if (fullscreen instanceof HTMLElement) return fullscreen;
+  return document.body;
+}
+
+function backgroundCandidates(host, modalRoot) {
+  if (host === document.body) {
+    return [...document.body.children]
+      .filter(element => element !== modalRoot)
+      .filter(element => element.tagName !== 'SCRIPT')
+      .filter(element => !element.matches('#status-region, #alert-region, .toast-stack'));
+  }
+  return [...host.children].filter(element => element !== modalRoot && !element.matches('.toast-stack'));
+}
+
+function lockBackground(host, modalRoot) {
+  backgroundState = backgroundCandidates(host, modalRoot).map(element => ({
+    element,
+    inert: Boolean(element.inert),
+    ariaHidden: element.getAttribute('aria-hidden')
+  }));
 
   backgroundState.forEach(({ element }) => {
     element.inert = true;
@@ -36,11 +51,13 @@ function lockBackground(modalRoot) {
 
 function unlockBackground() {
   backgroundState.forEach(({ element, inert, ariaHidden }) => {
+    if (!element?.isConnected) return;
     element.inert = inert;
     if (ariaHidden === null) element.removeAttribute('aria-hidden');
     else element.setAttribute('aria-hidden', ariaHidden);
   });
   backgroundState = [];
+  activeHost = null;
 }
 
 export function openModal({
@@ -57,12 +74,15 @@ export function openModal({
   closeModal({ restoreFocus: false });
   lastTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
+  const host = resolveOverlayHost();
+  activeHost = host;
   const root = document.createElement('div');
   root.className = 'modal-backdrop';
   root.id = 'wonkup-modal';
   root.setAttribute('role', 'presentation');
+  root.dataset.overlayHost = host === document.body ? 'body' : 'fullscreen';
   root.innerHTML = `
-    <section class="modal-card modal-${size}" role="dialog" aria-modal="true" aria-labelledby="modal-title" ${subtitle ? 'aria-describedby="modal-description"' : ''}>
+    <section class="modal-card modal-${size}" role="dialog" aria-modal="true" aria-labelledby="modal-title" ${subtitle ? 'aria-describedby="modal-description"' : ''} tabindex="-1">
       <header class="modal-header">
         <div><h2 id="modal-title" tabindex="-1">${title}</h2>${subtitle ? `<p id="modal-description">${subtitle}</p>` : ''}</div>
         ${showClose ? `<button class="icon-button modal-close-button" type="button" data-modal-close aria-label="Cerrar diálogo">${icon('x')}</button>` : ''}
@@ -70,9 +90,9 @@ export function openModal({
       <div class="modal-body">${body}</div>
     </section>`;
 
-  document.body.appendChild(root);
+  host.appendChild(root);
   document.body.classList.add('modal-open');
-  lockBackground(root);
+  lockBackground(host, root);
 
   const close = () => closeModal();
   root.querySelectorAll('[data-modal-close]').forEach(button => button.addEventListener('click', close));
@@ -86,6 +106,7 @@ export function openModal({
   const onKeydown = event => {
     if (event.key === 'Escape' && closeOnEscape) {
       event.preventDefault();
+      event.stopPropagation();
       close();
       return;
     }
@@ -110,7 +131,7 @@ export function openModal({
 
   root._keydownHandler = onKeydown;
   root._onClose = typeof onClose === 'function' ? onClose : null;
-  document.addEventListener('keydown', onKeydown);
+  document.addEventListener('keydown', onKeydown, true);
 
   requestAnimationFrame(() => {
     const preferred = initialFocus ? root.querySelector(initialFocus) : null;
@@ -121,13 +142,13 @@ export function openModal({
     firstMeaningful?.focus();
   });
 
-  return { root, close };
+  return { root, close, host };
 }
 
 export function closeModal({ restoreFocus = true } = {}) {
   const root = document.querySelector('#wonkup-modal');
   if (!root) return;
-  if (root._keydownHandler) document.removeEventListener('keydown', root._keydownHandler);
+  if (root._keydownHandler) document.removeEventListener('keydown', root._keydownHandler, true);
   const onClose = root._onClose;
   root.remove();
   document.body.classList.remove('modal-open');

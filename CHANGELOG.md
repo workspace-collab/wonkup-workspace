@@ -137,3 +137,16 @@
 - Se añadieron enlaces con vencimiento flexible, QR, copia con fallback, listado y revocación.
 - Se añadió exportación A4 horizontal en modo resumen y detalle.
 - Se incorporaron snapshots, puntos de control y restauración de versiones para superadministrador.
+
+## Ajuste 5.2 - Estabilidad del Canvas Engine
+
+- Se corrigió la capa de modales y toasts en pantalla completa.
+- Fullscreen ahora usa un contenedor estable y soporta rerender sin cerrarse.
+- Se simplificó el formulario Nueva nota.
+- Se recuperó la edición mediante el botón de lápiz.
+- Se eliminaron recargas locales duplicadas durante drag and drop.
+- Se añadió confirmación visible al copiar enlaces.
+- Se incorporó ampliación de QR con código y URL.
+- Punto de control incrementa correctamente la versión.
+- Restaurar versión mantiene abierto el canvas.
+- Se incorporó un TIMER de ideación para pantalla completa.

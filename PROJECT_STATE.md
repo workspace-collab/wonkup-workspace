@@ -6,7 +6,7 @@ WonkUp Workspace
 
 ## Fase actual
 
-Ajuste 5.1 - Canvases especializados y colaboración mejorada
+Ajuste 5.2 - Estabilidad del Canvas Engine
 
 ## Estado
 
@@ -18,39 +18,34 @@ EN REVISIÓN
 - Entrega 1 - Núcleo visual.
 - Entrega 2 - Workspaces y acceso.
 - Entrega 3 - Proyectos, clientes y Google Drive.
+- Ajuste 3.1 - Portadas y restauración.
 - Entrega 4 - Kanban funcional.
-- Ajustes 4.1 y 4.2 - Usabilidad, responsive y accesibilidad.
-- Entrega 5 - Canvas Engine inicial.
+- Ajuste 4.1 - Kanban configurable y usabilidad.
+- Ajuste 4.2 - Responsive, accesibilidad y endurecimiento UI.
+- Entrega 5 - Innovation Toolkit y Canvas Engine.
+- Ajuste 5.1 - Canvases especializados, QR y versiones.
 
-## Construido en este ajuste
+## Correcciones de esta fase
 
-- Geometría especializada para BMC, Lean Canvas, Mapa de Empatía, Propuesta de Valor y Matriz de Priorización.
-- Pitch Canvas conservado.
-- Corrección del flujo Agregar nota y Abrir canvas.
-- Avance de llenado dinámico 70/30.
-- Modo enfoque y pantalla completa.
-- Enlaces con vencimiento flexible.
-- QR para compartir.
-- Copia de enlace con fallback.
-- Revocación y listado de enlaces.
-- Exportación A4 horizontal resumen y detalle.
-- Versiones restaurables y puntos de control.
+- Portal de modales compatible con Fullscreen API.
+- Toasts visibles sobre el canvas en pantalla completa.
+- Fullscreen basado en un contenedor estable.
+- Nueva nota simplificada.
+- Edición de notas recuperada.
+- Drag and drop sin recargas duplicadas.
+- Copiado con confirmación visible.
+- QR ampliable con código y URL.
+- Punto de control funcional y versiones correlativas.
+- Restauración sin salir del canvas.
+- TIMER de ideación en pantalla completa.
 
 ## Fuente de datos vigente
 
 - Proyectos: mock local.
 - Kanban: mock local.
-- Canvases y versiones: mock local.
-- Colaboración real entre dispositivos: pendiente de Firebase.
+- Canvases: mock local.
+- Colaboración real Firebase: pendiente.
 
-## Configuración
+## Próximo paso
 
-```javascript
-mode: 'mock',
-kanbanMode: 'mock',
-canvasMode: 'mock'
-```
-
-## Próxima fase
-
-Entrega 6 - Portal del cliente y entregables, después de aprobar el Ajuste 5.1.
+Validar el Ajuste 5.2 en GitHub Pages y continuar la revisión funcional del Innovation Toolkit.

@@ -11,8 +11,11 @@ import { showToast } from '../components/toast.js';
 
 let cleanupEditor = null;
 let draggedNoteId = '';
+let refreshSequence = 0;
+let timerTicker = null;
 const VIEW_KEY = 'wonkup.canvas.view';
 const FOCUS_KEY = 'wonkup.canvas.focusMode';
+const TIMER_KEY = 'wonkup.canvas.teamTimer';
 
 export async function renderCanvas(container, params, session) {
   cleanupCanvasView();
@@ -53,6 +56,7 @@ function renderCanvasEditor(container, context) {
   const canManage = !readOnly && canManageCanvas(session);
   const focusMode = !readOnly && localStorage.getItem(FOCUS_KEY) === '1';
   document.body.classList.toggle('canvas-focus-mode', focusMode);
+  container.dataset.activeCanvasId = instance.id;
 
   container.innerHTML = `<section class="${readOnly ? 'shared-canvas-page' : 'page canvas-editor-page'}" data-canvas-id="${escapeHtml(instance.id)}" data-template-layout="${escapeHtml(template.layout || 'generic')}">
     <header class="canvas-editor-header" style="--canvas-accent:${escapeHtml(template.color)}">
@@ -63,6 +67,7 @@ function renderCanvasEditor(container, context) {
       <div class="canvas-editor-actions">
         ${readOnly ? '' : `<div class="canvas-presence" id="canvas-presence" aria-label="Participantes conectados">${participantAvatar(session?.user, true)}</div>`}
         <div class="canvas-completion" title="Avance de llenado: 70% cobertura de secciones y 30% profundidad"><strong>${completion}%</strong><span>avance de llenado</span></div>
+        ${readOnly ? '' : timerMarkup(instance.id)}
         <button class="button button-secondary" id="canvas-fullscreen" type="button">${icon('maximize')} Pantalla completa</button>
         ${readOnly ? `<span class="status-badge">Solo lectura</span>` : `
           <button class="button button-secondary" id="canvas-focus" type="button">${icon('sidebar')} ${focusMode ? 'Mostrar barra lateral' : 'Modo enfoque'}</button>
@@ -95,15 +100,21 @@ function renderCanvasEditor(container, context) {
   let stopPresence = () => {};
   if (!readOnly && session) stopPresence = CanvasService.startPresence({ canvasId: instance.id, session, onChange: people => renderPresence(container, people) });
   const unsubscribe = readOnly ? () => {} : CanvasService.subscribe(event => {
-    if (event.canvasId !== instance.id || event.source === 'presence') return;
+    if (event.canvasId !== instance.id || event.source === 'presence' || event.source === 'mock') return;
     if (document.querySelector('#wonkup-modal')) return;
     reloadCanvas(container, context);
   });
-  const fullscreenListener = () => updateFullscreenButton(container);
+  if (!readOnly) bindCanvasTimer(container, instance.id);
+  const fullscreenListener = () => {
+    if (!document.fullscreenElement) container.classList.remove('canvas-fullscreen-host');
+    updateFullscreenButton(container);
+    updateTimerVisibility(container);
+  };
   document.addEventListener('fullscreenchange', fullscreenListener);
   cleanupEditor = () => {
     stopPresence();
     unsubscribe();
+    stopTimerTicker();
     document.removeEventListener('fullscreenchange', fullscreenListener);
   };
 }
@@ -170,7 +181,7 @@ function noteCard(note, canEdit, draggable) {
     <div class="canvas-note-handle">${canEdit && draggable ? icon('grip') : ''}<span>${escapeHtml(color.name)}</span></div>
     <p>${escapeHtml(note.text)}</p>
     ${note.sourceCanvasId ? `<span class="linked-note-label">${icon('link')} Vinculada</span>` : ''}
-    <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${canEdit ? `<button class="note-open" type="button" data-open-note="${escapeHtml(note.id)}" aria-label="Editar nota">${icon('edit')}</button>` : ''}</footer>
+    <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${canEdit ? `<button class="note-open" type="button" draggable="false" data-open-note="${escapeHtml(note.id)}" aria-label="Editar nota">${icon('edit')}</button>` : ''}</footer>
   </article>`;
 }
 
@@ -187,52 +198,60 @@ function bindCanvasEvents(container, context, currentView) {
   container.querySelector('#canvas-add-note')?.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
-    openNoteForm({ instance, session, onSaved: () => reloadCanvas(container, context) });
+    openNoteForm({ instance, session, onSaved: next => renderCanvasEditor(container, { ...context, instance: next }) });
   });
   container.querySelectorAll('[data-add-note]').forEach(button => button.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
-    openNoteForm({ instance, session, sectionId: button.dataset.addNote, onSaved: () => reloadCanvas(container, context) });
+    openNoteForm({ instance, session, sectionId: button.dataset.addNote, onSaved: next => renderCanvasEditor(container, { ...context, instance: next }) });
   }));
-  container.querySelectorAll('[data-open-note]').forEach(button => button.addEventListener('click', event => {
+  container.querySelectorAll('[data-open-note]').forEach(button => {
+    button.addEventListener('pointerdown', event => event.stopPropagation());
+    button.addEventListener('dragstart', event => event.preventDefault());
+    button.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
-    openNoteDetail({ instance, noteId: button.dataset.openNote, session, onSaved: () => reloadCanvas(container, context) });
-  }));
+    openNoteDetail({ instance, noteId: button.dataset.openNote, session, onSaved: next => next ? renderCanvasEditor(container, { ...context, instance: next }) : reloadCanvas(container, context) });
+    });
+  });
   container.querySelectorAll('.canvas-note').forEach(card => {
-    card.addEventListener('dblclick', () => { if (canEdit) openNoteDetail({ instance, noteId: card.dataset.noteId, session, onSaved: () => reloadCanvas(container, context) }); });
+    card.addEventListener('dblclick', () => { if (canEdit) openNoteDetail({ instance, noteId: card.dataset.noteId, session, onSaved: next => next ? renderCanvasEditor(container, { ...context, instance: next }) : reloadCanvas(container, context) }); });
     card.addEventListener('keydown', event => {
       if ((event.key === 'Enter' || event.key === ' ') && canEdit) {
         event.preventDefault();
-        openNoteDetail({ instance, noteId: card.dataset.noteId, session, onSaved: () => reloadCanvas(container, context) });
+        openNoteDetail({ instance, noteId: card.dataset.noteId, session, onSaved: next => next ? renderCanvasEditor(container, { ...context, instance: next }) : reloadCanvas(container, context) });
       }
     });
     if (!canEdit || currentView !== 'board') return;
     card.addEventListener('dragstart', event => {
+      event.stopPropagation();
       draggedNoteId = card.dataset.noteId;
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', draggedNoteId);
       card.classList.add('dragging');
     });
-    card.addEventListener('dragend', () => {
-      draggedNoteId = '';
+    card.addEventListener('dragend', event => {
+      event.stopPropagation();
       card.classList.remove('dragging');
       container.querySelectorAll('.canvas-note-stack').forEach(stack => stack.classList.remove('drag-over'));
+      setTimeout(() => { draggedNoteId = ''; }, 0);
     });
   });
   if (canEdit && currentView === 'board') {
     container.querySelectorAll('[data-drop-section]').forEach(stack => {
-      stack.addEventListener('dragover', event => { event.preventDefault(); stack.classList.add('drag-over'); });
+      stack.addEventListener('dragover', event => { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'move'; stack.classList.add('drag-over'); });
       stack.addEventListener('dragleave', event => { if (!stack.contains(event.relatedTarget)) stack.classList.remove('drag-over'); });
       stack.addEventListener('drop', async event => {
         event.preventDefault();
+        event.stopPropagation();
         stack.classList.remove('drag-over');
         const noteId = event.dataTransfer.getData('text/plain') || draggedNoteId;
         if (!noteId) return;
         try {
-          await CanvasService.moveNote({ canvasId: instance.id, noteId, toSectionId: stack.dataset.dropSection, session });
+          const next = await CanvasService.moveNote({ canvasId: instance.id, noteId, toSectionId: stack.dataset.dropSection, session });
+          draggedNoteId = '';
           showToast('Nota movida.');
-          reloadCanvas(container, context);
+          renderCanvasEditor(container, { ...context, instance: next });
         } catch (error) { showToast(error.message, { type: 'error' }); }
       });
     });
@@ -247,21 +266,29 @@ function bindCanvasEvents(container, context, currentView) {
 
 function openNoteForm({ instance, session, sectionId = '', onSaved }) {
   const template = instance.template;
+  const selectedSection = template.sections.find(section => section.id === sectionId) || template.sections[0];
   const modal = openModal({
     title: 'Nueva nota',
     subtitle: `Agrega una idea al ${template.name}.`,
     size: 'sm',
     initialFocus: '#canvas-note-text',
-    body: `<form id="canvas-note-form" class="form-grid" novalidate>
-      <div class="field field-full"><label for="canvas-note-section">Sección *</label><select class="select" id="canvas-note-section" required>${template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === sectionId ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div>
-      <div class="field field-full"><label for="canvas-note-text">Contenido *</label><textarea class="input textarea" id="canvas-note-text" rows="5" maxlength="1200" required aria-describedby="canvas-note-text-help canvas-note-text-error"></textarea><small class="field-help" id="canvas-note-text-help">Una idea concreta por nota.</small><small class="field-error" id="canvas-note-text-error"></small></div>
-      ${colorField('canvas-note-color', 'sky')}
+    body: `<form id="canvas-note-form" class="form-grid canvas-note-quick-form" novalidate>
+      <div class="field field-full canvas-note-content-field"><label for="canvas-note-text">Contenido *</label><textarea class="input textarea" id="canvas-note-text" rows="6" maxlength="1200" required aria-describedby="canvas-note-text-help canvas-note-text-error" placeholder="Escribe una idea concreta..."></textarea><small class="field-help" id="canvas-note-text-help">Una idea por nota. Puedes ajustar la sección y el color en Opciones.</small><small class="field-error" id="canvas-note-text-error"></small></div>
+      <details class="note-advanced-options field-full">
+        <summary>${icon('more')} Opciones de nota <span>${escapeHtml(selectedSection?.emoji || '')} ${escapeHtml(selectedSection?.title || '')}</span></summary>
+        <div class="note-advanced-body">
+          <div class="field field-full"><label for="canvas-note-section">Sección</label><select class="select select-compact" id="canvas-note-section" required>${template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === selectedSection?.id ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div>
+          ${colorField('canvas-note-color', 'sky', true)}
+        </div>
+      </details>
+      <div class="canvas-note-submit-status field-full" id="canvas-note-submit-status" role="status" aria-live="polite"></div>
       <div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('plus')} Agregar nota</button></div>
     </form>`
   });
   const form = modal.root.querySelector('#canvas-note-form');
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    event.stopPropagation();
     const textField = modal.root.querySelector('#canvas-note-text');
     const text = textField.value.trim();
     textField.setAttribute('aria-invalid', String(!text));
@@ -271,13 +298,22 @@ function openNoteForm({ instance, session, sectionId = '', onSaved }) {
       return;
     }
     const submit = form.querySelector('[type="submit"]');
+    const status = modal.root.querySelector('#canvas-note-submit-status');
     submit.disabled = true;
+    status.textContent = 'Guardando nota...';
     try {
-      await CanvasService.createNote({ canvasId: instance.id, sectionId: modal.root.querySelector('#canvas-note-section').value, input: { text, colorId: form.elements['canvas-note-color'].value }, session });
+      const data = new FormData(form);
+      const next = await CanvasService.createNote({
+        canvasId: instance.id,
+        sectionId: modal.root.querySelector('#canvas-note-section').value,
+        input: { text, colorId: data.get('canvas-note-color') || 'sky' },
+        session
+      });
       modal.close();
-      showToast('Nota agregada.');
-      onSaved?.();
+      showToast('Nota agregada correctamente.');
+      onSaved?.(next);
     } catch (error) {
+      status.textContent = error.message || 'No se pudo guardar la nota.';
       showToast(error.message, { type: 'error' });
       submit.disabled = false;
     }
@@ -312,30 +348,30 @@ function openNoteDetail({ instance, noteId, session, onSaved }) {
       return;
     }
     try {
-      await CanvasService.updateNote({ canvasId: instance.id, noteId, patch: { text, sectionId: modal.root.querySelector('#note-detail-section').value, colorId: modal.root.querySelector('#note-detail-color').value }, session });
+      const next = await CanvasService.updateNote({ canvasId: instance.id, noteId, patch: { text, sectionId: modal.root.querySelector('#note-detail-section').value, colorId: modal.root.querySelector('#note-detail-color').value }, session });
       modal.close();
       showToast('Nota actualizada.');
-      onSaved?.();
+      onSaved?.(next);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   });
   modal.root.querySelector('#note-comment-form').addEventListener('submit', async event => {
     event.preventDefault();
     const field = modal.root.querySelector('#note-comment-text');
     try {
-      await CanvasService.addComment({ canvasId: instance.id, noteId, text: field.value, session });
+      const next = await CanvasService.addComment({ canvasId: instance.id, noteId, text: field.value, session });
       modal.close();
       showToast('Comentario agregado.');
-      onSaved?.();
+      onSaved?.(next);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   });
   modal.root.querySelector('#delete-note').addEventListener('click', async () => {
     const confirmed = await confirmModal({ title: 'Eliminar nota', message: 'La nota y sus comentarios se eliminarán del canvas.', confirmLabel: 'Eliminar', danger: true });
     if (!confirmed) return;
     try {
-      await CanvasService.deleteNote({ canvasId: instance.id, noteId, session });
+      const next = await CanvasService.deleteNote({ canvasId: instance.id, noteId, session });
       closeModal();
       showToast('Nota eliminada.');
-      onSaved?.();
+      onSaved?.(next);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   });
   modal.root.querySelector('#convert-note').addEventListener('click', () => { modal.close(); openConvertToTask({ instance, note, session, onSaved }); });
@@ -402,24 +438,41 @@ async function openHistory({ instance, session, context, container }) {
     title: 'Historial y versiones',
     subtitle: 'Consulta la actividad y recupera puntos de control del canvas.',
     size: 'lg',
-    body: `<div class="history-version-layout"><section><div class="section-heading compact"><div><h3>Actividad</h3><p>Últimos ${Math.min(instance.history.length, 150)} eventos.</p></div></div><div class="canvas-history-list">${instance.history.length ? instance.history.map(entry => `<article><span class="history-icon">${icon(historyIcon(entry.type))}</span><div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.actor?.name || 'Sistema')} · ${relativeTime(entry.createdAt)}</small></div></article>`).join('') : '<p class="muted-copy">Todavía no hay actividad registrada.</p>'}</div></section><section><div class="section-heading compact"><div><h3>Versiones</h3><p>Se conservan hasta 20 snapshots locales.</p></div>${canManageCanvas(session) ? `<button class="button button-secondary" type="button" id="create-version">${icon('plus')} Punto de control</button>` : ''}</div><div class="canvas-version-list">${versions.length ? versions.map(version => `<article><div><strong>Versión ${version.version}</strong><span>${escapeHtml(version.label || 'Punto de control')}</span><small>${escapeHtml(version.actor?.name || 'Sistema')} · ${formatDateTime(version.createdAt)} · ${version.notes?.length || 0} notas</small></div>${isSuperadmin ? `<button class="button button-secondary" type="button" data-restore-version="${escapeHtml(version.id)}">${icon('restore')} Restaurar</button>` : ''}</article>`).join('') : '<p class="muted-copy">No existen versiones guardadas.</p>'}</div></section></div>`
+    body: `<div class="history-version-layout"><section><div class="section-heading compact"><div><h3>Actividad</h3><p>Últimos ${Math.min(instance.history.length, 150)} eventos.</p></div></div><div class="canvas-history-list">${instance.history.length ? instance.history.map(entry => `<article><span class="history-icon">${icon(historyIcon(entry.type))}</span><div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.actor?.name || 'Sistema')} · ${relativeTime(entry.createdAt)}</small></div></article>`).join('') : '<p class="muted-copy">Todavía no hay actividad registrada.</p>'}</div></section><section><div class="section-heading compact"><div><h3>Versiones</h3><p>Se conservan hasta 20 snapshots locales.</p></div>${canManageCanvas(session) ? `<button class="button button-secondary" type="button" id="create-version">${icon('plus')} Punto de control</button>` : ''}</div><div class="canvas-version-feedback" id="canvas-version-feedback" role="status" aria-live="polite"></div><div class="canvas-version-list">${versions.length ? versions.map(version => `<article><div><strong>Versión ${version.version}</strong><span>${escapeHtml(version.label || 'Punto de control')}</span><small>${escapeHtml(version.actor?.name || 'Sistema')} · ${formatDateTime(version.createdAt)} · ${version.notes?.length || 0} notas</small></div>${isSuperadmin ? `<button class="button button-secondary" type="button" data-restore-version="${escapeHtml(version.id)}">${icon('restore')} Restaurar</button>` : ''}</article>`).join('') : '<p class="muted-copy">No existen versiones guardadas.</p>'}</div></section></div>`
   });
-  modal.root.querySelector('#create-version')?.addEventListener('click', async () => {
+  modal.root.querySelector('#create-version')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const feedback = modal.root.querySelector('#canvas-version-feedback');
+    button.disabled = true;
+    feedback.textContent = 'Creando punto de control...';
     try {
       await CanvasService.createVersion({ canvasId: instance.id, label: `Punto de control · ${formatDateTime(new Date().toISOString())}`, session });
+      const next = await CanvasService.getInstance({ canvasId: instance.id, session });
       modal.close();
       showToast('Punto de control creado.');
-      reloadCanvas(container, context);
-    } catch (error) { showToast(error.message, { type: 'error' }); }
+      openHistory({ instance: next, session, context: { ...context, instance: next }, container });
+    } catch (error) {
+      feedback.textContent = error.message || 'No se pudo crear el punto de control.';
+      showToast(error.message, { type: 'error' });
+      button.disabled = false;
+    }
   });
-  modal.root.querySelectorAll('[data-restore-version]').forEach(button => button.addEventListener('click', async () => {
-    if (!globalThis.confirm('Se creará una versión nueva basada en este punto de control. La versión actual quedará respaldada. ¿Continuar?')) return;
+  modal.root.querySelectorAll('[data-restore-version]').forEach(button => button.addEventListener('click', async event => {
+    const confirmed = globalThis.confirm('Se creará una versión nueva basada en este punto de control. La versión actual quedará respaldada. ¿Continuar?');
+    if (!confirmed) return;
+    const feedback = modal.root.querySelector('#canvas-version-feedback');
+    event.currentTarget.disabled = true;
+    feedback.textContent = 'Restaurando versión...';
     try {
-      await CanvasService.restoreVersion({ canvasId: instance.id, snapshotId: button.dataset.restoreVersion, session });
-      closeModal();
-      showToast('Versión restaurada.');
-      reloadCanvas(container, context);
-    } catch (error) { showToast(error.message, { type: 'error' }); }
+      const next = await CanvasService.restoreVersion({ canvasId: instance.id, snapshotId: event.currentTarget.dataset.restoreVersion, session });
+      modal.close();
+      showToast('Versión restaurada sin salir del canvas.');
+      renderCanvasEditor(container, { ...context, instance: next });
+    } catch (error) {
+      feedback.textContent = error.message || 'No se pudo restaurar la versión.';
+      showToast(error.message, { type: 'error' });
+      event.currentTarget.disabled = false;
+    }
   }));
 }
 
@@ -478,16 +531,29 @@ function renderShareTokens(root, instance, tokens, session, selectedToken, refre
 function shareResultMarkup(token) {
   const link = shareLink(token.code);
   const qr = qrImageUrl(link);
-  return `<section class="share-result-card"><div class="share-result-main"><label for="canvas-share-link">Enlace compartido</label><div class="copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-secondary" id="copy-canvas-link" type="button">${icon('copy')} Copiar</button></div><div class="share-code"><span>Código</span><strong>${escapeHtml(token.code)}</strong></div><p class="field-help">Vence el ${formatDateTime(token.expiresAt)}.</p></div><div class="share-qr"><img src="${escapeHtml(qr)}" alt="Código QR del enlace compartido" width="180" height="180"><a class="button button-secondary" href="${escapeHtml(qr)}" target="_blank" rel="noopener">${icon('download')} Abrir QR</a></div></section>`;
+  return `<section class="share-result-card"><div class="share-result-main"><label for="canvas-share-link">Enlace compartido</label><div class="copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-secondary" id="copy-canvas-link" type="button">${icon('copy')} Copiar</button></div><div class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></div><div class="share-code"><span>Código</span><strong>${escapeHtml(token.code)}</strong></div><p class="field-help">Vence el ${formatDateTime(token.expiresAt)}.</p></div><div class="share-qr"><button class="share-qr-preview" type="button" data-expand-qr="${escapeHtml(token.id)}" aria-label="Ampliar código QR y código de acceso"><img src="${escapeHtml(qr)}" alt="Código QR del enlace compartido" width="180" height="180"><span>${icon('maximize')} Ampliar QR</span></button><a class="button button-secondary" href="${escapeHtml(qr)}" target="_blank" rel="noopener">${icon('download')} Abrir QR</a></div></section>`;
 }
 
 function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
   const resultLink = root.querySelector('#canvas-share-link')?.value;
   root.querySelector('#copy-canvas-link')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const feedback = root.querySelector('#copy-feedback');
     const copied = await copyText(resultLink, root.querySelector('#canvas-share-link'));
-    event.currentTarget.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} Seleccionado`;
-    showToast(copied ? 'Enlace copiado.' : 'El enlace quedó seleccionado para copiarlo manualmente.');
+    button.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} Selecciona y copia`;
+    button.classList.toggle('copy-success', copied);
+    if (feedback) feedback.textContent = copied ? '✓ El enlace se copió al portapapeles.' : 'No se pudo copiar automáticamente. El enlace quedó seleccionado.';
+    showToast(copied ? 'Enlace copiado al portapapeles.' : 'El enlace quedó seleccionado para copiarlo manualmente.', { duration: 5200 });
+    setTimeout(() => {
+      if (!button.isConnected) return;
+      button.innerHTML = `${icon('copy')} Copiar`;
+      button.classList.remove('copy-success');
+    }, 3200);
   });
+  root.querySelectorAll('[data-expand-qr]').forEach(button => button.addEventListener('click', () => {
+    const token = tokens.find(item => item.id === button.dataset.expandQr);
+    if (token) openQrZoom(root, token);
+  }));
   root.querySelectorAll('[data-copy-token]').forEach(button => button.addEventListener('click', async () => {
     const copied = await copyText(button.dataset.copyToken);
     showToast(copied ? 'Enlace copiado.' : 'No se pudo copiar automáticamente.');
@@ -551,8 +617,8 @@ function openCanvasSettings({ instance, session, context, container }) {
   });
 }
 
-function colorField(name, selected) {
-  return `<fieldset class="field field-full color-field"><legend>Color</legend><div class="note-color-options">${CANVAS_NOTE_COLORS.map(color => `<label style="--swatch:${color.background};--swatch-border:${color.border}"><input type="radio" name="${name}" value="${color.id}" ${color.id === selected ? 'checked' : ''}><span></span>${escapeHtml(color.name)}</label>`).join('')}</div></fieldset>`;
+function colorField(name, selected, compact = false) {
+  return `<fieldset class="field field-full color-field ${compact ? 'color-field-compact' : ''}"><legend>Color</legend><div class="note-color-options">${CANVAS_NOTE_COLORS.map(color => `<label title="${escapeHtml(color.name)}" style="--swatch:${color.background};--swatch-border:${color.border}"><input type="radio" name="${name}" value="${color.id}" ${color.id === selected ? 'checked' : ''}><span></span><em>${escapeHtml(color.name)}</em></label>`).join('')}</div></fieldset>`;
 }
 
 function renderPresence(container, people) {
@@ -571,8 +637,11 @@ function notesForSection(instance, sectionId) {
 }
 
 async function reloadCanvas(container, context) {
+  const requestId = ++refreshSequence;
+  const canvasId = context.instance.id;
   try {
-    const next = await CanvasService.getInstance({ canvasId: context.instance.id, session: context.session });
+    const next = await CanvasService.getInstance({ canvasId, session: context.session });
+    if (requestId !== refreshSequence || container.dataset.activeCanvasId !== canvasId) return;
     renderCanvasEditor(container, { ...context, instance: next });
   } catch (error) { showToast(error.message, { type: 'error' }); }
 }
@@ -585,11 +654,18 @@ function toggleFocusMode(container, context) {
 }
 
 async function toggleFullscreen(container) {
-  const page = container.querySelector('.canvas-editor-page, .shared-canvas-page');
   try {
-    if (!document.fullscreenElement) await page.requestFullscreen();
-    else await document.exitFullscreen();
-  } catch { showToast('El navegador no permitió cambiar a pantalla completa.', { type: 'error' }); }
+    if (!document.fullscreenElement) {
+      container.classList.add('canvas-fullscreen-host');
+      await container.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+      container.classList.remove('canvas-fullscreen-host');
+    }
+  } catch {
+    container.classList.remove('canvas-fullscreen-host');
+    showToast('El navegador no permitió cambiar a pantalla completa.', { type: 'error' });
+  }
 }
 
 function updateFullscreenButton(container) {
@@ -611,27 +687,150 @@ function printCanvas(mode, templateId) {
 }
 
 async function copyText(value, visibleField = null) {
+  const text = String(value || '');
+  if (!text) return false;
   try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(value);
+    if (navigator.clipboard?.writeText && globalThis.isSecureContext) {
+      await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch { /* use fallback */ }
+  } catch { /* fallback below */ }
   const field = document.createElement('textarea');
-  field.value = value;
+  field.value = text;
   field.setAttribute('readonly', '');
   field.style.position = 'fixed';
+  field.style.top = '0';
   field.style.left = '-9999px';
-  document.body.appendChild(field);
+  field.style.opacity = '0';
+  (document.fullscreenElement || document.body).appendChild(field);
+  field.focus();
   field.select();
+  field.setSelectionRange(0, field.value.length);
   let copied = false;
   try { copied = document.execCommand('copy'); } catch { copied = false; }
   field.remove();
   if (!copied && visibleField) {
     visibleField.focus();
     visibleField.select();
+    visibleField.setSelectionRange?.(0, visibleField.value.length);
   }
   return copied;
+}
+
+function openQrZoom(root, token) {
+  root.querySelector('.qr-zoom-overlay')?.remove();
+  const link = shareLink(token.code);
+  const overlay = document.createElement('div');
+  overlay.className = 'qr-zoom-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Código QR ampliado');
+  overlay.innerHTML = `<div class="qr-zoom-card"><button class="icon-button qr-zoom-close" type="button" aria-label="Cerrar QR ampliado">${icon('x')}</button><img src="${escapeHtml(qrImageUrl(link))}" alt="Código QR ampliado" width="420" height="420"><span>Código de acceso</span><strong>${escapeHtml(token.code)}</strong><p>${escapeHtml(link)}</p><div class="qr-zoom-actions"><button class="button button-secondary" type="button" data-copy-zoom>${icon('copy')} Copiar enlace</button><a class="button button-primary" href="${escapeHtml(qrImageUrl(link))}" target="_blank" rel="noopener">${icon('download')} Abrir imagen</a></div><div class="copy-feedback" data-qr-feedback role="status" aria-live="polite"></div></div>`;
+  root.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.qr-zoom-close').addEventListener('click', close);
+  overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+  overlay.querySelector('[data-copy-zoom]').addEventListener('click', async event => {
+    const copied = await copyText(link);
+    event.currentTarget.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} No se pudo copiar`;
+    overlay.querySelector('[data-qr-feedback]').textContent = copied ? '✓ Enlace copiado al portapapeles.' : 'Copia manualmente la dirección mostrada.';
+    showToast(copied ? 'Enlace copiado.' : 'No se pudo copiar automáticamente.');
+  });
+  overlay.querySelector('.qr-zoom-close').focus();
+}
+
+function readTimerState(canvasId) {
+  try {
+    const all = JSON.parse(localStorage.getItem(TIMER_KEY) || '{}');
+    const current = all[canvasId] || {};
+    const duration = Math.max(60, Number(current.duration || 300));
+    let remaining = Math.max(0, Number(current.remaining ?? duration));
+    let running = Boolean(current.running);
+    let endsAt = Number(current.endsAt || 0);
+    if (running && endsAt) {
+      remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      if (!remaining) running = false;
+    }
+    return { duration, remaining, running, endsAt: running ? endsAt : 0 };
+  } catch {
+    return { duration: 300, remaining: 300, running: false, endsAt: 0 };
+  }
+}
+
+function saveTimerState(canvasId, state) {
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(TIMER_KEY) || '{}'); } catch { all = {}; }
+  all[canvasId] = state;
+  localStorage.setItem(TIMER_KEY, JSON.stringify(all));
+}
+
+function timerMarkup(canvasId) {
+  const state = readTimerState(canvasId);
+  return `<div class="canvas-team-timer fullscreen-only" id="canvas-team-timer" aria-label="Temporizador de ideación"><span class="timer-caption">${icon('clock')} TIMER</span><strong id="canvas-timer-display">${formatTimer(state.remaining)}</strong><select id="canvas-timer-preset" aria-label="Duración del temporizador"><option value="300" ${state.duration === 300 ? 'selected' : ''}>5 min</option><option value="600" ${state.duration === 600 ? 'selected' : ''}>10 min</option><option value="900" ${state.duration === 900 ? 'selected' : ''}>15 min</option><option value="1200" ${state.duration === 1200 ? 'selected' : ''}>20 min</option><option value="1800" ${state.duration === 1800 ? 'selected' : ''}>30 min</option></select><button class="icon-button" id="canvas-timer-toggle" type="button" aria-label="${state.running ? 'Pausar' : 'Iniciar'} temporizador">${icon(state.running ? 'pause' : 'play')}</button><button class="icon-button" id="canvas-timer-reset" type="button" aria-label="Reiniciar temporizador">${icon('refresh')}</button></div>`;
+}
+
+function formatTimer(seconds) {
+  const safe = Math.max(0, Number(seconds || 0));
+  const minutes = Math.floor(safe / 60);
+  return `${String(minutes).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;
+}
+
+function stopTimerTicker() {
+  if (timerTicker) clearInterval(timerTicker);
+  timerTicker = null;
+}
+
+function bindCanvasTimer(container, canvasId) {
+  stopTimerTicker();
+  const preset = container.querySelector('#canvas-timer-preset');
+  const toggle = container.querySelector('#canvas-timer-toggle');
+  const reset = container.querySelector('#canvas-timer-reset');
+  const render = () => {
+    const state = readTimerState(canvasId);
+    const display = container.querySelector('#canvas-timer-display');
+    if (display) display.textContent = formatTimer(state.remaining);
+    if (toggle) {
+      toggle.innerHTML = icon(state.running ? 'pause' : 'play');
+      toggle.setAttribute('aria-label', `${state.running ? 'Pausar' : 'Iniciar'} temporizador`);
+    }
+    if (!state.running && state.remaining === 0) {
+      const finishedKey = `${TIMER_KEY}.finished.${canvasId}`;
+      if (sessionStorage.getItem(finishedKey) !== String(state.endsAt || 'done')) {
+        sessionStorage.setItem(finishedKey, String(state.endsAt || 'done'));
+        showToast('⏱ Tiempo terminado. Es momento de cerrar la ideación.', { duration: 9000 });
+        navigator.vibrate?.([180, 100, 180]);
+      }
+    }
+  };
+  preset?.addEventListener('change', () => {
+    const duration = Number(preset.value || 300);
+    saveTimerState(canvasId, { duration, remaining: duration, running: false, endsAt: 0 });
+    render();
+  });
+  toggle?.addEventListener('click', () => {
+    const state = readTimerState(canvasId);
+    if (state.running) {
+      saveTimerState(canvasId, { ...state, remaining: Math.max(0, Math.ceil((state.endsAt - Date.now()) / 1000)), running: false, endsAt: 0 });
+    } else {
+      const remaining = state.remaining > 0 ? state.remaining : state.duration;
+      saveTimerState(canvasId, { ...state, remaining, running: true, endsAt: Date.now() + remaining * 1000 });
+      sessionStorage.removeItem(`${TIMER_KEY}.finished.${canvasId}`);
+    }
+    render();
+  });
+  reset?.addEventListener('click', () => {
+    const state = readTimerState(canvasId);
+    saveTimerState(canvasId, { duration: state.duration, remaining: state.duration, running: false, endsAt: 0 });
+    sessionStorage.removeItem(`${TIMER_KEY}.finished.${canvasId}`);
+    render();
+  });
+  timerTicker = setInterval(render, 500);
+  render();
+  updateTimerVisibility(container);
+}
+
+function updateTimerVisibility(container) {
+  container.querySelector('#canvas-team-timer')?.classList.toggle('is-visible', Boolean(document.fullscreenElement));
 }
 
 function shareLink(code) {
@@ -672,7 +871,10 @@ function relativeTime(value) {
 }
 
 export function cleanupCanvasView() {
+  refreshSequence += 1;
   cleanupEditor?.();
   cleanupEditor = null;
+  stopTimerTicker();
+  document.querySelector('#main-view')?.classList.remove('canvas-fullscreen-host');
   document.body.classList.remove('canvas-focus-mode', 'canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
 }

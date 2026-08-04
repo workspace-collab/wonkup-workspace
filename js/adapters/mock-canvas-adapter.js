@@ -478,9 +478,9 @@ export const MockCanvasAdapter = {
     const instances = readInstances();
     const instance = findInstance(instances, canvasId);
     requireManage(session, instance);
+    touch(instance);
     saveSnapshot(instance, session, label || `Punto de control · versión ${instance.version}`);
     addHistory(instance, 'version:created', 'Punto de control creado', session, { snapshotId: instance.snapshots[0].id });
-    instance.updatedAt = now();
     writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:version-created' });
     return clone(instance.snapshots[0]);
   },

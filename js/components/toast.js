@@ -1,13 +1,22 @@
 let stack;
 
+function resolveToastHost() {
+  const fullscreen = document.fullscreenElement;
+  if (fullscreen instanceof HTMLElement) return fullscreen;
+  return document.body;
+}
+
 export function ensureToastStack() {
+  const host = resolveToastHost();
   stack = document.querySelector('.toast-stack');
   if (!stack) {
     stack = document.createElement('div');
     stack.className = 'toast-stack';
-    stack.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(stack);
+    stack.setAttribute('role', 'status');
+    stack.setAttribute('aria-live', 'polite');
+    stack.setAttribute('aria-atomic', 'true');
   }
+  if (stack.parentElement !== host) host.appendChild(stack);
   return stack;
 }
 

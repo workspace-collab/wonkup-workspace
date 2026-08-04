@@ -203,3 +203,48 @@ Validar:
 - [ ] Un rol no superadmin no puede restaurar.
 - [ ] Superadmin restaura una versión.
 - [ ] La restauración conserva respaldo del estado anterior.
+
+## Ajuste 5.2 - Estabilidad del Canvas Engine
+
+### Pantalla completa y overlays
+
+- [ ] Historial se muestra sobre el canvas fullscreen.
+- [ ] Compartir se muestra sobre el canvas fullscreen.
+- [ ] Exportar se muestra sobre el canvas fullscreen.
+- [ ] Nueva nota se muestra sobre el canvas fullscreen.
+- [ ] Editar nota se muestra sobre el canvas fullscreen.
+- [ ] Los toasts son visibles en fullscreen.
+- [ ] Escape cierra el modal antes de salir de fullscreen.
+
+### Notas y arrastre
+
+- [ ] Nueva nota prioriza el campo Contenido.
+- [ ] Opciones de sección y color están contraídas inicialmente.
+- [ ] Agregar nota guarda y confirma.
+- [ ] El lápiz abre Detalle de nota.
+- [ ] Arrastrar una nota no cambia la ruta.
+- [ ] Arrastrar una nota no regresa al Toolkit.
+- [ ] El canvas continúa operativo sin recargar manualmente.
+
+### Compartir
+
+- [ ] Copiar muestra `Enlace copiado`.
+- [ ] La confirmación se ve dentro del modal.
+- [ ] El QR se amplía al hacer clic.
+- [ ] El visor presenta código, URL y acciones.
+
+### Versiones
+
+- [ ] Punto de control crea una versión correlativa.
+- [ ] El modal de historial se refresca.
+- [ ] Restaurar conserva abierto el canvas.
+- [ ] Restaurar conserva la ruta.
+
+### TIMER
+
+- [ ] Solo aparece en pantalla completa.
+- [ ] Permite seleccionar duración.
+- [ ] Inicia y descuenta.
+- [ ] Pausa conservando el tiempo.
+- [ ] Reinicia a la duración seleccionada.
+- [ ] Muestra aviso al finalizar.

@@ -1,0 +1,12 @@
+AJUSTE 5.2 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_2_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- TEST_CHECKLIST.md
+- css/components.css
+- js/adapters/mock-canvas-adapter.js
+- js/components/modal.js
+- js/components/toast.js
+- js/utils/icons.js
+- js/views/canvas-view.js
