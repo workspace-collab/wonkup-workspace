@@ -13,7 +13,7 @@ import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/can
 import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
-import { renderClientPortal } from './views/client-portal-view.js?v=6.0.0';
+import { renderClientPortal } from './views/client-portal-view.js?v=6.0.2';
 import { icon } from './utils/icons.js';
 
 const shell = createAppShell();
