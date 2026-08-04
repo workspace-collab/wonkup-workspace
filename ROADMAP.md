@@ -7,6 +7,7 @@
 | 2 — Workspaces y acceso | APROBADA |
 | 3 — Proyectos y Drive | APROBADA |
 | 4 — Kanban | EN REVISIÓN |
+| 4.1 — Usabilidad y Kanban configurable | EN REVISIÓN |
 | 5 — Innovation Toolkit | PENDIENTE |
 | 6 — Portal del cliente | PENDIENTE |
 | 7 — Finanzas y horas | PENDIENTE |

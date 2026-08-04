@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.1 — Ajuste 4.1: usabilidad y Kanban configurable
+
+### Añadido
+- Restauración y eliminación controlada de tarjetas archivadas.
+- Configuración visual de columnas y límites WIP.
+- Plantillas Kanban de 4, 5, 6 y 9 columnas.
+- Edición, archivo, restauración y eliminación controlada de clientes.
+- Buscador global con `Ctrl + K` y `Cmd + K`.
+- Notificaciones locales y contador de no leídas.
+- Gestión centralizada de popovers y menús.
+
+### Corregido
+- Iconos sobredimensionados en Tema, Crear y Cerrar sesión.
+- Superposición entre menús del encabezado.
+- Botón de menú lateral sin función en determinadas resoluciones.
+- Campana y lupa sin comportamiento.
+
+### Cambiado
+- Las nueve columnas dejan de ser obligatorias.
+- La configuración del tablero deja de depender de editar código.
+- La versión cambia a `0.4.1-usability`.
+
 ## 0.4.0 — Entrega 4: Kanban
 
 ### Añadido

@@ -63,3 +63,62 @@ workspaces/{workspaceId}/projects/{projectId}/boards/main/cards/{cardId}
 ```json
 { "ok": false, "error": "Mensaje seguro" }
 ```
+
+## Ajuste 4.1
+
+### Kanban
+
+#### `kanban.restoreCard`
+
+Entrada:
+
+```json
+{
+  "projectId": "p-taxichurro",
+  "workspaceId": "w-agora",
+  "cardId": "card-123",
+  "columnId": "todo"
+}
+```
+
+Restaura una tarjeta archivada. Si `columnId` está vacío, intenta usar `columnBeforeArchive`.
+
+#### `kanban.deleteCard`
+
+Elimina definitivamente una tarjeta archivada. Requiere rol administrativo.
+
+#### `kanban.updateBoardColumns`
+
+Actualiza nombre, orden, color, estado final y límites WIP de las columnas. Reglas:
+
+- mínimo dos columnas activas;
+- al menos una columna final;
+- una columna con tarjetas no puede desactivarse;
+- `wipLimit: 0` significa sin límite.
+
+#### `kanban.applyTemplate`
+
+Aplica una de las plantillas:
+
+- `basic-4`;
+- `agile-5`;
+- `digital-product-6`;
+- `wonkup-9`.
+
+### Clientes
+
+#### `clients.update`
+
+Actualiza nombre, contacto, correo y teléfono.
+
+#### `clients.archive`
+
+Oculta un cliente sin eliminar sus relaciones.
+
+#### `clients.restore`
+
+Restaura un cliente archivado.
+
+#### `clients.delete`
+
+Eliminación definitiva exclusiva del superadministrador. Solo procede si el cliente está archivado y no tiene proyectos vinculados.

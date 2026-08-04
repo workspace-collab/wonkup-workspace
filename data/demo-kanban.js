@@ -1,16 +1,13 @@
+import { getKanbanTemplate } from './kanban-templates.js';
+
 const now = '2026-08-03T20:00:00-05:00';
 
-const columns = [
-  { id: 'backlog', name: 'Backlog', order: 10, wipLimit: 0, tone: 'gray' },
-  { id: 'todo', name: 'Por hacer', order: 20, wipLimit: 6, tone: 'gold' },
-  { id: 'analysis', name: 'En análisis', order: 30, wipLimit: 4, tone: 'violet' },
-  { id: 'design', name: 'En diseño', order: 40, wipLimit: 4, tone: 'sky' },
-  { id: 'development', name: 'En desarrollo', order: 50, wipLimit: 5, tone: 'blue' },
-  { id: 'review', name: 'En revisión', order: 60, wipLimit: 3, tone: 'orange' },
-  { id: 'client', name: 'Esperando cliente', order: 70, wipLimit: 3, tone: 'yellow' },
-  { id: 'blocked', name: 'Bloqueado', order: 80, wipLimit: 3, tone: 'red' },
-  { id: 'done', name: 'Completado', order: 90, wipLimit: 0, tone: 'green' }
-];
+const columns = getKanbanTemplate('wonkup-9').columns.map((column, index) => ({
+  ...column,
+  order: (index + 1) * 10,
+  active: true,
+  archived: false
+}));
 
 function history(id, title, actorId = 'usr-rodrigo', createdAt = now) {
   return { id, type: 'created', title, actorId, createdAt };
@@ -21,6 +18,7 @@ export const demoKanbanBoards = {
     id: 'board-p-taxichurro',
     projectId: 'p-taxichurro',
     name: 'Tablero principal',
+    templateId: 'wonkup-9',
     version: 1,
     updatedAt: now,
     columns,

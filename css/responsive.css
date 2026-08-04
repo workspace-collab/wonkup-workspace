@@ -121,3 +121,31 @@
   .kanban-inline-form .button { width: 100%; }
   .kanban-filter-empty { align-items: stretch; flex-direction: column; text-align: center; }
 }
+
+@media (max-width: 980px) {
+  .mobile-menu-button { display: inline-grid !important; }
+  .header-search-wrap { display: none; }
+  .kanban-template-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .board-column-row { grid-template-columns: 24px minmax(0,1fr) 90px 105px; }
+  .board-column-row .column-check,
+  .board-column-count,
+  .board-column-actions { grid-column: auto; }
+}
+
+@media (max-width: 760px) {
+  .profile-chevron { display: none; }
+  .header-popover { position: fixed; top: calc(var(--header-height) + 8px); right: 12px; left: 12px; width: auto; max-height: calc(100vh - var(--header-height) - 24px); }
+  .notification-popover { width: auto; }
+  .archived-card-row { grid-template-columns: 1fr; align-items: stretch; }
+  .archived-card-actions { flex-wrap: wrap; }
+  .archived-card-actions .button { flex: 1; }
+  .kanban-command-actions { width: 100%; margin-left: 0; }
+  .kanban-command-actions .button { flex: 1; }
+  .kanban-template-grid { grid-template-columns: 1fr; }
+  .section-heading { flex-direction: column; }
+  .section-heading .button { width: 100%; }
+  .board-column-row { grid-template-columns: 20px minmax(0,1fr); align-items: center; }
+  .board-column-row > *:not(.board-column-grip):not(.form-field:first-of-type) { grid-column: 2; }
+  .board-column-row .board-column-actions { grid-column: 2; justify-content: flex-end; }
+  .client-toolbar { align-items: stretch; flex-direction: column; }
+}

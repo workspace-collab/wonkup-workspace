@@ -70,6 +70,15 @@ export function canEditKanban(session) {
   return Boolean(session && INTERNAL_ROLES.has(session.role));
 }
 
+
+export function canConfigureKanban(session) {
+  return Boolean(session && ['superadmin', 'workspace_admin', 'project_lead'].includes(session.role));
+}
+
+export function canDeleteKanbanCard(session) {
+  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+}
+
 export function canEditCanvas(session) {
   return Boolean(session && INTERNAL_ROLES.has(session.role));
 }

@@ -4,7 +4,7 @@ WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.users] = ['id','display_name','email','initi
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.accessGrants] = ['id','code_hash','user_id','role','workspace_ids_json','project_ids_json','expires_at','status','created_at','last_used_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.sessions] = ['id','session_hash','user_id','role','workspace_ids_json','project_ids_json','expires_at','status','created_at','last_seen_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.workspaceMembers] = ['id','workspace_id','user_id','role','status','created_at','updated_at'];
-WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.clients] = ['id','workspace_id','name','contact_name','email','phone','status','created_at','updated_at'];
+WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.clients] = ['id','workspace_id','name','contact_name','email','phone','status','archived_at','archived_by','restored_at','restored_by','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.projects] = ['id','workspace_id','client_id','code','name','tagline','description','status','stage','priority','health','progress','owner_user_id','start_date','due_date','budget','cost','hours','pending_tasks','logo_url','cover_image_url','brand_color','status_before_archive','archived_at','archived_by','restored_at','restored_by','drive_folder_id','drive_folder_url','github_url','figma_url','hosting_url','domain','created_by','updated_by','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.projectMembers] = ['id','project_id','user_id','role','allocation','status','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.resources] = ['id','project_id','type','name','url','visibility','status','created_by','created_at','updated_at'];
@@ -20,8 +20,8 @@ function setupWonkUpMaster() {
     ensureSheetSchema_(sheet, WONKUP_SCHEMAS[name]);
   });
   seedWonkUpDemoData_();
-  Logger.log('Configuración Entrega 3 completada. Códigos demo: WONKUP-ADMIN, AGORA-ADMIN, TAXI-LIDER, TAXI-CLIENTE, HUELLITAS-INVITADO');
-  return 'WonkUp Master actualizado para la Entrega 3.';
+  Logger.log('Configuración Ajuste 4.1 completada. Códigos demo: WONKUP-ADMIN, AGORA-ADMIN, TAXI-LIDER, TAXI-CLIENTE, HUELLITAS-INVITADO');
+  return 'WonkUp Master actualizado para el Ajuste 4.1.';
 }
 
 function ensureSheetSchema_(sheet, requiredHeaders) {
@@ -74,7 +74,7 @@ function seedWonkUpDemoData_() {
     {id:'client-agora',workspace_id:'w-agora',name:'Ágora Education',contact_name:'Coordinación de Innovación',email:'innovacion.demo@agora.edu.pe'},
     {id:'client-personalclass',workspace_id:'w-personalclass',name:'Personal Class',contact_name:'Administración Personal Class',email:'administracion.demo@personalclass.pe'},
     {id:'client-nija',workspace_id:'w-nija',name:'NIJA',contact_name:'Equipo comercial NIJA',email:'comercial.demo@nija.pe'}
-  ].forEach(function(item) { upsertDefaults_(WONKUP_CONFIG.sheets.clients, item.id, Object.assign({phone:'',status:'active',created_at:now,updated_at:now}, item)); });
+  ].forEach(function(item) { upsertDefaults_(WONKUP_CONFIG.sheets.clients, item.id, Object.assign({phone:'',status:'active',archived_at:'',archived_by:'',restored_at:'',restored_by:'',created_at:now,updated_at:now}, item)); });
 
   var projects = [
     ['p-wonkup-workspace','w-wonkup','client-wonkup','PROY-WON-001','WonkUp Workspace','Centro operativo para innovación y gestión de proyectos.','planning','usr-edinson','2026-08-03','2026-10-30',18000,48],

@@ -1,6 +1,6 @@
 # WonkUp Workspace
 
-**Entrega 4 — Kanban funcional y colaboración preparada para Firebase.**
+**Entrega 4 + Ajuste 4.1 — Kanban funcional, configurable y mejoras de usabilidad.**
 
 ## Estado
 
@@ -9,55 +9,40 @@
 - Entrega 2 — Workspaces y acceso: APROBADA.
 - Entrega 3 — Proyectos y Drive: APROBADA.
 - Entrega 4 — Kanban: EN REVISIÓN.
+- Ajuste 4.1 — Usabilidad y configuración: EN REVISIÓN.
 
 ## Incluye
 
 - Tablero Kanban por proyecto.
-- Nueve columnas estándar y límites WIP.
-- Crear, editar, mover, reordenar y archivar tarjetas.
-- Drag and drop.
-- Responsable, participantes, etiquetas, fechas, horas y dependencias.
-- Checklist interactiva.
-- Comentarios e historial.
-- Búsqueda y filtros.
-- Persistencia local demostrativa.
-- Sincronización entre pestañas del navegador.
-- Adaptador para Firestore y reglas iniciales de seguridad.
+- Plantillas de 4, 5, 6 y 9 columnas.
+- Configuración visual de nombre, orden, color y límite WIP.
+- Crear, editar, mover, reordenar, archivar y restaurar tarjetas.
+- Checklist, comentarios, historial, horas y dependencias.
+- Clientes editables, archivables y restaurables.
+- Buscador global.
+- Notificaciones locales.
+- Menús compactos sin superposición.
+- Temas claro, oscuro y sistema.
 
 ## Prueba rápida
 
-1. Publica los cambios en GitHub Pages.
-2. Ingresa con `WONKUP-ADMIN` o `AGORA-ADMIN`.
-3. Abre TaxiChurro y entra a **Kanban**.
-4. Crea una tarjeta.
-5. Arrástrala entre columnas.
-6. Abre la tarjeta y registra checklist, comentario y horas.
-7. Abre la plataforma en otra pestaña y comprueba la actualización.
-8. Intenta superar un límite WIP.
-9. Archiva una tarjeta.
-10. Recarga y confirma que los cambios continúan.
+1. Ingresa con `WONKUP-ADMIN`.
+2. Abre TaxiChurro → Kanban.
+3. Selecciona **Configurar tablero**.
+4. Aplica **Básico — 4 columnas**.
+5. Define un límite WIP y prueba superarlo.
+6. Archiva una tarjeta y restáurala desde **Archivadas**.
+7. En Clientes, edita, archiva y restaura un registro.
+8. Prueba la búsqueda con `Cmd + K` o `Ctrl + K`.
+9. Revisa Tema, Crear, Notificaciones y Perfil: solo debe abrirse un menú a la vez.
 
 ## Configuración
 
-`js/config/runtime-config.js` mantiene por defecto:
+Mantén en `js/config/runtime-config.js`:
 
 ```js
-mode: 'mock'
+mode: 'mock',
 kanbanMode: 'mock'
 ```
 
-No actives Firebase hasta completar el Access Broker con custom tokens. Consulta `firebase/README.md`.
-
-## Códigos de prueba
-
-| Código | Rol | Alcance |
-|---|---|---|
-| `WONKUP-ADMIN` | Superadministrador | Todos los workspaces |
-| `AGORA-ADMIN` | Administrador | Ágora Education |
-| `TAXI-LIDER` | Líder | TaxiChurro |
-| `TAXI-CLIENTE` | Cliente | Resumen de TaxiChurro |
-| `HUELLITAS-INVITADO` | Invitado | Resumen de Huellitas |
-
-## Logotipo oficial
-
-Coloca el logotipo en `assets/brand/logo-wonkup.png`.
+No actives Firebase hasta completar el Access Broker con custom tokens.

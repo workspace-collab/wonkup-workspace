@@ -1,6 +1,6 @@
 function routeRequest_(action, payload) {
   switch (action) {
-    case 'health': return { status: 'ok', version: '0.3.1' };
+    case 'health': return { status: 'ok', version: '0.4.1' };
     case 'auth.exchangeCode': return exchangeAccessCode_(payload);
     case 'auth.validate':
       var session = validateSessionToken_(payload.sessionToken);
@@ -18,6 +18,10 @@ function routeRequest_(action, payload) {
 
     case 'clients.list': return listClients_(payload);
     case 'clients.create': return createClient_(payload);
+    case 'clients.update': return updateClient_(payload);
+    case 'clients.archive': return archiveClient_(payload);
+    case 'clients.restore': return restoreClient_(payload);
+    case 'clients.delete': return deleteClient_(payload);
 
     case 'users.listForWorkspace': return listUsersForWorkspace_(payload);
     case 'projectMembers.list': return listProjectMembers_(payload);

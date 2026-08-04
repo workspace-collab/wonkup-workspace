@@ -77,3 +77,49 @@ Las entidades administrativas de la Entrega 3.1 se mantienen sin cambios. Esta e
 | actorId | string | Usuario responsable |
 | createdAt | datetime ISO | Fecha |
 | meta | object | Datos adicionales no sensibles |
+
+## Ajuste 4.1
+
+### KanbanBoard
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `templateId` | string | Plantilla aplicada o `custom` |
+| `name` | string | Nombre editable del tablero |
+| `columns` | array | Columnas activas |
+| `archivedColumns` | array | Columnas desactivadas |
+| `archivedCards` | array | Tarjetas archivadas recuperables |
+
+### KanbanColumn
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | string | Identificador estable |
+| `name` | string | Nombre visible |
+| `order` | number | Orden de izquierda a derecha |
+| `wipLimit` | number | Máximo de tarjetas; 0 = sin límite |
+| `tone` | string | Color semántico |
+| `isDone` | boolean | Indica etapa final |
+| `active` | boolean | Columna visible y utilizable |
+| `archived` | boolean | Columna desactivada |
+
+### Campos de archivo de KanbanCard
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `columnBeforeArchive` | string | Columna previa al archivo |
+| `positionBeforeArchive` | number | Posición previa |
+| `archivedAt` | ISO date | Fecha de archivo |
+| `archivedBy` | string | Usuario que archivó |
+| `restoredAt` | ISO date | Fecha de restauración |
+| `restoredBy` | string | Usuario que restauró |
+
+### Campos de archivo de Client
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `status` | string | `active` o `archived` |
+| `archivedAt` | ISO date | Fecha de archivo |
+| `archivedBy` | string | Usuario que archivó |
+| `restoredAt` | ISO date | Fecha de restauración |
+| `restoredBy` | string | Usuario que restauró |

@@ -106,8 +106,10 @@ async function loadBoard(r, workspaceId, projectId, canCreate) {
   const board = await ensureBoard(r, workspaceId, projectId, canCreate);
   const { cardsRef } = refs(r, workspaceId, projectId);
   const cardsSnap = await getDocs(query(cardsRef, orderBy('position', 'asc')));
-  const cards = cardsSnap.docs.map(item => ({ id: item.id, ...item.data() })).filter(card => !card.archived);
-  return enrich({ ...board, cards });
+  const allCards = cardsSnap.docs.map(item => ({ id: item.id, ...item.data() }));
+  const cards = allCards.filter(card => !card.archived);
+  const archivedCards = allCards.filter(card => card.archived);
+  return enrich({ ...board, columns: (board.columns || []).filter(column => column.active !== false && !column.archived), cards, archivedCards });
 }
 
 export const FirebaseKanbanAdapter = {
@@ -191,6 +193,15 @@ export const FirebaseKanbanAdapter = {
     return { archived: true };
   },
 
+
+  async restoreCard() {
+    throw new Error('La restauración de tarjetas en Firebase se habilitará al activar la integración real. Mantén kanbanMode en mock durante esta revisión.');
+  },
+
+  async deleteCard() {
+    throw new Error('La eliminación definitiva en Firebase se habilitará al activar la integración real.');
+  },
+
   async addComment({ projectId, workspaceId, cardId, text, session }) {
     requireAccess(session, projectId, workspaceId, true);
     const cleanText = String(text || '').trim();
@@ -226,6 +237,15 @@ export const FirebaseKanbanAdapter = {
     const card = board.cards.find(item => item.id === cardId);
     const checklist = (card?.checklist || []).filter(item => item.id !== itemId);
     return this.updateCard({ projectId, workspaceId, cardId, patch: { checklist }, session });
+  },
+
+
+  async updateBoardColumns() {
+    throw new Error('La configuración de columnas en Firebase se habilitará al activar la integración real.');
+  },
+
+  async applyTemplate() {
+    throw new Error('Las plantillas de tablero en Firebase se habilitarán al activar la integración real.');
   },
 
   async resetBoard() {

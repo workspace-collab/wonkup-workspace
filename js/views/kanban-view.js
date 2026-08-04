@@ -1,6 +1,7 @@
 import { KanbanService } from '../services/kanban-service.js';
 import { ProjectService } from '../services/project-service.js';
-import { canEditKanban } from '../utils/permissions.js';
+import { canConfigureKanban, canDeleteKanbanCard, canEditKanban } from '../utils/permissions.js';
+import { KANBAN_TONES, kanbanTemplates } from '../../data/kanban-templates.js';
 import { icon } from '../utils/icons.js';
 import { escapeHtml, formatDate } from '../utils/format.js';
 import { openModal, closeModal, confirmModal } from '../components/modal.js';
@@ -66,6 +67,7 @@ async function initializeKanban({ container, workspaceId, projectId, embedded, s
       session,
       filters: { search: '', assigneeId: '', priority: '', label: '' },
       editable: canEditKanban(session) && selectedProject.status !== 'archived',
+      configurable: canConfigureKanban(session) && selectedProject.status !== 'archived',
       busy: false
     };
 
@@ -126,8 +128,9 @@ function renderBoard() {
   const cards = filteredCards();
   const visibleIds = new Set(cards.map(card => card.id));
   const totalCards = context.board.cards.length;
-  const doneCards = context.board.cards.filter(card => card.columnId === 'done').length;
-  const overdueCards = context.board.cards.filter(card => isOverdue(card) && card.columnId !== 'done').length;
+  const doneColumnIds = new Set(context.board.columns.filter(column => column.isDone).map(column => column.id));
+  const doneCards = context.board.cards.filter(card => doneColumnIds.has(card.columnId)).length;
+  const overdueCards = context.board.cards.filter(card => isOverdue(card) && !doneColumnIds.has(card.columnId)).length;
   const estimatedHours = context.board.cards.reduce((sum, card) => sum + Number(card.estimatedHours || 0), 0);
   const actualHours = context.board.cards.reduce((sum, card) => sum + Number(card.actualHours || 0), 0);
   const sectionClass = context.embedded ? '' : 'page';
@@ -140,8 +143,12 @@ function renderBoard() {
     <div class="kanban-command-bar">
       ${projectSelector}
       <div class="kanban-mode"><span class="status-dot ${KanbanService.mode === 'firebase' ? 'online' : 'demo'}"></span><strong>${KanbanService.mode === 'firebase' ? 'Firebase en tiempo real' : 'Demo local sincronizada'}</strong></div>
-      ${context.embedded && context.editable ? `<button class="button button-primary" id="new-kanban-card">${icon('plus')} Nueva tarjeta</button>` : ''}
-      ${context.editable && KanbanService.mode === 'mock' ? `<button class="button button-secondary" id="reset-kanban">${icon('refresh')} Restablecer demo</button>` : ''}
+      <div class="kanban-command-actions">
+        ${context.embedded && context.editable ? `<button class="button button-primary" id="new-kanban-card">${icon('plus')} Nueva tarjeta</button>` : ''}
+        ${context.editable ? `<button class="button button-secondary" id="archived-kanban-cards">${icon('archive')} Archivadas <span class="button-count">${context.board.archivedCards?.length || 0}</span></button>` : ''}
+        ${context.configurable ? `<button class="button button-secondary" id="configure-kanban">${icon('columns')} Configurar tablero</button>` : ''}
+        ${context.configurable && KanbanService.mode === 'mock' ? `<button class="button button-ghost" id="reset-kanban">${icon('refresh')} Restablecer demo</button>` : ''}
+      </div>
     </div>
 
     <div class="kanban-metrics">
@@ -196,7 +203,8 @@ function renderCard(card) {
   const completed = (card.checklist || []).filter(item => item.completed).length;
   const total = (card.checklist || []).length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
-  const dueClass = isOverdue(card) && card.columnId !== 'done' ? 'overdue' : '';
+  const doneColumn = activeContext.board.columns.find(column => column.id === card.columnId)?.isDone;
+  const dueClass = isOverdue(card) && !doneColumn ? 'overdue' : '';
   return `<article class="kanban-card kanban-card-functional ${dueClass}" data-card-id="${escapeHtml(card.id)}" draggable="${activeContext.editable ? 'true' : 'false'}" tabindex="0" role="button" aria-label="Abrir tarjeta ${escapeHtml(card.title)}">
     <div class="kanban-card-top">${activeContext.editable ? `<span class="kanban-drag-handle" title="Arrastrar">${icon('grip')}</span>` : ''}<span class="badge ${priority.className}">${priority.label}</span>${card.visibility === 'client' ? `<span class="kanban-visibility" title="Visible al cliente">${icon('eye')}</span>` : ''}</div>
     <h4>${escapeHtml(card.title)}</h4>
@@ -228,6 +236,8 @@ function bindBoardEvents() {
   container.querySelectorAll('#new-kanban-card').forEach(button => button.addEventListener('click', () => openCardEditor()));
   container.querySelectorAll('[data-add-card]').forEach(button => button.addEventListener('click', () => openCardEditor(null, button.dataset.addCard)));
   container.querySelector('#reset-kanban')?.addEventListener('click', resetBoard);
+  container.querySelector('#archived-kanban-cards')?.addEventListener('click', openArchivedCards);
+  container.querySelector('#configure-kanban')?.addEventListener('click', openBoardSettings);
 
   const applyFilter = () => {
     context.filters = {
@@ -516,6 +526,191 @@ async function resetBoard() {
   } catch (error) { showToast(error.message || 'No se pudo restablecer el tablero.'); }
 }
 
+
+function openArchivedCards() {
+  const context = activeContext;
+  if (!context) return;
+  const archived = context.board.archivedCards || [];
+  const columnName = id => context.board.columns.find(column => column.id === id)?.name
+    || context.board.archivedColumns?.find(column => column.id === id)?.name
+    || 'Columna no disponible';
+  const modal = openModal({
+    title: 'Tarjetas archivadas',
+    subtitle: 'Restaura una tarjeta en su columna anterior o selecciona otro destino.',
+    body: archived.length ? `<div class="archived-card-list">${archived.map(card => `<article class="archived-card-row">
+      <div class="archived-card-copy"><span class="badge badge-gray">Archivada</span><h3>${escapeHtml(card.title)}</h3><p>Antes estaba en <strong>${escapeHtml(columnName(card.columnBeforeArchive))}</strong>${card.archivedAt ? ` · ${formatDateTime(card.archivedAt)}` : ''}</p></div>
+      <label><span>Restaurar en</span><select class="select" data-restore-column="${escapeHtml(card.id)}">${context.board.columns.map(column => `<option value="${escapeHtml(column.id)}" ${column.id === card.columnBeforeArchive ? 'selected' : ''}>${escapeHtml(column.name)}</option>`).join('')}</select></label>
+      <div class="archived-card-actions"><button class="button button-secondary" data-restore-card="${escapeHtml(card.id)}">${icon('restore')} Restaurar</button>${canDeleteKanbanCard(context.session) ? `<button class="button button-danger" data-delete-card="${escapeHtml(card.id)}">${icon('trash')} Eliminar</button>` : ''}</div>
+    </article>`).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('archive')}</div><h3>No hay tarjetas archivadas</h3><p>Las tarjetas que archives aparecerán aquí para poder restaurarlas.</p></div>`,
+    size: 'lg'
+  });
+
+  modal.root.querySelectorAll('[data-restore-card]').forEach(button => button.addEventListener('click', async () => {
+    const cardId = button.dataset.restoreCard;
+    const columnId = modal.root.querySelector(`[data-restore-column="${CSS.escape(cardId)}"]`)?.value || '';
+    button.disabled = true;
+    try {
+      context.board = await KanbanService.restoreCard({ projectId: context.projectId, workspaceId: context.project.workspaceId, cardId, columnId, session: context.session });
+      modal.close();
+      showToast('Tarjeta restaurada.');
+      renderBoard();
+    } catch (error) {
+      button.disabled = false;
+      showToast(error.message || 'No se pudo restaurar la tarjeta.');
+    }
+  }));
+
+  modal.root.querySelectorAll('[data-delete-card]').forEach(button => button.addEventListener('click', async () => {
+    const card = archived.find(item => item.id === button.dataset.deleteCard);
+    const confirmed = await confirmModal({
+      title: 'Eliminar tarjeta definitivamente',
+      message: `La tarjeta <strong>${escapeHtml(card?.title || '')}</strong> y su historial se eliminarán de forma permanente.`,
+      confirmLabel: 'Eliminar definitivamente', danger: true
+    });
+    if (!confirmed) return;
+    try {
+      context.board = await KanbanService.deleteCard({ projectId: context.projectId, workspaceId: context.project.workspaceId, cardId: button.dataset.deleteCard, session: context.session });
+      closeModal();
+      showToast('Tarjeta eliminada definitivamente.');
+      renderBoard();
+    } catch (error) { showToast(error.message || 'No se pudo eliminar la tarjeta.'); }
+  }));
+}
+
+function openBoardSettings() {
+  const context = activeContext;
+  if (!context?.configurable) return;
+  const combinedColumns = [...context.board.columns, ...(context.board.archivedColumns || [])]
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  let workingColumns = combinedColumns.map(column => ({ ...column, active: column.active !== false && !column.archived }));
+
+  const modal = openModal({
+    title: 'Configurar tablero',
+    subtitle: 'Elige una plantilla o personaliza las columnas y sus límites WIP.',
+    body: `<div class="board-settings">
+      <section class="board-settings-section"><div class="section-heading"><div><h3>Plantillas rápidas</h3><p>Puedes usar 4, 5, 6 o 9 columnas según la complejidad del proyecto.</p></div></div><div class="kanban-template-grid">${kanbanTemplates.map(template => `<button type="button" class="kanban-template-card ${context.board.templateId === template.id ? 'selected' : ''}" data-template-id="${escapeHtml(template.id)}"><strong>${escapeHtml(template.name)}</strong><span>${template.columns.length} columnas</span><p>${escapeHtml(template.description)}</p></button>`).join('')}</div></section>
+      <form id="board-settings-form">
+        <section class="board-settings-section"><div class="section-heading"><div><h3>Configuración personalizada</h3><p>Un límite WIP de 0 significa que la columna no tiene límite.</p></div><button class="button button-secondary" id="add-board-column" type="button">${icon('plus')} Agregar columna</button></div>
+          <label class="form-field board-name-field"><span>Nombre del tablero</span><input class="input" name="boardName" maxlength="100" value="${escapeHtml(context.board.name || 'Tablero principal')}"></label>
+          <div class="board-column-list" id="board-column-list"></div>
+          <div class="board-settings-help">${icon('alert')} No se puede desactivar una columna mientras contenga tarjetas. Muévelas primero.</div>
+        </section>
+        <div class="modal-actions"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">Guardar configuración</button></div>
+      </form>
+    </div>`,
+    size: 'xl', closeOnBackdrop: false
+  });
+
+  const list = modal.root.querySelector('#board-column-list');
+  const renderRows = () => {
+    list.innerHTML = workingColumns.map((column, index) => renderColumnSettingRow(column, index, context.board.cards.filter(card => card.columnId === column.id).length)).join('');
+    bindRows();
+  };
+
+  const bindRows = () => {
+    list.querySelectorAll('[data-column-field]').forEach(input => input.addEventListener('input', () => {
+      const index = Number(input.closest('[data-column-index]').dataset.columnIndex);
+      const field = input.dataset.columnField;
+      if (field === 'active' || field === 'isDone') workingColumns[index][field] = input.checked;
+      else if (field === 'wipLimit') workingColumns[index][field] = Math.max(0, Number(input.value || 0));
+      else workingColumns[index][field] = input.value;
+      if (field === 'isDone' && input.checked) {
+        workingColumns.forEach((column, itemIndex) => { column.isDone = itemIndex === index; });
+        renderRows();
+      }
+    }));
+    list.querySelectorAll('[data-column-up]').forEach(button => button.addEventListener('click', () => {
+      const index = Number(button.dataset.columnUp);
+      if (index <= 0) return;
+      [workingColumns[index - 1], workingColumns[index]] = [workingColumns[index], workingColumns[index - 1]];
+      renderRows();
+    }));
+    list.querySelectorAll('[data-column-down]').forEach(button => button.addEventListener('click', () => {
+      const index = Number(button.dataset.columnDown);
+      if (index >= workingColumns.length - 1) return;
+      [workingColumns[index + 1], workingColumns[index]] = [workingColumns[index], workingColumns[index + 1]];
+      renderRows();
+    }));
+    list.querySelectorAll('[data-column-remove]').forEach(button => button.addEventListener('click', () => {
+      const index = Number(button.dataset.columnRemove);
+      const column = workingColumns[index];
+      const count = context.board.cards.filter(card => card.columnId === column.id).length;
+      if (count) {
+        showToast(`Mueve primero las ${count} tarjeta(s) de ${column.name}.`);
+        return;
+      }
+      workingColumns.splice(index, 1);
+      renderRows();
+    }));
+  };
+
+  modal.root.querySelector('#add-board-column').addEventListener('click', () => {
+    workingColumns.push({
+      id: `column-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: 'Nueva columna', wipLimit: 0, tone: 'sky', isDone: false, active: true
+    });
+    renderRows();
+    list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  modal.root.querySelectorAll('[data-template-id]').forEach(button => button.addEventListener('click', async () => {
+    const template = kanbanTemplates.find(item => item.id === button.dataset.templateId);
+    const confirmed = await confirmModal({
+      title: `Aplicar plantilla ${escapeHtml(template?.name || '')}`,
+      message: 'Las columnas actuales serán reemplazadas. Las tarjetas de columnas que desaparezcan se moverán a la primera columna de la plantilla.',
+      confirmLabel: 'Aplicar plantilla'
+    });
+    if (!confirmed) return;
+    try {
+      context.board = await KanbanService.applyTemplate({ projectId: context.projectId, workspaceId: context.project.workspaceId, templateId: button.dataset.templateId, session: context.session });
+      closeModal();
+      showToast(`Plantilla ${template.name} aplicada.`);
+      renderBoard();
+    } catch (error) { showToast(error.message || 'No se pudo aplicar la plantilla.'); }
+  }));
+
+  modal.root.querySelector('#board-settings-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      context.board = await KanbanService.updateBoardColumns({
+        projectId: context.projectId,
+        workspaceId: context.project.workspaceId,
+        name: new FormData(event.currentTarget).get('boardName'),
+        columns: workingColumns,
+        session: context.session
+      });
+      modal.close();
+      showToast('Configuración del tablero guardada.');
+      renderBoard();
+    } catch (error) {
+      submit.disabled = false;
+      showToast(error.message || 'No se pudo guardar la configuración.');
+    }
+  });
+
+  renderRows();
+}
+
+function renderColumnSettingRow(column, index, cardCount) {
+  return `<article class="board-column-row ${column.active ? '' : 'is-inactive'}" data-column-index="${index}">
+    <span class="board-column-grip">${icon('grip')}</span>
+    <label class="form-field"><span>Nombre</span><input class="input" data-column-field="name" maxlength="80" value="${escapeHtml(column.name)}"></label>
+    <label class="form-field compact"><span>Límite WIP</span><input class="input" data-column-field="wipLimit" type="number" min="0" max="99" value="${Number(column.wipLimit || 0)}"></label>
+    <label class="form-field compact"><span>Color</span><select class="select" data-column-field="tone">${KANBAN_TONES.map(tone => `<option value="${tone}" ${tone === column.tone ? 'selected' : ''}>${toneLabel(tone)}</option>`).join('')}</select></label>
+    <label class="column-check"><input type="checkbox" data-column-field="isDone" ${column.isDone ? 'checked' : ''}><span>Etapa final</span></label>
+    <label class="column-check"><input type="checkbox" data-column-field="active" ${column.active ? 'checked' : ''}><span>Activa</span></label>
+    <span class="board-column-count">${cardCount} tarjeta${cardCount === 1 ? '' : 's'}</span>
+    <div class="board-column-actions"><button class="icon-button icon-button-sm" type="button" data-column-up="${index}" aria-label="Subir columna">${icon('chevronUp')}</button><button class="icon-button icon-button-sm" type="button" data-column-down="${index}" aria-label="Bajar columna">${icon('chevronDown')}</button><button class="icon-button icon-button-sm danger-icon" type="button" data-column-remove="${index}" aria-label="Quitar columna">${icon('trash')}</button></div>
+  </article>`;
+}
+
+function toneLabel(tone) {
+  const labels = { gray: 'Gris', gold: 'Dorado', violet: 'Violeta', sky: 'Celeste', blue: 'Azul', orange: 'Naranja', yellow: 'Amarillo', red: 'Rojo', green: 'Verde' };
+  return labels[tone] || tone;
+}
+
 function isOverdue(card) {
   if (!card.dueDate) return false;
   const due = new Date(`${card.dueDate}T23:59:59`);
@@ -547,6 +742,7 @@ function historyIcon(type) {
   if (type === 'commented') return icon('message');
   if (type === 'checklist') return icon('checkSquare');
   if (type === 'archived') return icon('archive');
+  if (type === 'restored') return icon('restore');
   if (type === 'created') return icon('plus');
   return icon('edit');
 }

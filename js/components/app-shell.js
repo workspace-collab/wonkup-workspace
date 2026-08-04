@@ -1,10 +1,14 @@
 import { icon } from '../utils/icons.js';
 import { DemoService } from '../services/demo-service.js';
 import { AccessService } from '../services/access-service.js';
+import { NotificationService } from '../services/notification-service.js';
+import { GlobalSearchService } from '../services/global-search-service.js';
 import { getState, setState, clearSession } from '../state/store.js';
 import { showToast } from './toast.js';
+import { confirmModal } from './modal.js';
 import { escapeHtml } from '../utils/format.js';
-import { canCreateProject, canViewMaster, getDefaultRoute, isInternalUser, isReadOnlyRole } from '../utils/permissions.js';
+import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js';
+import { canCreateProject, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js';
 
 const internalNavItems = [
   ['dashboard', 'Dashboard', 'home'],
@@ -19,12 +23,14 @@ const internalNavItems = [
   ['settings', 'Configuración', 'settings']
 ];
 
+let keyboardShortcutsBound = false;
+let searchTimer = null;
+
 function workspaceBase(id) {
   return id === 'all' ? '#/master' : `#/w/${id}`;
 }
 
 function navHref(key, workspaceId) {
-  if (['dashboard', 'projects'].includes(key)) return `${workspaceBase(workspaceId)}/${key}`;
   return `${workspaceBase(workspaceId)}/${key}`;
 }
 
@@ -39,10 +45,16 @@ function createReadOnlyNav(session) {
   ]];
 }
 
+function popover({ id, triggerId, className = '', body = '' }) {
+  return `<div class="dropdown ${className} hidden" id="${id}" data-popover-panel data-trigger-id="${triggerId}">${body}</div>`;
+}
+
 export function createAppShell() {
+  initializePopoverManager();
   const app = document.querySelector('#app');
   app.innerHTML = `<div class="app-shell" id="app-shell"><aside class="app-sidebar" id="sidebar"></aside><header class="app-header" id="header"></header><main class="app-main" id="main-view"></main><button class="sidebar-backdrop" id="sidebar-backdrop" aria-label="Cerrar menú"></button></div>`;
   document.querySelector('#sidebar-backdrop').addEventListener('click', () => setState({ sidebarOpen: false }));
+  bindGlobalKeyboardShortcuts();
   return { main: document.querySelector('#main-view'), renderShell };
 }
 
@@ -52,6 +64,7 @@ export function renderShell(route = null) {
   const shell = document.querySelector('#app-shell');
   const accessMode = route?.view === 'access';
 
+  closePopovers();
   shell?.classList.toggle('auth-shell', accessMode);
   shell?.classList.toggle('sidebar-open', state.sidebarOpen && !accessMode);
 
@@ -73,6 +86,8 @@ export function renderShell(route = null) {
   const active = route?.view || 'dashboard';
   const readOnly = isReadOnlyRole(session);
   const navItems = readOnly ? createReadOnlyNav(session) : internalNavItems;
+  const notifications = NotificationService.list(session);
+  const unreadCount = notifications.filter(item => !item.read).length;
 
   document.querySelector('#sidebar').innerHTML = `
     <div class="sidebar-inner">
@@ -105,85 +120,225 @@ export function renderShell(route = null) {
       </nav>
 
       <div class="sidebar-footer">
-        <div class="sidebar-tip"><strong>Entrega 3</strong>Proyectos, clientes, equipo, recursos y estructura de Drive.</div>
+        <div class="sidebar-tip"><strong>Ajuste 4.1</strong>Kanban configurable, búsqueda, notificaciones y mejoras de usabilidad.</div>
       </div>
     </div>`;
 
+  const quickMenu = popover({
+    id: 'quick-menu', triggerId: 'quick-add', className: 'header-popover compact-menu',
+    body: `<div class="popover-title">Crear rápidamente</div><button data-action="project">${icon('folder')}<span><strong>Nuevo proyecto</strong><small>Registra una nueva iniciativa</small></span></button><button data-action="task">${icon('checkSquare')}<span><strong>Nueva tarea</strong><small>Abre el Kanban actual</small></span></button><button data-action="canvas">${icon('lightbulb')}<span><strong>Nuevo canvas</strong><small>Abre Innovation Toolkit</small></span></button>`
+  });
+
+  const themeMenu = popover({
+    id: 'theme-menu', triggerId: 'theme-button', className: 'header-popover theme-popover',
+    body: `<div class="popover-title">Apariencia</div><button data-theme="light">${icon('sun')}<span>Claro</span><i data-theme-check="light">${icon('check')}</i></button><button data-theme="dark">${icon('moon')}<span>Oscuro</span><i data-theme-check="dark">${icon('check')}</i></button><button data-theme="system">${icon('monitor')}<span>Sistema</span><i data-theme-check="system">${icon('check')}</i></button>`
+  });
+
+  const notificationMenu = popover({
+    id: 'notification-menu', triggerId: 'notification-button', className: 'header-popover notification-popover',
+    body: renderNotifications(notifications)
+  });
+
+  const profileMenu = popover({
+    id: 'profile-menu', triggerId: 'profile-button', className: 'header-popover profile-dropdown',
+    body: `<div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small><span>${escapeHtml(session.roleLabel)}</span></div><button data-profile-action="preferences">${icon('settings')} Preferencias</button><div class="dropdown-divider"></div><button id="logout-button" class="danger-menu-item">${icon('logout')} Cerrar sesión</button>`
+  });
+
   document.querySelector('#header').innerHTML = `
-    <button class="header-icon-button mobile-menu-button" id="menu-toggle" aria-label="Abrir menú">${icon('menu')}</button>
+    <button class="header-icon-button mobile-menu-button" id="menu-toggle" aria-label="Abrir menú lateral">${icon('menu')}</button>
     <div class="header-workspace"><strong>${escapeHtml(current?.name || 'WonkUp Workspace')}</strong><small>${escapeHtml(current?.shortName || 'Centro de operaciones')}</small></div>
-    ${isInternalUser(session) ? `<label class="header-search"><span class="sr-only">Buscar</span>${icon('search')}<input id="global-search" type="search" placeholder="Buscar en WonkUp..."></label>` : '<div class="header-search-spacer"></div>'}
+    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="header-search"><span class="sr-only">Buscar</span>${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas o clientes..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></label>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
     <div class="header-actions">
-      ${canCreateProject(session) ? `<div class="relative"><button class="header-icon-button" id="quick-add" aria-label="Crear">${icon('plus')}</button><div class="dropdown hidden" id="quick-menu"><button data-action="project">${icon('folder')} Nuevo proyecto</button><button data-action="task">${icon('check')} Nueva tarea</button><button data-action="canvas">${icon('lightbulb')} Nuevo canvas</button></div></div>` : ''}
-      <div class="relative"><button class="header-icon-button" id="theme-button" aria-label="Cambiar tema">${icon('sun')}</button><div class="dropdown hidden" id="theme-menu"><button data-theme="light">${icon('sun')} Claro</button><button data-theme="dark">${icon('moon')} Oscuro</button><button data-theme="system">${icon('monitor')} Sistema</button></div></div>
-      <button class="header-icon-button" aria-label="Notificaciones">${icon('bell')}<span class="notification-dot">3</span></button>
-      <div class="relative">
-        <button class="profile-button" id="profile-button"><span class="profile-avatar">${escapeHtml(session.user.initials || session.user.name.slice(0, 1))}</span><span class="profile-copy"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.roleLabel)}</small></span></button>
-        <div class="dropdown profile-dropdown hidden" id="profile-menu">
-          <div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small></div>
-          <button id="logout-button">${icon('logout')} Cerrar sesión</button>
-        </div>
-      </div>
+      ${isInternalUser(session) ? `<div class="relative"><button class="header-icon-button" id="quick-add" aria-label="Crear" aria-expanded="false">${icon('plus')}</button>${quickMenu}</div>` : ''}
+      <div class="relative"><button class="header-icon-button" id="theme-button" aria-label="Cambiar apariencia" aria-expanded="false">${icon('sun')}</button>${themeMenu}</div>
+      <div class="relative"><button class="header-icon-button" id="notification-button" aria-label="Notificaciones" aria-expanded="false">${icon('bell')}${unreadCount ? `<span class="notification-dot">${unreadCount > 9 ? '9+' : unreadCount}</span>` : ''}</button>${notificationMenu}</div>
+      <div class="relative"><button class="profile-button" id="profile-button" aria-expanded="false"><span class="profile-avatar">${escapeHtml(session.user.initials || session.user.name.slice(0, 1))}</span><span class="profile-copy"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.roleLabel)}</small></span>${icon('chevronDown', 'profile-chevron')}</button>${profileMenu}</div>
     </div>`;
 
   bindShellEvents(session, selected);
+  updateThemeChecks(state.themePreference);
+}
+
+function renderNotifications(notifications) {
+  if (!notifications.length) return `<div class="popover-title">Notificaciones</div><div class="notification-empty">${icon('bell')}<strong>Todo al día</strong><span>No tienes notificaciones pendientes.</span></div>`;
+  return `<div class="popover-heading"><div><strong>Notificaciones</strong><small>${notifications.filter(item => !item.read).length} sin leer</small></div><button class="text-button" id="mark-all-read">Marcar todas</button></div><div class="notification-list">${notifications.map(item => `<a class="notification-item ${item.read ? 'read' : ''}" href="${escapeHtml(item.href)}" data-notification-id="${escapeHtml(item.id)}"><span class="notification-icon">${icon(notificationIcon(item.type))}</span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.message)}</small><time>${relativeTime(item.createdAt)}</time></span>${item.read ? '' : '<i></i>'}</a>`).join('')}</div>`;
+}
+
+function notificationIcon(type) {
+  if (type === 'assignment') return 'userPlus';
+  if (type === 'comment') return 'message';
+  if (type === 'wip') return 'alert';
+  return 'bell';
+}
+
+function relativeTime(value) {
+  const diff = Math.max(0, Date.now() - new Date(value).getTime());
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Ahora';
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours} h`;
+  return `Hace ${Math.floor(hours / 24)} d`;
 }
 
 function bindShellEvents(session, selectedWorkspaceId) {
+  document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => {
+    closePopovers();
+    setState({ sidebarOpen: false });
+  }));
+
   document.querySelector('#workspace-select')?.addEventListener('change', event => {
     setState({ selectedWorkspaceId: event.target.value, sidebarOpen: false });
-    location.hash = event.target.value === 'all'
-      ? '#/master/dashboard'
-      : `#/w/${event.target.value}/dashboard`;
+    location.hash = event.target.value === 'all' ? '#/master/dashboard' : `#/w/${event.target.value}/dashboard`;
   });
 
   document.querySelector('#menu-toggle')?.addEventListener('click', () => {
+    closePopovers();
     setState({ sidebarOpen: !getState().sidebarOpen });
   });
 
-  document.querySelector('#quick-add')?.addEventListener('click', () => {
-    document.querySelector('#quick-menu')?.classList.toggle('hidden');
-  });
-
-  document.querySelector('#theme-button')?.addEventListener('click', () => {
-    document.querySelector('#theme-menu')?.classList.toggle('hidden');
-  });
-
-  document.querySelector('#profile-button')?.addEventListener('click', () => {
-    document.querySelector('#profile-menu')?.classList.toggle('hidden');
-  });
+  bindPopoverTrigger('quick-add', 'quick-menu');
+  bindPopoverTrigger('theme-button', 'theme-menu');
+  bindPopoverTrigger('notification-button', 'notification-menu');
+  bindPopoverTrigger('profile-button', 'profile-menu');
 
   document.querySelectorAll('#theme-menu [data-theme]').forEach(button => {
     button.addEventListener('click', () => {
       setState({ themePreference: button.dataset.theme });
-      document.querySelector('#theme-menu')?.classList.add('hidden');
+      updateThemeChecks(button.dataset.theme);
+      closePopovers();
     });
   });
 
   document.querySelectorAll('#quick-menu [data-action]').forEach(button => {
     button.addEventListener('click', () => {
       const action = button.dataset.action;
-      if (action === 'project') {
+      if (action === 'project' && canCreateProject(session)) {
         sessionStorage.setItem('wonkup.intent.newProject', '1');
         location.hash = selectedWorkspaceId === 'all' ? '#/master/projects' : `#/w/${selectedWorkspaceId}/projects`;
+      } else if (action === 'task') {
+        location.hash = selectedWorkspaceId === 'all' ? '#/master/kanban' : `#/w/${selectedWorkspaceId}/kanban`;
+        showToast('Selecciona un proyecto para crear la tarea.');
+      } else if (action === 'canvas') {
+        location.hash = selectedWorkspaceId === 'all' ? '#/master/toolkit' : `#/w/${selectedWorkspaceId}/toolkit`;
       } else {
-        showToast('Esta acción se habilitará en la entrega funcional correspondiente.');
+        showToast('Tu rol no permite realizar esta acción.');
       }
-      document.querySelector('#quick-menu')?.classList.add('hidden');
+      closePopovers();
     });
   });
 
-  document.querySelector('#global-search')?.addEventListener('keydown', event => {
-    if (event.key === 'Enter') showToast(`Búsqueda demo: ${event.target.value || 'sin término'}`);
+  document.querySelectorAll('[data-notification-id]').forEach(item => {
+    item.addEventListener('click', () => {
+      NotificationService.markRead(item.dataset.notificationId, session);
+      closePopovers();
+    });
   });
 
+  document.querySelector('#mark-all-read')?.addEventListener('click', event => {
+    event.stopPropagation();
+    NotificationService.markAllRead(session);
+    document.querySelector('#notification-button .notification-dot')?.remove();
+    const panel = document.querySelector('#notification-menu');
+    if (panel) panel.innerHTML = renderNotifications(NotificationService.list(session));
+    closePopovers();
+    showToast('Notificaciones marcadas como leídas.');
+  });
+
+  document.querySelector('[data-profile-action="preferences"]')?.addEventListener('click', () => {
+    closePopovers();
+    location.hash = selectedWorkspaceId === 'all' ? '#/master/settings' : `#/w/${selectedWorkspaceId}/settings`;
+  });
+
+  bindGlobalSearch(session, selectedWorkspaceId);
+
   document.querySelector('#logout-button')?.addEventListener('click', async () => {
-    try {
-      await AccessService.revokeSession(session);
-    } catch {
-      // La sesión local debe cerrarse aunque la API no responda.
-    }
+    closePopovers();
+    const confirmed = await confirmModal({
+      title: 'Cerrar sesión',
+      message: '¿Deseas cerrar tu sesión de WonkUp Workspace?',
+      confirmLabel: 'Cerrar sesión',
+      danger: true
+    });
+    if (!confirmed) return;
+    try { await AccessService.revokeSession(session); } catch { /* Close local session anyway. */ }
     clearSession();
     location.hash = '#/access';
+  });
+}
+
+function bindPopoverTrigger(triggerId, panelId) {
+  const trigger = document.getElementById(triggerId);
+  const panel = document.getElementById(panelId);
+  if (!trigger || !panel) return;
+  trigger.addEventListener('click', event => {
+    event.stopPropagation();
+    togglePopover(trigger, panel);
+  });
+  panel.addEventListener('click', event => event.stopPropagation());
+}
+
+function bindGlobalSearch(session, selectedWorkspaceId) {
+  const input = document.querySelector('#global-search');
+  const panel = document.querySelector('#global-search-results');
+  if (!input || !panel) return;
+
+  const run = () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      const query = input.value.trim();
+      if (query.length < 2) {
+        panel.innerHTML = '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>';
+        panel.classList.add('hidden');
+        input.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      panel.innerHTML = '<div class="search-loading"><span class="spinner spinner-blue"></span> Buscando...</div>';
+      panel.classList.remove('hidden');
+      input.setAttribute('aria-expanded', 'true');
+      try {
+        const results = await GlobalSearchService.search({ query, workspaceId: selectedWorkspaceId, session });
+        panel.innerHTML = results.length ? `<div class="search-results-title">Resultados para “${escapeHtml(query)}”</div>${results.map(result => `<a class="search-result" href="${escapeHtml(result.href)}"><span>${icon(result.icon)}</span><div><small>${escapeHtml(result.type)}</small><strong>${escapeHtml(result.title)}</strong><p>${escapeHtml(result.subtitle)}</p></div>${icon('arrowRight')}</a>`).join('')}` : `<div class="search-empty">${icon('search')}<strong>Sin resultados</strong><span>Prueba con otro nombre o término.</span></div>`;
+        panel.querySelectorAll('a').forEach(link => link.addEventListener('click', closePopovers));
+      } catch (error) {
+        panel.innerHTML = `<div class="search-empty">${icon('alert')}<strong>No se pudo buscar</strong><span>${escapeHtml(error.message || 'Intenta nuevamente.')}</span></div>`;
+      }
+    }, 220);
+  };
+
+  input.addEventListener('input', run);
+  input.addEventListener('focus', () => {
+    if (input.value.trim().length >= 2) {
+      closePopovers(panel);
+      panel.classList.remove('hidden');
+      input.setAttribute('aria-expanded', 'true');
+    }
+  });
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      panel.classList.add('hidden');
+      input.setAttribute('aria-expanded', 'false');
+      input.blur();
+    }
+  });
+}
+
+function bindGlobalKeyboardShortcuts() {
+  if (keyboardShortcutsBound) return;
+  keyboardShortcutsBound = true;
+  document.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      const input = document.querySelector('#global-search');
+      if (!input) return;
+      event.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+function updateThemeChecks(preference) {
+  document.querySelectorAll('[data-theme-check]').forEach(check => {
+    check.classList.toggle('visible', check.dataset.themeCheck === preference);
   });
 }

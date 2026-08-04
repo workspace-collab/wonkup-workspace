@@ -23,11 +23,23 @@ export const AppsScriptProjectAdapter = {
   restoreProject({ projectId, session }) {
     return postAppsScript('projects.restore', withSession(session, { projectId }));
   },
-  listClients({ workspaceId = 'all', session }) {
-    return postAppsScript('clients.list', withSession(session, { workspaceId }));
+  listClients({ workspaceId = 'all', session, includeArchived = false }) {
+    return postAppsScript('clients.list', withSession(session, { workspaceId, includeArchived }));
   },
   createClient({ input, session }) {
     return postAppsScript('clients.create', withSession(session, { input }));
+  },
+  updateClient({ clientId, patch, session }) {
+    return postAppsScript('clients.update', withSession(session, { clientId, patch }));
+  },
+  archiveClient({ clientId, session }) {
+    return postAppsScript('clients.archive', withSession(session, { clientId }));
+  },
+  restoreClient({ clientId, session }) {
+    return postAppsScript('clients.restore', withSession(session, { clientId }));
+  },
+  deleteClient({ clientId, session }) {
+    return postAppsScript('clients.delete', withSession(session, { clientId }));
   },
   listUsers({ workspaceId, session }) {
     return postAppsScript('users.listForWorkspace', withSession(session, { workspaceId }));

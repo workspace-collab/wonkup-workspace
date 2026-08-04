@@ -4,7 +4,7 @@
 WonkUp Workspace
 
 ## Fase actual
-Entrega 4 — Kanban funcional y colaboración preparada para Firebase
+Ajuste 4.1 — Usabilidad, clientes y Kanban configurable
 
 ## Estado
 Construcción técnica completada. Pendiente de validación del usuario en GitHub Pages.
@@ -15,36 +15,31 @@ Construcción técnica completada. Pendiente de validación del usuario en GitHu
 - Entrega 2 — Workspaces y acceso: APROBADA
 - Entrega 3 — Proyectos y Drive: APROBADA
 - Entrega 4 — Kanban: EN REVISIÓN
+- Ajuste 4.1: EN REVISIÓN
 
-## Implementado en Entrega 4
-- Tablero por proyecto con nueve columnas estándar.
-- Creación, edición, movimiento y archivo lógico de tarjetas.
-- Drag and drop entre columnas y reordenamiento interno.
-- Límites WIP por columna con validación.
-- Búsqueda y filtros por responsable, prioridad y etiqueta.
-- Responsable, participantes, fechas, horas, etiquetas, visibilidad y dependencias.
-- Checklist interactiva.
-- Comentarios por tarjeta.
-- Historial de cambios por tarjeta.
-- Indicadores de tarjetas, completadas, atrasadas y horas.
-- Persistencia en `localStorage` en modo demo.
-- Sincronización entre pestañas mediante `BroadcastChannel`.
-- Adaptador preparado para Firestore y reglas iniciales de seguridad.
-- Configuración pública separada en `js/config/runtime-config.js`.
+## Implementado en el Ajuste 4.1
+- Vista de tarjetas archivadas.
+- Restauración a la columna anterior o a otra columna seleccionada.
+- Eliminación definitiva solo para administradores y desde archivo.
+- Configurador visual de columnas y límites WIP.
+- Plantillas Básico (4), Ágil (5), Producto digital (6) y WonkUp completo (9).
+- Nombre, orden, color, etapa final y activación de columnas.
+- Edición, archivo, restauración y eliminación controlada de clientes.
+- Buscador global funcional con resultados autorizados.
+- Notificaciones locales con estado leído/no leído.
+- Menús compactos y mutuamente excluyentes.
+- Confirmación de cierre de sesión.
+- Corrección del menú móvil y tamaños de iconos.
+- Adaptadores y contratos actualizados.
 
 ## Decisiones
-- El modo predeterminado sigue siendo `mock` hasta configurar Firebase Authentication mediante custom tokens.
-- Los clientes e invitados no acceden al Kanban en el MVP actual.
-- Las tarjetas se archivan; no se eliminan físicamente.
-- Los límites WIP se validan antes de aceptar un movimiento.
-- Los comentarios, checklist e historial se almacenan dentro de la tarjeta durante el MVP.
-- Firebase requiere documentos de membresía por workspace y proyecto.
-
-## Pendientes conocidos
-- Activar Firebase real requiere crear el proyecto, publicar reglas y completar el Access Broker en Apps Script.
-- La presencia de usuarios conectados se implementará junto con la colaboración avanzada.
-- Los adjuntos binarios seguirán en Google Drive; el Kanban solo almacenará referencias.
-- El portal del cliente y entregables corresponden a la Entrega 6.
+- Las columnas no son obligatoriamente nueve; cada proyecto define su flujo.
+- Una columna con tarjetas no puede desactivarse hasta mover su contenido.
+- Debe existir al menos una columna marcada como etapa final.
+- `wipLimit: 0` significa sin límite.
+- Las tarjetas y clientes se archivan antes de considerar una eliminación definitiva.
+- La eliminación definitiva de tarjetas y clientes queda restringida a administradores.
+- El modo predeterminado continúa siendo `mock`.
 
 ## Próxima entrega
-Entrega 5 — Innovation Toolkit y Canvas Engine.
+Entrega 5 — Innovation Toolkit y Canvas Engine, después de aprobar la Entrega 4 y el Ajuste 4.1.

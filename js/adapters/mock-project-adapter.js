@@ -197,10 +197,11 @@ export const MockProjectAdapter = {
     return clone(enrichProject(projects[index]));
   },
 
-  async listClients({ workspaceId = 'all', session }) {
+  async listClients({ workspaceId = 'all', session, includeArchived = false }) {
     await wait(80);
     return read(KEYS.clients, demoClients)
       .filter(client => workspaceId === 'all' || client.workspaceId === workspaceId)
+      .filter(client => includeArchived || client.status !== 'archived')
       .filter(client => canViewMaster(session) || canAccessWorkspace(session, client.workspaceId));
   },
 
@@ -209,10 +210,83 @@ export const MockProjectAdapter = {
     if (!canManageClients(session)) throw new Error('Tu rol no permite crear clientes.');
     requireWorkspace(session, input.workspaceId);
     const clients = read(KEYS.clients, demoClients);
-    const client = { id: id('client'), ...input, status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const client = {
+      id: id('client'), ...input, status: 'active',
+      archivedAt: '', archivedBy: '', restoredAt: '', restoredBy: '',
+      createdAt: now, updatedAt: now
+    };
     clients.push(client);
     write(KEYS.clients, clients);
     return clone(client);
+  },
+
+  async updateClient({ clientId, patch, session }) {
+    await wait(140);
+    if (!canManageClients(session)) throw new Error('Tu rol no permite editar clientes.');
+    const clients = read(KEYS.clients, demoClients);
+    const index = clients.findIndex(client => client.id === clientId);
+    if (index < 0) throw new Error('Cliente no encontrado.');
+    requireWorkspace(session, clients[index].workspaceId);
+    const allowed = ['name', 'contactName', 'email', 'phone'];
+    const next = { ...clients[index] };
+    allowed.forEach(key => {
+      if (key in patch) next[key] = patch[key];
+    });
+    if (String(next.name || '').trim().length < 2) throw new Error('El nombre del cliente es obligatorio.');
+    next.updatedAt = new Date().toISOString();
+    clients[index] = next;
+    write(KEYS.clients, clients);
+    return clone(next);
+  },
+
+  async archiveClient({ clientId, session }) {
+    await wait(120);
+    if (!canManageClients(session)) throw new Error('Tu rol no permite archivar clientes.');
+    const clients = read(KEYS.clients, demoClients);
+    const index = clients.findIndex(client => client.id === clientId);
+    if (index < 0) throw new Error('Cliente no encontrado.');
+    requireWorkspace(session, clients[index].workspaceId);
+    if (clients[index].status === 'archived') return clone(clients[index]);
+    const now = new Date().toISOString();
+    clients[index] = {
+      ...clients[index], status: 'archived', archivedAt: now,
+      archivedBy: session?.user?.id || '', restoredAt: '', restoredBy: '', updatedAt: now
+    };
+    write(KEYS.clients, clients);
+    return clone(clients[index]);
+  },
+
+  async restoreClient({ clientId, session }) {
+    await wait(120);
+    if (!canManageClients(session)) throw new Error('Tu rol no permite restaurar clientes.');
+    const clients = read(KEYS.clients, demoClients);
+    const index = clients.findIndex(client => client.id === clientId);
+    if (index < 0) throw new Error('Cliente no encontrado.');
+    requireWorkspace(session, clients[index].workspaceId);
+    if (clients[index].status !== 'archived') throw new Error('El cliente no está archivado.');
+    const now = new Date().toISOString();
+    clients[index] = {
+      ...clients[index], status: 'active', restoredAt: now,
+      restoredBy: session?.user?.id || '', updatedAt: now
+    };
+    write(KEYS.clients, clients);
+    return clone(clients[index]);
+  },
+
+  async deleteClient({ clientId, session }) {
+    await wait(120);
+    if (session?.role !== 'superadmin') throw new Error('Solo el superadministrador puede eliminar clientes definitivamente.');
+    const clients = read(KEYS.clients, demoClients);
+    const index = clients.findIndex(client => client.id === clientId);
+    if (index < 0) throw new Error('Cliente no encontrado.');
+    requireWorkspace(session, clients[index].workspaceId);
+    if (clients[index].status !== 'archived') throw new Error('Archiva el cliente antes de eliminarlo definitivamente.');
+    const linkedProjects = read(KEYS.projects, demoProjects).filter(project => project.clientId === clientId);
+    if (linkedProjects.length) throw new Error('No puedes eliminar este cliente porque está vinculado a uno o más proyectos.');
+    clients.splice(index, 1);
+    write(KEYS.clients, clients);
+    return { deleted: true, clientId };
   },
 
   async listUsers({ workspaceId, session }) {
