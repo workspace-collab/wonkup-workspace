@@ -1,5 +1,5 @@
 import { demoNotifications } from '../../data/demo-notifications.js';
-import { canAccessProject, canAccessWorkspace, canViewMaster } from '../utils/permissions.js';
+import { canAccessProject, canAccessWorkspace, canViewMaster, isReadOnlyRole } from '../utils/permissions.js';
 
 const STORAGE_PREFIX = 'wonkup.notifications.read.';
 
@@ -16,6 +16,7 @@ function writeIds(session, ids) {
 }
 
 function visible(notification, session) {
+  if (isReadOnlyRole(session) && notification.visibility !== 'client') return false;
   if (canViewMaster(session)) return true;
   if (notification.projectId) return canAccessProject(session, notification.projectId, notification.workspaceId);
   return canAccessWorkspace(session, notification.workspaceId);

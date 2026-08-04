@@ -337,3 +337,38 @@ Validar:
 - [ ] Al terminar, el timer emite tres tonos.
 - [ ] Al terminar, el timer cambia de estado visual.
 - [ ] Al terminar, aparece un aviso aunque el audio esté bloqueado.
+
+## Entrega 6 - Portal del cliente y entregables
+
+### Equipo interno
+
+- [ ] Crear entregable.
+- [ ] Editar entregable.
+- [ ] Registrar versión.
+- [ ] Completar checklist.
+- [ ] Enviar a revisión.
+- [ ] Archivar y restaurar.
+- [ ] Abrir Vista cliente.
+
+### Cliente
+
+- [ ] TAXI-CLIENTE abre directamente el portal.
+- [ ] Ve resumen, entregables y cronograma.
+- [ ] No ve finanzas, horas ni módulos internos.
+- [ ] Abre la última versión.
+- [ ] Agrega comentarios.
+- [ ] Aprueba un entregable en revisión.
+- [ ] Solicita cambios con feedback.
+
+### Invitado
+
+- [ ] HUELLITAS-INVITADO abre el portal.
+- [ ] Puede consultar entregables visibles.
+- [ ] No puede comentar ni aprobar.
+
+### Responsive y accesibilidad
+
+- [ ] Portal usable a 320, 390, 768 y 1280 px.
+- [ ] Modales navegables con teclado.
+- [ ] Estados no dependen solo del color.
+- [ ] Tema oscuro conserva contraste.

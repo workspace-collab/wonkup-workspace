@@ -1,0 +1,31 @@
+ENTREGA 6 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- API_CONTRACTS.md
+- CHANGELOG.md
+- DATA_DICTIONARY.md
+- ENTREGA_6_GUIA.md
+- PROJECT_STATE.md
+- README.md
+- ROADMAP.md
+- TEST_CHECKLIST.md
+- TEST_RESULTS_6.md
+- css/components.css
+- css/responsive.css
+- data/demo-access.js
+- data/demo-deliverables.js
+- data/demo-notifications.js
+- index.html
+- js/adapters/mock-deliverable-adapter.js
+- js/app.js
+- js/components/app-shell.js
+- js/config/api-config.js
+- js/config/runtime-config.js
+- js/router.js
+- js/services/deliverable-service.js
+- js/services/global-search-service.js
+- js/services/notification-service.js
+- js/utils/permissions.js
+- js/views/client-portal-view.js
+- js/views/deliverables-view.js
+- js/views/project-view.js
+- tests/deliverable-adapter.test.mjs

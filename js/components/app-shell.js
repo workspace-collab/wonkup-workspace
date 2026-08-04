@@ -2,7 +2,7 @@ import { icon } from '../utils/icons.js';
 import { DemoService } from '../services/demo-service.js';
 import { AccessService } from '../services/access-service.js';
 import { NotificationService } from '../services/notification-service.js';
-import { GlobalSearchService } from '../services/global-search-service.js';
+import { GlobalSearchService } from '../services/global-search-service.js?v=6.0.0';
 import { getState, setState, clearSession } from '../state/store.js';
 import { showToast } from './toast.js';
 import { confirmModal } from './modal.js';
@@ -39,10 +39,10 @@ function createReadOnlyNav(session) {
   const workspaceId = session.scopes.workspaceIds.find(id => id !== '*');
   const projectId = session.scopes.projectIds.find(id => id !== '*');
   return [[
-    'project',
-    session.role === 'client' ? 'Mi proyecto' : 'Proyecto compartido',
+    'clientPortal',
+    session.role === 'client' ? 'Portal del cliente' : 'Proyecto compartido',
     'briefcase',
-    `#/w/${workspaceId}/p/${projectId}/summary`
+    `#/portal/w/${workspaceId}/p/${projectId}/overview`
   ]];
 }
 
@@ -87,7 +87,7 @@ export function renderShell(route = null) {
     ? { name: 'Panel Maestro', shortName: 'Todos los workspaces' }
     : DemoService.getWorkspace(selected);
 
-  const active = route?.view === 'canvas' ? 'toolkit' : (route?.view || 'dashboard');
+  const active = route?.view === 'canvas' ? 'toolkit' : (route?.view === 'clientPortal' ? 'clientPortal' : (route?.view || 'dashboard'));
   const readOnly = isReadOnlyRole(session);
   const navItems = readOnly ? createReadOnlyNav(session) : internalNavItems;
   const notifications = NotificationService.list(session);
@@ -158,7 +158,7 @@ export function renderShell(route = null) {
   document.querySelector('#header').innerHTML = `
     <button class="header-icon-button shell-menu-button" id="menu-toggle" aria-label="${menuLabel}" aria-expanded="${menuExpanded}" aria-controls="sidebar" title="${menuLabel}">${icon('menu')}</button>
     <div class="header-workspace"><strong>${escapeHtml(current?.name || 'WonkUp Workspace')}</strong><small>${escapeHtml(current?.shortName || 'Centro de operaciones')}</small></div>
-    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="sr-only" for="global-search">Búsqueda global de proyectos, tareas, clientes y canvases</label><div class="header-search">${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas, clientes o canvases..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></div>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
+    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="sr-only" for="global-search">Búsqueda global de proyectos, tareas, entregables, clientes y canvases</label><div class="header-search">${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas, entregables, clientes o canvases..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></div>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
     <div class="header-actions">
       ${isInternalUser(session) ? `<div class="relative"><button class="header-icon-button" id="quick-add" aria-label="Abrir menú Crear" aria-expanded="false" aria-controls="quick-menu">${icon('plus')}</button>${quickMenu}</div>` : ''}
       <div class="relative"><button class="header-icon-button" id="theme-button" aria-label="Abrir opciones de apariencia" aria-expanded="false" aria-controls="theme-menu">${icon('sun')}</button>${themeMenu}</div>
@@ -179,6 +179,7 @@ function notificationIcon(type) {
   if (type === 'assignment') return 'userPlus';
   if (type === 'comment') return 'message';
   if (type === 'wip') return 'alert';
+  if (type === 'review') return 'eye';
   return 'bell';
 }
 

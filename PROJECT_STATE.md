@@ -6,47 +6,38 @@ WonkUp Workspace
 
 ## Fase actual
 
-Ajuste 5.8 - Encabezado de marca, menú colapsable y paleta de notas
+Entrega 6 - Portal del Cliente y Gestión de Entregables
 
 ## Estado
 
-EN REVISIÓN EN GITHUB PAGES
+EN REVISIÓN
 
-## Base estable
+## Fases cerradas
 
-- Reconstrucción del Canvas Engine 5.6.
-- Interacción ágil de notas 5.7.
-- Versión visible del motor: `5.9.0`.
+- Entregas 0 a 4.
+- Entrega 5 y Ajustes 5.1 a 5.9.
 
-## Construido en 5.8
+## Construido en esta entrega
 
-- Encabezado compacto con degradado automático.
-- Uso del `brandColor` del proyecto y color metodológico del canvas.
-- Menú lateral colapsable desde el botón global de tres líneas.
-- Persistencia local del estado del sidebar.
-- Eliminación del botón Modo enfoque del canvas.
-- Paleta visual con códigos hexadecimales en Detalle de la nota.
-- Alarma de tres tonos, aviso visual y vibración compatible al finalizar el timer.
-
-## Verificación automatizada
-
-- Sidebar de escritorio: aprobado.
-- Encabezado de marca: aprobado.
-- Alta, color, arrastre y eliminación: aprobados.
-- Escape y modo inmersivo: aprobados.
-- Compartir, QR e impresión: aprobados.
-- Paleta del detalle: aprobada.
-- Alarma del timer: aprobada mediante AudioContext controlado.
-- Errores JavaScript: 0.
-- Cambios inesperados de ruta: 0.
+- Portal personalizado por proyecto.
+- Acceso directo para clientes e invitados.
+- Resumen visible sin información interna.
+- Entregables con estados y prioridades.
+- Checklist de aceptación.
+- Versiones registradas por URL.
+- Comentarios y feedback.
+- Flujo de revisión, aprobación y solicitud de cambios.
+- Archivo y restauración.
+- Vista cliente para el equipo interno.
+- Búsqueda global de entregables.
 
 ## Fuente de datos vigente
 
 - Proyectos: mock local.
 - Kanban: mock local.
 - Canvases: mock local.
-- Firebase: pendiente.
+- Entregables: mock local.
 
-## Próximo paso
+## Próxima fase
 
-Validar el Ajuste 5.8 en GitHub Pages antes de continuar con otras observaciones o con la Entrega 6.
+Entrega 7 - Finanzas, horas y rentabilidad.

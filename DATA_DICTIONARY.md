@@ -164,3 +164,36 @@ En modo mock se conservan como máximo 20 snapshots por canvas.
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
 | colorHex | string hexadecimal | No | Color personalizado de la nota en formato `#RRGGBB`. Cuando está vacío, se utiliza el preset indicado por `colorId`. |
+
+## Deliverable
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | string | Identificador técnico |
+| workspaceId | string | Workspace propietario |
+| projectId | string | Proyecto vinculado |
+| title | string | Nombre del entregable |
+| type | enum | document, prototype, website, design, presentation, other |
+| description | string | Alcance visible |
+| status | enum | draft, in_review, changes_requested, approved |
+| visibility | enum | client o internal |
+| priority | enum | low, medium, high, critical |
+| dueDate | date | Fecha límite |
+| checklist | DeliverableCheck[] | Condiciones de aceptación |
+| versions | DeliverableVersion[] | Archivos o enlaces publicados |
+| comments | DeliverableComment[] | Conversación del entregable |
+| history | DeliverableHistory[] | Registro de acciones |
+| archived | boolean | Estado de archivo |
+
+## DeliverableVersion
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| number | number | Número correlativo |
+| label | string | Nombre de versión |
+| fileName | string | Nombre visible |
+| fileType | string | Tipo de recurso |
+| url | URL | Enlace de consulta |
+| notes | string | Notas de versión |
+| createdAt | ISO 8601 | Fecha de publicación |
+| createdBy | string | Autor |

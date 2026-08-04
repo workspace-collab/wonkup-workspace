@@ -12,6 +12,7 @@ import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js';
 import { normalizeText, normalizeUrl } from '../utils/validation.js';
 import { renderKanban } from './kanban-view.js';
 import { renderToolkit } from './toolkit-view.js';
+import { renderDeliverables } from './deliverables-view.js';
 import { openProjectForm } from '../components/project-form.js';
 import { confirmModal, openModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -22,6 +23,7 @@ const baseTabs = [
   ['kanban', 'Kanban'],
   ['timeline', 'Cronograma'],
   ['documents', 'Documentos'],
+  ['deliverables', 'Entregables'],
   ['team', 'Equipo'],
   ['settings', 'Configuración']
 ];
@@ -90,7 +92,7 @@ function renderProjectShell(container, project, tab, session) {
             <div class="project-hero-logo">${project.logo ? `<img src="${escapeHtml(project.logo)}" alt="Logo de ${escapeHtml(project.name)}">` : escapeHtml(project.name.slice(0, 2).toUpperCase())}</div>
             <div class="project-hero-title">${!readOnly ? `<a class="panel-link project-back-link" href="#/w/${project.workspaceId}/projects">${icon('arrowLeft')} Volver a proyectos</a>` : '<span class="project-shared-label">VISTA COMPARTIDA</span>'}<h1>${escapeHtml(project.name)}</h1><p>${escapeHtml(project.tagline || project.description)}</p></div>
           </div>
-          <div class="project-hero-actions"><span class="project-cover-badge">${project.status === 'archived' ? 'Proyecto archivado' : readOnly ? escapeHtml(session.roleLabel) : `${Number(project.progress || 0)}% completado`}</span>${editable ? `<button class="button project-cover-button" id="edit-project">${icon('edit')} Editar</button>` : ''}${restorable ? `<button class="button button-gold" id="restore-project">${icon('refresh')} Restaurar</button>` : ''}</div>
+          <div class="project-hero-actions"><span class="project-cover-badge">${project.status === 'archived' ? 'Proyecto archivado' : readOnly ? escapeHtml(session.roleLabel) : `${Number(project.progress || 0)}% completado`}</span>${!readOnly ? `<a class="button project-cover-button" href="#/portal/w/${project.workspaceId}/p/${project.id}/overview">${icon('eye')} Vista cliente</a>` : ''}${editable ? `<button class="button project-cover-button" id="edit-project">${icon('edit')} Editar</button>` : ''}${restorable ? `<button class="button button-gold" id="restore-project">${icon('refresh')} Restaurar</button>` : ''}</div>
         </div>
       </div>
       <nav class="project-tabs" aria-label="Secciones del proyecto">${tabs.map(([key, label]) => `<a class="project-tab ${safeTab === key ? 'active' : ''}" href="#/w/${project.workspaceId}/p/${project.id}/${key}" ${safeTab === key ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>
@@ -166,6 +168,7 @@ function renderTab(slot, project, tab, session) {
     summary: () => renderSummary(slot, project, session),
     timeline: () => renderTimeline(slot, project, session),
     documents: () => renderDocuments(slot, project, session),
+    deliverables: () => renderDeliverables(slot, { workspaceId: project.workspaceId, projectId: project.id, embedded: true }, session),
     team: () => renderTeam(slot, project, session),
     settings: () => renderSettings(slot, project, session)
   };

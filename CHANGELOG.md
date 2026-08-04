@@ -223,3 +223,15 @@
 - El texto de la nota adapta automáticamente su contraste al color seleccionado.
 - Los colores rápidos del post-it continúan disponibles y restablecen el preset elegido.
 - Se actualizó la identificación visible a Motor 5.9.0.
+
+## Entrega 6 - Portal del Cliente y Gestión de Entregables
+
+- Se creó un portal de cliente por proyecto.
+- Se agregó acceso directo para roles cliente e invitado.
+- Se incorporaron entregables, versiones y checklist de aceptación.
+- Se implementó el flujo borrador, revisión, cambios y aprobación.
+- Se habilitaron comentarios del cliente y del equipo.
+- Se añadieron archivo y restauración de entregables.
+- Se incorporó una vista cliente para usuarios internos.
+- Se amplió la búsqueda global para incluir entregables.
+- Se añadió sincronización local entre pestañas.

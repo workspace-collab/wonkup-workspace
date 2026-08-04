@@ -1,18 +1,19 @@
-import { createAppShell, renderShell } from './components/app-shell.js';
-import { startRouter } from './router.js';
+import { createAppShell, renderShell } from './components/app-shell.js?v=6.0.0';
+import { startRouter } from './router.js?v=6.0.0';
 import { getState, subscribe, setState, setSession, clearSession } from './state/store.js';
 import { AccessService } from './services/access-service.js';
-import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js';
+import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=6.0.0';
 import { renderAccess } from './views/access-view.js';
 import { renderForbidden } from './views/forbidden-view.js';
 import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
-import { renderProject } from './views/project-view.js';
+import { renderProject } from './views/project-view.js?v=6.0.0';
 import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.9.0';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=6.0.0';
 import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
+import { renderClientPortal } from './views/client-portal-view.js?v=6.0.0';
 import { icon } from './utils/icons.js';
 
 const shell = createAppShell();
@@ -176,6 +177,9 @@ function handleRoute(route) {
       break;
     case 'clients':
       renderClients(host, workspaceId, session);
+      break;
+    case 'clientPortal':
+      renderClientPortal(host, route.params, session);
       break;
     case 'placeholder':
       renderPlaceholder(host, route.params.section);

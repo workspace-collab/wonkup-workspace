@@ -15,6 +15,7 @@ const routes = [
   { pattern: /^#\/w\/([^/]+)\/kanban$/, view: 'kanban', keys: ['workspaceId'] },
   { pattern: /^#\/w\/([^/]+)\/clients$/, view: 'clients', keys: ['workspaceId'] },
   { pattern: /^#\/w\/([^/]+)\/(calendar|team|documents|reports|settings)$/, view: 'placeholder', keys: ['workspaceId', 'section'] },
+  { pattern: /^#\/portal\/w\/([^/]+)\/p\/([^/]+)\/(overview|deliverables|timeline)$/, view: 'clientPortal', keys: ['workspaceId', 'projectId', 'section'] },
   { pattern: /^#\/w\/([^/]+)\/p\/([^/]+)\/canvas\/([^/]+)$/, view: 'canvas', keys: ['workspaceId', 'projectId', 'canvasId'] },
   { pattern: /^#\/w\/([^/]+)\/p\/([^/]+)\/([^/]+)$/, view: 'project', keys: ['workspaceId', 'projectId', 'tab'] }
 ];

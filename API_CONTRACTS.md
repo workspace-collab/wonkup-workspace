@@ -146,3 +146,24 @@ restoreVersion({ canvasId, snapshotId, session })
 - Revocar un enlace impide nuevas consultas inmediatamente.
 - Restaurar una versión requiere rol `superadmin`.
 - La restauración crea una versión nueva y conserva un respaldo del estado previo.
+
+## DeliverableService
+
+```text
+listDeliverables({ projectId, workspaceId, session, includeArchived })
+getDeliverable({ deliverableId, session })
+createDeliverable({ workspaceId, projectId, input, session })
+updateDeliverable({ deliverableId, patch, session })
+addVersion({ deliverableId, input, session })
+requestReview({ deliverableId, session })
+approve({ deliverableId, session })
+requestChanges({ deliverableId, feedback, session })
+addComment({ deliverableId, text, session })
+toggleChecklist({ deliverableId, checklistId, done, session })
+archiveDeliverable({ deliverableId, session })
+restoreDeliverable({ deliverableId, session })
+subscribe(listener)
+resetDemo()
+```
+
+El adaptador activo es `MockDeliverableAdapter`. El contrato queda preparado para Apps Script o Firebase.

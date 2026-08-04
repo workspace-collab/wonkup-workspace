@@ -91,6 +91,24 @@ export function canDeleteCanvas(session) {
   return Boolean(session && MANAGEMENT_ROLES.has(session.role));
 }
 
+
+export function canViewDeliverables(session, projectId, workspaceId) {
+  return Boolean(session && canAccessProject(session, projectId, workspaceId));
+}
+
+export function canManageDeliverables(session, projectId, workspaceId) {
+  return Boolean(session && INTERNAL_ROLES.has(session.role) && canAccessProject(session, projectId, workspaceId));
+}
+
+export function canReviewDeliverable(session, projectId, workspaceId) {
+  if (!session || !canAccessProject(session, projectId, workspaceId)) return false;
+  return session.role === 'client' || MANAGEMENT_ROLES.has(session.role);
+}
+
+export function canCommentDeliverable(session, projectId, workspaceId) {
+  return Boolean(session && session.role !== 'guest' && canAccessProject(session, projectId, workspaceId));
+}
+
 export function isReadOnlyRole(session) {
   return Boolean(session && ['client', 'guest'].includes(session.role));
 }
@@ -103,7 +121,7 @@ export function getDefaultRoute(session) {
   const projectId = session.scopes?.projectIds?.find(id => id !== '*');
 
   if (isReadOnlyRole(session) && workspaceId && projectId) {
-    return `#/w/${workspaceId}/p/${projectId}/summary`;
+    return `#/portal/w/${workspaceId}/p/${projectId}/overview`;
   }
 
   if (workspaceId) return `#/w/${workspaceId}/dashboard`;
@@ -125,6 +143,10 @@ export function canAccessRoute(route, session) {
 
   if (route.view === 'canvas') {
     if (!isInternalUser(session)) return false;
+    return canAccessProject(session, route.params?.projectId, route.params?.workspaceId);
+  }
+
+  if (route.view === 'clientPortal') {
     return canAccessProject(session, route.params?.projectId, route.params?.workspaceId);
   }
 

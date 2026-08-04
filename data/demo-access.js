@@ -35,7 +35,7 @@ export const demoAccessGrants = [
   {
     code: 'TAXI-CLIENTE',
     label: 'Cliente TaxiChurro',
-    description: 'Vista limitada del proyecto para revisión del cliente.',
+    description: 'Acceso al portal de TaxiChurro para revisar, comentar y aprobar entregables.',
     userId: 'usr-cliente-taxi',
     role: 'client',
     workspaceIds: ['w-agora'],
@@ -46,7 +46,7 @@ export const demoAccessGrants = [
   {
     code: 'HUELLITAS-INVITADO',
     label: 'Invitado Huellitas',
-    description: 'Consulta limitada del resumen del proyecto.',
+    description: 'Consulta del portal de Huellitas y sus entregables visibles, sin capacidad de aprobación.',
     userId: 'usr-invitado',
     role: 'guest',
     workspaceIds: ['w-agora'],
