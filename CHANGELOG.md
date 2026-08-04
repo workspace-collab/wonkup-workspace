@@ -192,3 +192,15 @@
 - Se corrigieron errores secundarios en fallbacks de imágenes.
 - Se añadió identificación visible `Motor 5.6.0`.
 - Se añadió una prueba Chromium de la aplicación completa con 20 altas y 20 movimientos sin cambios de ruta ni errores.
+
+## Ajuste 5.7 - Interacción ágil del Canvas Engine
+
+- Compartir reutiliza o genera automáticamente un enlace principal.
+- Vigencia y administración de enlaces se movieron a opciones secundarias.
+- Imprimir / PDF abre directamente el diálogo del navegador.
+- Las notas se crean inline dentro de la sección.
+- Colores y eliminación aparecen al pasar el mouse o enfocar la nota.
+- Se retiró el nombre permanente del color en los post-its.
+- El menú de tres puntos conserva edición, comentarios, vinculación y Kanban.
+- La pantalla completa nativa se reemplazó por modo inmersivo controlado.
+- Escape cierra primero el diálogo y conserva la vista ampliada.

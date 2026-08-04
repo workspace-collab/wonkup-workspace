@@ -308,3 +308,17 @@ Validar:
 - [ ] Repetir en pantalla completa funciona.
 - [ ] La URL no cambia durante ninguna operación.
 - [ ] El Toolkit solo aparece al pulsar deliberadamente Volver al Toolkit.
+
+## Ajuste 5.7 - Interacción ágil
+
+- [ ] El `+` de una sección crea una nota inline sin modal.
+- [ ] La nota se guarda al salir, con Guardar o Ctrl/Cmd + Enter.
+- [ ] Los colores aparecen en hover/focus.
+- [ ] El nombre del color no aparece dentro de la tarjeta.
+- [ ] Eliminar nota funciona desde la acción rápida.
+- [ ] El menú de tres puntos abre los detalles avanzados.
+- [ ] Compartir muestra un enlace listo inmediatamente.
+- [ ] Copiar enlace muestra confirmación.
+- [ ] Imprimir / PDF abre directamente el diálogo de impresión.
+- [ ] Escape cierra el diálogo antes de salir del modo inmersivo.
+- [ ] Escape sale del modo inmersivo cuando no hay diálogo.

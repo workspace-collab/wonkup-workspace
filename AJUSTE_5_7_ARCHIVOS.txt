@@ -1,0 +1,18 @@
+AJUSTE 5.7 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_7_DIAGNOSTICO.md
+- AJUSTE_5_7_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- README.md
+- ROADMAP.md
+- TEST_CHECKLIST.md
+- TEST_RESULTS_5_7.md
+- css/components.css
+- index.html
+- js/app.js
+- js/components/canvas-workspace-controller.js
+- js/views/canvas-view.js
+- tests/canvas-engine-smoke.py
+- tests/canvas-ux-smoke-5-7.png
+- tests/canvas-ux-smoke-5-7.py

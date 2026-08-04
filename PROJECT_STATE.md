@@ -6,7 +6,7 @@ WonkUp Workspace
 
 ## Fase actual
 
-Ajuste 5.6 - Reconstrucción estable del Canvas Engine
+Ajuste 5.7 - Interacción ágil del Canvas Engine
 
 ## Estado
 
@@ -15,8 +15,8 @@ EN REVISIÓN EN GITHUB PAGES
 ## Base analizada
 
 - Repositorio real descargado después del Ajuste 5.5.
-- Ruta reproducida: `#/w/w-agora/p/p-taxichurro/canvas/canvas-taxi-lean`.
-- Versión visible del motor: `5.6.0`.
+- Reconstrucción estructural 5.6 validada en la ruta `#/w/w-agora/p/p-taxichurro/canvas/canvas-taxi-lean`.
+- Versión visible del motor: `5.7.0`.
 
 ## Fases cerradas
 
@@ -30,33 +30,43 @@ EN REVISIÓN EN GITHUB PAGES
 - Ajuste 4.2 - Responsive, accesibilidad y endurecimiento UI.
 - Entrega 5 - Innovation Toolkit y Canvas Engine inicial.
 - Ajuste 5.1 - Canvases especializados, QR y versiones.
+- Ajuste 5.6 - Reconstrucción estable del Canvas Engine.
 
 ## Corrección estructural 5.6
 
-- Se eliminó la reconstrucción completa del workspace después de crear, editar o mover notas.
-- Se incorporó un controlador estable con delegación de eventos.
-- Las notas se insertan, actualizan y mueven sobre el DOM existente.
-- Se aisló cada ruta en un `route-host` propio.
-- Las vistas asíncronas obsoletas ya no pueden sobrescribir la ruta activa.
-- Canvas, Toolkit y Kanban disponen de limpieza explícita de suscripciones y listeners.
-- El adaptador mock distingue eventos locales de eventos de otras pestañas.
+- Las operaciones de notas ya no reconstruyen todo el workspace.
+- El controlador mantiene el DOM existente al crear, editar y mover.
+- Las rutas asíncronas obsoletas no pueden sobrescribir la vista activa.
 - El movimiento visual se revierte si falla la persistencia.
-- Se mantiene una alternativa explícita para mover notas desde el formulario.
-- Se corrigieron fallbacks de imagen que generaban errores secundarios.
+- Canvas, Toolkit y Kanban limpian sus listeners y suscripciones.
+
+## Interacción ágil 5.7
+
+- El `+` de cada sección crea una nota directamente dentro del lienzo.
+- La nota rápida se guarda sin abrir un modal.
+- Los colores y eliminar aparecen en hover o focus.
+- El nombre del color se retiró de la tarjeta.
+- Las funciones avanzadas permanecen en el menú de tres puntos.
+- Compartir reutiliza o crea automáticamente un enlace principal.
+- Vigencia y administración de enlaces se muestran solo bajo demanda.
+- Imprimir / PDF abre directamente el diálogo del navegador.
+- La pantalla completa nativa se reemplazó por modo inmersivo controlado.
+- Escape cierra primero el diálogo; sin diálogo, sale del modo inmersivo.
 
 ## Verificación automatizada
 
-Prueba de integración en Chromium sobre la aplicación completa:
+Prueba de integración en Chromium:
 
-- Inicio de sesión con `WONKUP-ADMIN`.
-- Apertura de Ágora Education > TaxiChurro > Canvases > Lean Canvas.
-- Activación de pantalla completa.
-- Creación consecutiva de 20 notas.
-- Movimiento real de una nota 20 veces mediante Pointer Events.
-- Edición después del movimiento.
-- Recreación de la ruta y verificación de persistencia.
-- Cero errores de página.
-- Cero cambios inesperados de hash.
+- Alta inline sin modal.
+- Cambio rápido de color.
+- Arrastre entre secciones.
+- Historial cerrado con Escape sin abandonar el modo inmersivo.
+- Enlace de consulta generado automáticamente.
+- Copia visible y QR ampliable.
+- Impresión directa.
+- Eliminación rápida.
+- Cero errores JavaScript.
+- Cero cambios inesperados de ruta.
 
 ## Fuente de datos vigente
 
@@ -67,4 +77,4 @@ Prueba de integración en Chromium sobre la aplicación completa:
 
 ## Próximo paso
 
-Validar el Ajuste 5.6 en GitHub Pages. No continuar con la Entrega 6 hasta que creación, edición y movimiento de notas sean estables en la publicación real.
+Validar el Ajuste 5.7 en GitHub Pages. No continuar con la Entrega 6 hasta confirmar el flujo simplificado en la publicación real.

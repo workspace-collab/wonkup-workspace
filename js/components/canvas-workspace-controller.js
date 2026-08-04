@@ -7,7 +7,7 @@ function htmlToElement(markup) {
 }
 
 function cardsInStack(stack, movingNoteId = '') {
-  return [...stack.querySelectorAll(':scope > .canvas-note')]
+  return [...stack.querySelectorAll(':scope > .canvas-note[data-note-id]')]
     .filter(card => card.dataset.noteId !== movingNoteId);
 }
 
@@ -21,8 +21,7 @@ function dropIndexForPointer(stack, pointerY, movingNoteId) {
 }
 
 function insertCardAt(stack, card, index) {
-  const empty = stack.querySelector(':scope > .canvas-empty-section');
-  empty?.remove();
+  stack.querySelector(':scope > .canvas-empty-section')?.remove();
   const cards = cardsInStack(stack, card.dataset.noteId);
   const reference = cards[Math.max(0, Math.min(index, cards.length))] || null;
   stack.insertBefore(card, reference);
@@ -49,6 +48,17 @@ function positionGhost(drag, x, y) {
   drag.ghost.style.top = `${Math.min(window.innerHeight - 24, Math.max(12, y + 14))}px`;
 }
 
+function draftMarkup({ sectionId, color, colors }) {
+  return `<article class="canvas-note canvas-note-draft" data-draft-note data-draft-section="${sectionId}" style="--note-bg:${color.background};--note-border:${color.border};--note-text:${color.text}">
+    <div class="canvas-note-inline-tools" aria-label="Herramientas de nota rápida">
+      <div class="canvas-note-color-dots">${colors.map(item => `<button type="button" class="note-color-dot ${item.id === color.id ? 'active' : ''}" data-draft-color="${item.id}" style="--dot:${item.background};--dot-border:${item.border}" aria-label="Usar color ${item.name}" title="${item.name}"></button>`).join('')}</div>
+      <button type="button" class="note-quick-icon" data-cancel-draft aria-label="Cancelar nota" title="Cancelar">×</button>
+    </div>
+    <textarea class="canvas-inline-note-input" rows="3" maxlength="1200" placeholder="Escribe aquí…" aria-label="Contenido de la nueva nota"></textarea>
+    <div class="canvas-inline-note-footer"><span>Se guarda automáticamente</span><button type="button" class="note-quick-save" data-save-draft>Guardar</button></div>
+  </article>`;
+}
+
 export function createCanvasWorkspaceController({
   workspace,
   getInstance,
@@ -56,9 +66,13 @@ export function createCanvasWorkspaceController({
   getViewMode,
   renderNote,
   emptyMarkup,
+  colors = [],
+  defaultColorForSection = () => colors[0]?.id || 'sky',
   onAddNote,
   onOpenNote,
   onMoveNote,
+  onUpdateNote,
+  onDeleteNote,
   onInteractionStart = () => {},
   onInteractionEnd = () => {},
   onMessage = () => {}
@@ -69,6 +83,10 @@ export function createCanvasWorkspaceController({
   const { signal } = abortController;
   let activeDrag = null;
   let destroyed = false;
+
+  const colorById = colorId => colors.find(color => color.id === colorId) || colors[0] || {
+    id: 'sky', name: 'Cielo', background: '#dff1ff', border: '#83c8ff', text: '#17324d'
+  };
 
   const cleanupDrag = () => {
     const drag = activeDrag;
@@ -93,6 +111,63 @@ export function createCanvasWorkspaceController({
     }
   };
 
+  const cancelDraft = card => {
+    const stack = card?.closest('[data-drop-section]');
+    card?.remove();
+    if (stack) ensureEmptyStack(stack, getCanEdit(), emptyMarkup);
+  };
+
+  const saveDraft = async card => {
+    if (!card?.isConnected || card.dataset.saving === 'true') return;
+    const textarea = card.querySelector('.canvas-inline-note-input');
+    const text = textarea?.value.trim() || '';
+    if (!text) {
+      cancelDraft(card);
+      return;
+    }
+    card.dataset.saving = 'true';
+    card.classList.add('is-saving');
+    textarea.disabled = true;
+    onInteractionStart('create');
+    try {
+      const next = await onAddNote({
+        sectionId: card.dataset.draftSection || '',
+        text,
+        colorId: card.dataset.draftColor || defaultColorForSection(card.dataset.draftSection || '')
+      });
+      card.remove();
+      if (next) controller.sync(next, { focusNoteId: next.notes?.at(-1)?.id || '' });
+      onMessage('Nota agregada.', 'success');
+    } catch (error) {
+      card.dataset.saving = 'false';
+      card.classList.remove('is-saving');
+      textarea.disabled = false;
+      textarea.focus();
+      onMessage(error?.message || 'No se pudo guardar la nota.', 'error');
+    } finally {
+      onInteractionEnd('create');
+    }
+  };
+
+  const createDraft = sectionId => {
+    if (!getCanEdit()) return;
+    const resolvedSectionId = sectionId || getInstance()?.template?.sections?.[0]?.id || '';
+    const stack = findStack(workspace, resolvedSectionId);
+    if (!stack) return;
+    const existingDraft = stack.querySelector(':scope > [data-draft-note]');
+    if (existingDraft) {
+      existingDraft.querySelector('.canvas-inline-note-input')?.focus();
+      return;
+    }
+    stack.querySelector(':scope > .canvas-empty-section')?.remove();
+    const color = colorById(defaultColorForSection(resolvedSectionId));
+    const card = htmlToElement(draftMarkup({ sectionId: resolvedSectionId, color, colors }));
+    card.dataset.draftColor = color.id;
+    stack.appendChild(card);
+    const textarea = card.querySelector('.canvas-inline-note-input');
+    requestAnimationFrame(() => textarea?.focus());
+  };
+
   const pointerMove = event => {
     const drag = activeDrag;
     if (!drag || event.pointerId !== drag.pointerId) return;
@@ -111,7 +186,7 @@ export function createCanvasWorkspaceController({
       drag.ghost.classList.add('canvas-drag-ghost');
       drag.ghost.style.width = `${rect.width}px`;
       drag.ghost.style.height = `${rect.height}px`;
-      drag.host.appendChild(drag.ghost);
+      document.body.appendChild(drag.ghost);
       drag.card.classList.add('dragging-source');
       onInteractionStart('drag');
     }
@@ -176,7 +251,7 @@ export function createCanvasWorkspaceController({
     const handle = event.target.closest('[data-drag-note]');
     if (!handle || !workspace.contains(handle) || !getCanEdit() || getViewMode() !== 'board') return;
     if (event.button !== 0 || activeDrag) return;
-    const card = handle.closest('.canvas-note');
+    const card = handle.closest('.canvas-note[data-note-id]');
     const originalParent = card?.closest('[data-drop-section]');
     if (!card || !originalParent) return;
 
@@ -196,18 +271,97 @@ export function createCanvasWorkspaceController({
       lastY: event.clientY,
       moved: false,
       targetStack: originalParent,
-      host: document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : document.body,
       ghost: null
     };
     handle.setPointerCapture?.(event.pointerId);
   };
 
-  const click = event => {
+  const click = async event => {
     const add = event.target.closest('[data-add-note]');
     if (add && workspace.contains(add)) {
       event.preventDefault();
       event.stopPropagation();
-      onAddNote(add.dataset.addNote || '');
+      createDraft(add.dataset.addNote || '');
+      return;
+    }
+
+    const save = event.target.closest('[data-save-draft]');
+    if (save && workspace.contains(save)) {
+      event.preventDefault();
+      event.stopPropagation();
+      await saveDraft(save.closest('[data-draft-note]'));
+      return;
+    }
+
+    const cancel = event.target.closest('[data-cancel-draft]');
+    if (cancel && workspace.contains(cancel)) {
+      event.preventDefault();
+      event.stopPropagation();
+      cancelDraft(cancel.closest('[data-draft-note]'));
+      return;
+    }
+
+    const draftColor = event.target.closest('[data-draft-color]');
+    if (draftColor && workspace.contains(draftColor)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = draftColor.closest('[data-draft-note]');
+      const color = colorById(draftColor.dataset.draftColor);
+      card.dataset.draftColor = color.id;
+      card.style.setProperty('--note-bg', color.background);
+      card.style.setProperty('--note-border', color.border);
+      card.style.setProperty('--note-text', color.text);
+      card.querySelectorAll('[data-draft-color]').forEach(button => button.classList.toggle('active', button === draftColor));
+      card.querySelector('.canvas-inline-note-input')?.focus();
+      return;
+    }
+
+    const quickColor = event.target.closest('[data-note-color]');
+    if (quickColor && workspace.contains(quickColor)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = quickColor.closest('.canvas-note[data-note-id]');
+      const noteId = card?.dataset.noteId || '';
+      const colorId = quickColor.dataset.noteColor || '';
+      if (!noteId || !colorId) return;
+      const previous = getInstance();
+      const previousNote = previous?.notes?.find(note => note.id === noteId);
+      const color = colorById(colorId);
+      card.style.setProperty('--note-bg', color.background);
+      card.style.setProperty('--note-border', color.border);
+      card.style.setProperty('--note-text', color.text);
+      card.querySelectorAll('[data-note-color]').forEach(button => button.classList.toggle('active', button === quickColor));
+      onInteractionStart('update');
+      try {
+        const next = await onUpdateNote({ noteId, patch: { colorId } });
+        if (next) controller.sync(next, { focusNoteId: noteId });
+      } catch (error) {
+        if (previousNote) controller.sync(previous, { focusNoteId: noteId });
+        onMessage(error?.message || 'No se pudo cambiar el color.', 'error');
+      } finally {
+        onInteractionEnd('update');
+      }
+      return;
+    }
+
+    const remove = event.target.closest('[data-delete-note]');
+    if (remove && workspace.contains(remove)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = remove.closest('.canvas-note[data-note-id]');
+      const noteId = card?.dataset.noteId || '';
+      if (!noteId) return;
+      onInteractionStart('delete');
+      try {
+        const next = await onDeleteNote({ noteId });
+        card.remove();
+        if (next) controller.sync(next);
+        onMessage('Nota eliminada.', 'success');
+      } catch (error) {
+        onMessage(error?.message || 'No se pudo eliminar la nota.', 'error');
+      } finally {
+        onInteractionEnd('delete');
+      }
       return;
     }
 
@@ -225,9 +379,20 @@ export function createCanvasWorkspaceController({
     }
   };
 
+  const focusOut = event => {
+    const draft = event.target.closest('[data-draft-note]');
+    if (!draft || !workspace.contains(draft)) return;
+    const next = event.relatedTarget;
+    if (next && draft.contains(next)) return;
+    setTimeout(() => {
+      if (!draft.isConnected || draft.contains(document.activeElement)) return;
+      saveDraft(draft);
+    }, 80);
+  };
+
   const doubleClick = event => {
-    if (!getCanEdit() || event.target.closest('[data-drag-note], [data-open-note]')) return;
-    const card = event.target.closest('.canvas-note');
+    if (!getCanEdit() || event.target.closest('[data-drag-note], [data-open-note], .canvas-note-inline-tools, [data-draft-note]')) return;
+    const card = event.target.closest('.canvas-note[data-note-id]');
     if (!card || !workspace.contains(card)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -235,15 +400,28 @@ export function createCanvasWorkspaceController({
   };
 
   const keydown = event => {
+    const draft = event.target.closest('[data-draft-note]');
+    if (draft) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        cancelDraft(draft);
+      } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        saveDraft(draft);
+      }
+      return;
+    }
+
     const handle = event.target.closest('[data-drag-note]');
     if (handle && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();
       event.stopPropagation();
-      onMessage('Para mover con teclado, abre el lápiz y cambia la sección.', 'info');
+      onMessage('Para mover con teclado, abre el menú de la nota y cambia la sección.', 'info');
       return;
     }
 
-    const card = event.target.closest('.canvas-note');
+    const card = event.target.closest('.canvas-note[data-note-id]');
     if (!card || !workspace.contains(card) || !getCanEdit()) return;
     if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('button, [role="button"]')) {
       event.preventDefault();
@@ -252,6 +430,7 @@ export function createCanvasWorkspaceController({
   };
 
   workspace.addEventListener('click', click, { signal });
+  workspace.addEventListener('focusout', focusOut, { signal });
   workspace.addEventListener('dblclick', doubleClick, { signal });
   workspace.addEventListener('keydown', keydown, { signal });
   workspace.addEventListener('pointerdown', pointerDown, { signal });
@@ -260,6 +439,8 @@ export function createCanvasWorkspaceController({
   document.addEventListener('pointercancel', pointerCancel, { capture: true, signal });
 
   const controller = {
+    createDraft,
+
     sync(instance, { focusNoteId = '' } = {}) {
       if (destroyed || !instance || !workspace.isConnected) return;
       const canEdit = getCanEdit();

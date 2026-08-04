@@ -19,6 +19,7 @@ let navigationBlockedUntil = 0;
 const VIEW_KEY = 'wonkup.canvas.view';
 const FOCUS_KEY = 'wonkup.canvas.focusMode';
 const TIMER_KEY = 'wonkup.canvas.teamTimer';
+const IMMERSIVE_CLASS = 'canvas-immersive-mode';
 
 export async function renderCanvas(container, params, session) {
   cleanupCanvasView();
@@ -78,7 +79,7 @@ function renderCanvasEditor(container, context) {
           <button class="button button-secondary" id="canvas-focus" type="button">${icon('sidebar')} ${focusMode ? 'Mostrar barra lateral' : 'Modo enfoque'}</button>
           <button class="button button-secondary" id="canvas-history" type="button">${icon('history')} Historial</button>
           ${canManage ? `<button class="button button-secondary" id="canvas-share" type="button">${icon('link')} Compartir</button>` : ''}
-          <button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Exportar PDF</button>
+          <button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>
           ${canManage ? `<button class="icon-button" id="canvas-settings" type="button" aria-label="Administrar canvas">${icon('more')}</button>` : ''}
         `}
       </div>
@@ -90,14 +91,13 @@ function renderCanvasEditor(container, context) {
         <button class="button button-ghost ${viewMode === 'list' ? 'active' : ''}" data-canvas-view="list" type="button" aria-pressed="${viewMode === 'list'}">${icon('list')} Lista</button>
       </div>
       <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${CanvasService.mode === 'mock' ? '<span class="demo-chip">Demo local</span>' : ''}</div>
-      ${canEdit ? `<button class="button button-primary" id="canvas-add-note" type="button">${icon('plus')} Nueva nota</button>` : ''}
     </div>
 
     <div class="canvas-workspace" id="canvas-workspace">
       ${viewMode === 'list' ? renderCanvasList(instance, canEdit) : renderCanvasBoard(instance, canEdit)}
     </div>
 
-    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.6.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
+    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.7.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
   </section>`;
 
   bindCanvasEvents(container, context, viewMode);
@@ -111,20 +111,27 @@ function renderCanvasEditor(container, context) {
     reloadCanvas(container, context);
   });
   if (!readOnly) bindCanvasTimer(container, instance.id);
+  updateFullscreenButton(container);
+  updateTimerVisibility(container);
   const fullscreenHost = container.closest('#main-view') || container;
-  const fullscreenListener = () => {
-    if (!document.fullscreenElement) fullscreenHost.classList.remove('canvas-fullscreen-host');
+  const immersiveKeydown = event => {
+    if (event.key !== 'Escape' || !document.body.classList.contains(IMMERSIVE_CLASS)) return;
+    if (document.querySelector('#wonkup-modal')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    document.body.classList.remove(IMMERSIVE_CLASS);
+    fullscreenHost.classList.remove('canvas-fullscreen-host');
     updateFullscreenButton(container);
     updateTimerVisibility(container);
   };
-  document.addEventListener('fullscreenchange', fullscreenListener);
+  document.addEventListener('keydown', immersiveKeydown);
   cleanupEditor = () => {
     stopPresence();
     unsubscribe();
     workspaceController?.destroy();
     workspaceController = null;
     stopTimerTicker();
-    document.removeEventListener('fullscreenchange', fullscreenListener);
+    document.removeEventListener('keydown', immersiveKeydown);
   };
 }
 
@@ -179,7 +186,7 @@ function canvasSection(instance, section, canEdit, extraClass = '') {
   const notes = notesForSection(instance, section.id);
   return `<section class="canvas-section tone-${escapeHtml(section.tone)} ${escapeHtml(extraClass)}" data-section-id="${escapeHtml(section.id)}" style="--section-span:${Math.max(1, Number(section.colSpan || 1))}">
     <header class="canvas-section-header"><div>${section.step ? `<span class="canvas-step">${escapeHtml(section.step)}</span>` : ''}<h2><span class="canvas-section-emoji" aria-hidden="true">${escapeHtml(section.emoji || '')}</span>${escapeHtml(section.title)}</h2><p>${escapeHtml(section.prompt)}</p></div>${canEdit ? `<button class="icon-button" type="button" data-add-note="${escapeHtml(section.id)}" aria-label="Agregar nota en ${escapeHtml(section.title)}">${icon('plus')}</button>` : ''}</header>
-    <div class="canvas-note-stack" data-drop-section="${escapeHtml(section.id)}">${notes.length ? notes.map(note => noteCard(note, canEdit, true)).join('') : `<div class="canvas-empty-section">${canEdit ? 'Agrega o arrastra una nota aquí.' : 'Sin notas.'}</div>`}</div>
+    <div class="canvas-note-stack" data-drop-section="${escapeHtml(section.id)}">${notes.length ? notes.map(note => noteCard(note, canEdit, true)).join('') : `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`}</div>
   </section>`;
 }
 
@@ -187,11 +194,16 @@ function noteCard(note, canEdit, draggable) {
   const color = getCanvasNoteColor(note.colorId);
   const comments = note.comments?.length || 0;
   const renderKey = [note.text, note.colorId, comments, note.sourceCanvasId || '', note.sourceNoteId || ''].join('|');
+  const quickTools = canEdit ? `<div class="canvas-note-quick-actions" aria-label="Acciones rápidas de la nota">
+    <div class="canvas-note-color-dots">${CANVAS_NOTE_COLORS.map(item => `<button class="note-color-dot ${item.id === note.colorId ? 'active' : ''}" type="button" data-note-color="${escapeHtml(item.id)}" style="--dot:${item.background};--dot-border:${item.border}" aria-label="Cambiar a color ${escapeHtml(item.name)}" title="${escapeHtml(item.name)}"></button>`).join('')}</div>
+    <button class="note-quick-icon note-quick-delete" type="button" data-delete-note="${escapeHtml(note.id)}" aria-label="Eliminar nota" title="Eliminar">${icon('trash')}</button>
+  </div>` : '';
   return `<article class="canvas-note" data-note-id="${escapeHtml(note.id)}" data-note-render-key="${escapeHtml(renderKey)}" tabindex="0" style="--note-bg:${color.background};--note-border:${color.border};--note-text:${color.text}">
-    <div class="canvas-note-handle" ${canEdit && draggable ? `data-drag-note="${escapeHtml(note.id)}" role="button" tabindex="0" aria-label="Mover nota"` : ''}>${canEdit && draggable ? icon('grip') : ''}<span>${escapeHtml(color.name)}</span></div>
+    ${quickTools}
+    <div class="canvas-note-handle" ${canEdit && draggable ? `data-drag-note="${escapeHtml(note.id)}" role="button" tabindex="0" aria-label="Mover nota" title="Arrastrar nota"` : ''}>${canEdit && draggable ? icon('grip') : ''}</div>
     <p>${escapeHtml(note.text)}</p>
     ${note.sourceCanvasId ? `<span class="linked-note-label">${icon('link')} Vinculada</span>` : ''}
-    <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${canEdit ? `<button class="note-open" type="button" draggable="false" data-open-note="${escapeHtml(note.id)}" aria-label="Editar nota">${icon('edit')}</button>` : ''}</footer>
+    <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${canEdit ? `<button class="note-open" type="button" draggable="false" data-open-note="${escapeHtml(note.id)}" aria-label="Más opciones de la nota" title="Más opciones">${icon('more')}</button>` : ''}</footer>
   </article>`;
 }
 
@@ -229,18 +241,8 @@ function bindCanvasEvents(container, context, currentView) {
     renderCanvasEditor(container, context);
   }));
 
-  const openCreateForm = sectionId => {
-    blockCanvasNavigation(1200);
-    openNoteForm({
-      context,
-      sectionId,
-      container,
-      onSaved: next => applyCanvasInstance(container, context, next, { focusNoteId: newestNoteId(context.instance, next) })
-    });
-  };
-
   const openDetail = noteId => {
-    blockCanvasNavigation(1200);
+    blockCanvasNavigation(800);
     openNoteDetail({
       context,
       noteId,
@@ -251,12 +253,6 @@ function bindCanvasEvents(container, context, currentView) {
     });
   };
 
-  container.querySelector('#canvas-add-note')?.addEventListener('click', event => {
-    event.preventDefault();
-    event.stopPropagation();
-    openCreateForm('');
-  });
-
   const workspace = container.querySelector('#canvas-workspace');
   workspaceController = workspace ? createCanvasWorkspaceController({
     workspace,
@@ -264,35 +260,60 @@ function bindCanvasEvents(container, context, currentView) {
     getCanEdit: () => !context.readOnly && canEditCanvas(context.session),
     getViewMode: () => currentView,
     renderNote: (note, canEdit, draggable) => noteCard(note, canEdit, draggable),
-    emptyMarkup: canEdit => `<div class="canvas-empty-section">${canEdit ? 'Agrega o arrastra una nota aquí.' : 'Sin notas.'}</div>`,
-    onAddNote: openCreateForm,
+    emptyMarkup: canEdit => `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`,
+    colors: CANVAS_NOTE_COLORS,
+    defaultColorForSection: sectionId => {
+      const tone = context.instance.template.sections.find(section => section.id === sectionId)?.tone || 'sky';
+      return CANVAS_NOTE_COLORS.some(color => color.id === tone) ? tone : 'sky';
+    },
+    onAddNote: async ({ sectionId, text, colorId }) => {
+      const previous = context.instance;
+      const next = await CanvasService.createNote({
+        canvasId: previous.id,
+        sectionId,
+        input: { text, colorId },
+        session: context.session
+      });
+      context.instance = next;
+      updateCanvasMutationSummary(container, next);
+      return next;
+    },
     onOpenNote: openDetail,
+    onUpdateNote: async ({ noteId, patch }) => {
+      const next = await CanvasService.updateNote({
+        canvasId: context.instance.id,
+        noteId,
+        patch,
+        session: context.session
+      });
+      context.instance = next;
+      updateCanvasMutationSummary(container, next);
+      return next;
+    },
+    onDeleteNote: async ({ noteId }) => {
+      const next = await CanvasService.deleteNote({
+        canvasId: context.instance.id,
+        noteId,
+        session: context.session
+      });
+      context.instance = next;
+      updateCanvasMutationSummary(container, next);
+      return next;
+    },
     onMoveNote: async ({ noteId, toSectionId, toIndex }) => {
-      beginCanvasMutation(container);
-      blockCanvasNavigation(1500);
-      try {
-        const next = await CanvasService.moveNote({
-          canvasId: context.instance.id,
-          noteId,
-          toSectionId,
-          toIndex,
-          session: context.session
-        });
-        context.instance = next;
-        updateCanvasMutationSummary(container, next);
-        return next;
-      } finally {
-        endCanvasMutation(container);
-      }
+      const next = await CanvasService.moveNote({
+        canvasId: context.instance.id,
+        noteId,
+        toSectionId,
+        toIndex,
+        session: context.session
+      });
+      context.instance = next;
+      updateCanvasMutationSummary(container, next);
+      return next;
     },
-    onInteractionStart: () => {
-      beginCanvasMutation(container);
-      blockCanvasNavigation(2000);
-    },
-    onInteractionEnd: () => {
-      endCanvasMutation(container);
-      blockCanvasNavigation(900);
-    },
+    onInteractionStart: () => beginCanvasMutation(container),
+    onInteractionEnd: () => endCanvasMutation(container),
     onMessage: (message, type) => showToast(message, type === 'error' ? { type: 'error' } : undefined)
   }) : null;
 
@@ -305,8 +326,8 @@ function bindCanvasEvents(container, context, currentView) {
     openShare(context.instance, session);
   });
   container.querySelector('#canvas-print')?.addEventListener('click', () => {
-    blockCanvasNavigation(1000);
-    openExport(context.instance);
+    showToast('Abriendo impresión. Selecciona “Guardar como PDF” en el navegador.');
+    printCanvas('summary', context.instance.templateId);
   });
   container.querySelector('#canvas-settings')?.addEventListener('click', () => {
     blockCanvasNavigation(1000);
@@ -616,12 +637,29 @@ async function openHistory({ instance, session, context, container }) {
 async function openShare(instance, session) {
   const modal = openModal({
     title: 'Compartir canvas',
-    subtitle: 'Genera enlaces de consulta, QR y fechas de vencimiento flexibles.',
-    size: 'lg',
-    initialFocus: '#share-expiry-preset',
-    onClose: () => blockCanvasNavigation(900),
-    body: `<div class="share-canvas-box"><form id="share-create-form" class="form-grid"><div class="field"><label for="share-expiry-preset">Vigencia</label><select class="select" id="share-expiry-preset"><option value="1">1 día</option><option value="7" selected>7 días</option><option value="15">15 días</option><option value="30">30 días</option><option value="custom">Fecha personalizada</option></select></div><div class="field"><label for="share-custom-expiry">Fecha y hora de vencimiento</label><input class="input" id="share-custom-expiry" type="datetime-local" disabled></div><div class="field field-full"><label for="share-label">Etiqueta opcional</label><input class="input" id="share-label" maxlength="80" placeholder="Ej.: Revisión del cliente"></div><div class="modal-actions field-full"><button class="button button-primary" type="submit">${icon('link')} Generar enlace</button></div></form><div id="share-result"></div><section class="share-active-section"><h3>Enlaces generados</h3><div id="share-token-list"><span class="spinner"></span> Cargando...</div></section><p class="field-help">Modo demo local: el QR y el enlace solo podrán abrir el canvas en este mismo navegador hasta conectar Firebase.</p></div>`
+    subtitle: 'El enlace y el QR quedan listos al abrir esta ventana.',
+    size: 'md',
+    onClose: () => blockCanvasNavigation(500),
+    body: `<div class="share-canvas-box share-canvas-simple">
+      <div id="share-result" class="share-result-loading"><span class="spinner"></span> Preparando enlace...</div>
+      <details class="share-secondary-options">
+        <summary>${icon('more')} Cambiar vigencia o crear otro enlace</summary>
+        <form id="share-create-form" class="form-grid share-options-form">
+          <div class="field"><label for="share-expiry-preset">Vigencia</label><select class="select" id="share-expiry-preset"><option value="1">1 día</option><option value="7" selected>7 días</option><option value="15">15 días</option><option value="30">30 días</option><option value="custom">Fecha personalizada</option></select></div>
+          <div class="field"><label for="share-custom-expiry">Fecha y hora</label><input class="input" id="share-custom-expiry" type="datetime-local" disabled></div>
+          <div class="field field-full"><label for="share-label">Etiqueta opcional</label><input class="input" id="share-label" maxlength="80" placeholder="Ej.: Revisión del cliente"></div>
+          <div class="modal-actions field-full"><button class="button button-secondary" type="submit">${icon('plus')} Crear otro enlace</button></div>
+        </form>
+      </details>
+      <details class="share-secondary-options">
+        <summary>${icon('settings')} Administrar enlaces</summary>
+        <div id="share-token-list"><span class="spinner"></span> Cargando...</div>
+        <p class="field-help">Revocar sirve para desactivar inmediatamente un enlace enviado por error o cuando la revisión ya terminó.</p>
+      </details>
+      <p class="field-help">Modo demo local: el QR y el enlace solo podrán abrir el canvas en este mismo navegador hasta conectar Firebase.</p>
+    </div>`
   });
+
   const preset = modal.root.querySelector('#share-expiry-preset');
   const custom = modal.root.querySelector('#share-custom-expiry');
   custom.min = toLocalDateTime(new Date(Date.now() + 5 * 60000));
@@ -630,50 +668,80 @@ async function openShare(instance, session) {
     if (!custom.disabled && !custom.value) custom.value = toLocalDateTime(new Date(Date.now() + 7 * 86400000));
   });
 
-  const refreshTokens = async selectedToken => {
-    const tokens = await CanvasService.listShareTokens({ canvasId: instance.id, session });
-    renderShareTokens(modal.root, instance, tokens, session, selectedToken, refreshTokens);
+  const refreshTokens = async (selectedToken, ensureActive = true) => {
+    let tokens = await CanvasService.listShareTokens({ canvasId: instance.id, session });
+    const active = tokens.filter(token => token.active && new Date(token.expiresAt).getTime() > Date.now());
+    let token = selectedToken || active[0] || null;
+    if (!token && ensureActive) {
+      token = await CanvasService.createShareToken({
+        canvasId: instance.id,
+        expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+        label: 'Enlace principal',
+        session
+      });
+      tokens = await CanvasService.listShareTokens({ canvasId: instance.id, session });
+    }
+    renderShareTokens(modal.root, instance, tokens, session, token, refreshTokens);
   };
-  await refreshTokens();
+
+  try {
+    await refreshTokens();
+  } catch (error) {
+    modal.root.querySelector('#share-result').innerHTML = `<div class="inline-feedback error">${escapeHtml(error.message || 'No se pudo preparar el enlace.')}</div>`;
+  }
 
   modal.root.querySelector('#share-create-form').addEventListener('submit', async event => {
     event.preventDefault();
-    let expiresAt = '';
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    submit.disabled = true;
     try {
+      let expiresAt = '';
       if (preset.value === 'custom') {
         if (!custom.value) throw new Error('Selecciona una fecha y hora de vencimiento.');
         expiresAt = new Date(custom.value).toISOString();
       } else {
         expiresAt = new Date(Date.now() + Number(preset.value) * 86400000).toISOString();
       }
-      const token = await CanvasService.createShareToken({ canvasId: instance.id, expiresAt, label: modal.root.querySelector('#share-label').value, session });
+      const token = await CanvasService.createShareToken({
+        canvasId: instance.id,
+        expiresAt,
+        label: modal.root.querySelector('#share-label').value,
+        session
+      });
       await refreshTokens(token);
-      showToast('Enlace de consulta generado.');
-    } catch (error) { showToast(error.message, { type: 'error' }); }
+      modal.root.querySelector('.share-secondary-options')?.removeAttribute('open');
+      showToast('Nuevo enlace listo para compartir.');
+    } catch (error) {
+      showToast(error.message, { type: 'error' });
+    } finally {
+      submit.disabled = false;
+    }
   });
 }
 
 function renderShareTokens(root, instance, tokens, session, selectedToken, refreshTokens) {
   const active = tokens.filter(token => token.active && new Date(token.expiresAt).getTime() > Date.now());
-  root.querySelector('#share-token-list').innerHTML = tokens.length ? tokens.map(token => {
-    const link = shareLink(token.code);
-    const status = !token.active ? 'Revocado' : new Date(token.expiresAt).getTime() <= Date.now() ? 'Vencido' : 'Activo';
-    return `<article class="share-token-item"><div><strong>${escapeHtml(token.label || token.code)}</strong><span>${status} · vence ${formatDateTime(token.expiresAt)}</span></div><div class="share-token-actions"><button class="icon-button" type="button" data-copy-token="${escapeHtml(link)}" aria-label="Copiar enlace">${icon('copy')}</button>${token.active ? `<button class="button button-ghost" type="button" data-show-token="${escapeHtml(token.id)}">Ver</button><button class="button button-danger" type="button" data-revoke-token="${escapeHtml(token.id)}">Revocar</button>` : ''}</div></article>`;
+  const token = selectedToken || active[0] || null;
+  root.querySelector('#share-result').innerHTML = token ? shareResultMarkup(token) : '<p class="muted-copy">No hay un enlace activo.</p>';
+  root.querySelector('#share-token-list').innerHTML = tokens.length ? tokens.map(item => {
+    const link = shareLink(item.code);
+    const status = !item.active ? 'Revocado' : new Date(item.expiresAt).getTime() <= Date.now() ? 'Vencido' : 'Activo';
+    return `<article class="share-token-item share-token-item-compact"><div><strong>${escapeHtml(item.label || item.code)}</strong><span>${status} · vence ${formatDateTime(item.expiresAt)}</span></div><div class="share-token-actions"><button class="icon-button" type="button" data-copy-token="${escapeHtml(link)}" aria-label="Copiar enlace" title="Copiar enlace">${icon('copy')}</button>${item.active && new Date(item.expiresAt).getTime() > Date.now() ? `<button class="icon-button danger-soft" type="button" data-revoke-token="${escapeHtml(item.id)}" aria-label="Revocar enlace" title="Desactivar este enlace">${icon('lock')}</button>` : ''}</div></article>`;
   }).join('') : '<p class="muted-copy">Todavía no se generaron enlaces.</p>';
-
-  const token = selectedToken || active[0];
-  root.querySelector('#share-result').innerHTML = token ? shareResultMarkup(token) : '';
   bindShareTokenActions(root, instance, tokens, session, refreshTokens);
 }
 
 function shareResultMarkup(token) {
   const link = shareLink(token.code);
   const qr = qrImageUrl(link);
-  return `<section class="share-result-card"><div class="share-result-main"><label for="canvas-share-link">Enlace compartido</label><div class="copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-secondary" id="copy-canvas-link" type="button">${icon('copy')} Copiar</button></div><div class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></div><div class="share-code"><span>Código</span><strong>${escapeHtml(token.code)}</strong></div><p class="field-help">Vence el ${formatDateTime(token.expiresAt)}.</p></div><div class="share-qr"><button class="share-qr-preview" type="button" data-expand-qr="${escapeHtml(token.id)}" aria-label="Ampliar código QR y código de acceso"><img src="${escapeHtml(qr)}" alt="Código QR del enlace compartido" width="180" height="180"><span>${icon('maximize')} Ampliar QR</span></button><a class="button button-secondary" href="${escapeHtml(qr)}" target="_blank" rel="noopener">${icon('download')} Abrir QR</a></div></section>`;
+  return `<section class="share-quick-card">
+    <button class="share-quick-qr" type="button" data-expand-qr="${escapeHtml(token.id)}" aria-label="Ampliar código QR"><img src="${escapeHtml(qr)}" alt="Código QR del canvas" width="190" height="190"><span>${icon('maximize')} Ampliar</span></button>
+    <div class="share-quick-content"><span class="share-ready-badge">${icon('check')} Listo para compartir</span><h3>Enlace de consulta</h3><p>Vence el ${formatDateTime(token.expiresAt)}.</p><div class="copy-field share-copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-primary" id="copy-canvas-link" type="button">${icon('copy')} Copiar enlace</button></div><div class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></div><button class="button button-ghost share-native-button" id="native-share-link" type="button">${icon('link')} Compartir con otra aplicación</button></div>
+  </section>`;
 }
 
 function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
-  const resultLink = root.querySelector('#canvas-share-link')?.value;
+  const resultLink = root.querySelector('#canvas-share-link')?.value || '';
   root.querySelector('#copy-canvas-link')?.addEventListener('click', async event => {
     const button = event.currentTarget;
     const feedback = root.querySelector('#copy-feedback');
@@ -684,49 +752,51 @@ function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
     button.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} Enlace seleccionado`;
     button.classList.toggle('copy-success', copied);
     if (feedback) {
-      feedback.textContent = copied ? '✓ El enlace se copió al portapapeles.' : 'El enlace quedó seleccionado. Presiona Ctrl+C o Cmd+C.';
-      feedback.classList.toggle('is-success', copied);
+      feedback.textContent = copied ? '✓ Enlace copiado.' : 'Enlace seleccionado. Presiona Ctrl+C o Cmd+C.';
       feedback.classList.toggle('is-manual', !copied);
     }
-    showToast(copied ? 'Enlace copiado al portapapeles.' : 'Enlace seleccionado para copia manual.', { duration: 6500 });
     setTimeout(() => {
       if (!button.isConnected) return;
-      button.innerHTML = `${icon('copy')} Copiar`;
+      button.innerHTML = `${icon('copy')} Copiar enlace`;
       button.classList.remove('copy-success');
-    }, 4200);
+    }, 3200);
   });
+
+  const nativeShare = root.querySelector('#native-share-link');
+  if (!navigator.share) nativeShare?.remove();
+  else nativeShare?.addEventListener('click', async () => {
+    try {
+      await navigator.share({ title: instance.title, text: 'Consulta este canvas de WonkUp.', url: resultLink });
+    } catch (error) {
+      if (error?.name !== 'AbortError') showToast('No se pudo abrir el menú para compartir.', { type: 'error' });
+    }
+  });
+
   root.querySelectorAll('[data-expand-qr]').forEach(button => button.addEventListener('click', () => {
     const token = tokens.find(item => item.id === button.dataset.expandQr);
     if (token) openQrZoom(root, token);
   }));
+
   root.querySelectorAll('[data-copy-token]').forEach(button => button.addEventListener('click', async () => {
-    const original = button.innerHTML;
-    button.disabled = true;
     const copied = await copyText(button.dataset.copyToken);
-    button.disabled = false;
     button.innerHTML = copied ? icon('check') : icon('copy');
     button.classList.toggle('copy-success', copied);
-    button.setAttribute('aria-label', copied ? 'Enlace copiado' : 'Copiar enlace');
-    showToast(copied ? 'Enlace copiado al portapapeles.' : 'No se pudo copiar automáticamente.', { duration: 5200 });
     setTimeout(() => {
       if (!button.isConnected) return;
-      button.innerHTML = original;
+      button.innerHTML = icon('copy');
       button.classList.remove('copy-success');
-      button.setAttribute('aria-label', 'Copiar enlace');
-    }, 3200);
+    }, 2200);
   }));
-  root.querySelectorAll('[data-show-token]').forEach(button => button.addEventListener('click', () => {
-    const token = tokens.find(item => item.id === button.dataset.showToken);
-    root.querySelector('#share-result').innerHTML = shareResultMarkup(token);
-    bindShareTokenActions(root, instance, tokens, session, refreshTokens);
-  }));
+
   root.querySelectorAll('[data-revoke-token]').forEach(button => button.addEventListener('click', async () => {
-    if (!globalThis.confirm('El enlace dejará de funcionar inmediatamente. ¿Revocar enlace?')) return;
+    if (!globalThis.confirm('El enlace dejará de abrir el canvas inmediatamente. ¿Desactivarlo?')) return;
     try {
       await CanvasService.revokeShareToken({ canvasId: instance.id, tokenId: button.dataset.revokeToken, session });
-      await refreshTokens();
-      showToast('Enlace revocado.');
-    } catch (error) { showToast(error.message, { type: 'error' }); }
+      await refreshTokens(null, false);
+      showToast('Enlace desactivado.');
+    } catch (error) {
+      showToast(error.message, { type: 'error' });
+    }
   }));
 }
 
@@ -753,7 +823,7 @@ function openCanvasSettings({ instance, session, context, container }) {
     size: 'sm',
     initialFocus: '#canvas-settings-title',
     onClose: () => blockCanvasNavigation(900),
-    body: `<form id="canvas-settings-form" class="form-grid"><div class="field field-full"><label for="canvas-settings-title">Título</label><input class="input" id="canvas-settings-title" maxlength="140" value="${escapeHtml(instance.title)}" required></div><div class="modal-actions field-full"><button class="button button-danger" type="button" id="archive-canvas">${icon('archive')} Archivar</button><button class="button button-primary" type="submit">Guardar</button></div></form>`
+    body: `<form id="canvas-settings-form" class="form-grid"><div class="field field-full"><label for="canvas-settings-title">Título</label><input class="input" id="canvas-settings-title" maxlength="140" value="${escapeHtml(instance.title)}" required></div><div class="modal-actions field-full"><button class="button button-danger" type="button" id="archive-canvas">${icon('archive')} Archivar</button><button class="button button-primary" type="submit">Guardar</button></div></form><div class="canvas-settings-extra"><span>Exportación avanzada</span><button class="button button-secondary" type="button" id="canvas-print-detail">${icon('file')} PDF detallado multipágina</button></div>`
   });
   modal.root.querySelector('#canvas-settings-form').addEventListener('submit', async event => {
     event.preventDefault();
@@ -763,6 +833,11 @@ function openCanvasSettings({ instance, session, context, container }) {
       showToast('Canvas actualizado.');
       reloadCanvas(container, context);
     } catch (error) { showToast(error.message, { type: 'error' }); }
+  });
+  modal.root.querySelector('#canvas-print-detail')?.addEventListener('click', () => {
+    modal.close({ restoreFocus: false });
+    showToast('Abriendo impresión detallada. Selecciona “Guardar como PDF”.');
+    printCanvas('detail', instance.templateId);
   });
   modal.root.querySelector('#archive-canvas').addEventListener('click', async () => {
     const confirmed = await confirmModal({ title: 'Archivar canvas', message: 'El canvas se ocultará del Toolkit, pero conservará notas e historial.', confirmLabel: 'Archivar', danger: true });
@@ -812,7 +887,7 @@ function updateCanvasMutationSummary(container, instance) {
 function ensureEmptyCanvasStack(stack, canEdit) {
   if (!stack || stack.querySelector('.canvas-note')) return;
   if (!stack.querySelector('.canvas-empty-section')) {
-    stack.insertAdjacentHTML('beforeend', `<div class="canvas-empty-section">${canEdit ? 'Agrega o arrastra una nota aquí.' : 'Sin notas.'}</div>`);
+    stack.insertAdjacentHTML('beforeend', `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`);
   }
 }
 
@@ -835,32 +910,35 @@ function toggleFocusMode(container, context) {
 
 async function toggleFullscreen(container) {
   const host = container.closest('#main-view') || container;
-  try {
-    if (!document.fullscreenElement) {
-      host.classList.add('canvas-fullscreen-host');
-      await host.requestFullscreen();
-    } else {
-      await document.exitFullscreen();
-      host.classList.remove('canvas-fullscreen-host');
-    }
-  } catch {
-    host.classList.remove('canvas-fullscreen-host');
-    showToast('El navegador no permitió cambiar a pantalla completa.', { type: 'error' });
+  const next = !document.body.classList.contains(IMMERSIVE_CLASS);
+  if (document.fullscreenElement) {
+    try { await document.exitFullscreen(); } catch { /* noop */ }
   }
+  document.body.classList.toggle(IMMERSIVE_CLASS, next);
+  host.classList.toggle('canvas-fullscreen-host', next);
+  updateFullscreenButton(container);
+  updateTimerVisibility(container);
+  if (next) requestAnimationFrame(() => container.querySelector('.canvas-workspace')?.focus?.({ preventScroll: true }));
 }
 
 function updateFullscreenButton(container) {
   const button = container.querySelector('#canvas-fullscreen');
   if (!button) return;
-  button.innerHTML = document.fullscreenElement ? `${icon('minimize')} Salir de pantalla completa` : `${icon('maximize')} Pantalla completa`;
+  const active = document.body.classList.contains(IMMERSIVE_CLASS);
+  button.innerHTML = active ? `${icon('minimize')} Salir de pantalla completa` : `${icon('maximize')} Pantalla completa`;
+  button.setAttribute('aria-pressed', String(active));
 }
 
 function printCanvas(mode, templateId) {
+  const restoreImmersive = document.body.classList.contains(IMMERSIVE_CLASS);
+  document.body.classList.remove(IMMERSIVE_CLASS);
   document.body.classList.add('canvas-printing', mode === 'summary' ? 'canvas-print-summary' : 'canvas-print-detail');
   document.body.dataset.printTemplate = templateId;
   const cleanup = () => {
     document.body.classList.remove('canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
+    if (restoreImmersive) document.body.classList.add(IMMERSIVE_CLASS);
     delete document.body.dataset.printTemplate;
+    updateFullscreenButton(document.querySelector('[data-canvas-id]')?.closest('.route-host') || document);
   };
   window.addEventListener('afterprint', cleanup, { once: true });
   requestAnimationFrame(() => window.print());
@@ -1048,7 +1126,7 @@ function bindCanvasTimer(container, canvasId) {
 }
 
 function updateTimerVisibility(container) {
-  container.querySelector('#canvas-team-timer')?.classList.toggle('is-visible', Boolean(document.fullscreenElement));
+  container.querySelector('#canvas-team-timer')?.classList.toggle('is-visible', document.body.classList.contains(IMMERSIVE_CLASS));
 }
 
 function shareLink(code) {
@@ -1098,5 +1176,5 @@ export function cleanupCanvasView() {
   document.querySelector('#main-view')?.classList.remove('canvas-fullscreen-host');
   canvasMutationActive = false;
   navigationBlockedUntil = 0;
-  document.body.classList.remove('canvas-focus-mode', 'canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
+  document.body.classList.remove('canvas-focus-mode', IMMERSIVE_CLASS, 'canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
 }

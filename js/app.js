@@ -9,7 +9,7 @@ import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
 import { renderProject } from './views/project-view.js';
 import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.6.0';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.7.0';
 import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
