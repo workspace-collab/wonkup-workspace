@@ -128,40 +128,31 @@ Las entidades administrativas de la Entrega 3.1 se mantienen sin cambios. Esta e
 
 No se agregan entidades persistentes. La preferencia de vista del Kanban (`board` o `list`) se almacena localmente como preferencia de interfaz y no forma parte de la fuente oficial de verdad del proyecto.
 
-## CanvasInstance
+## CanvasShareToken
 
-| Campo | Tipo | Obligatorio | Descripcion |
+| Campo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
-| id | string UUID | Si | Identificador tecnico del canvas |
-| workspaceId | string | Si | Workspace propietario |
-| projectId | string | Si | Proyecto vinculado |
-| templateId | string | Si | Plantilla metodologica |
-| title | string | Si | Titulo visible |
-| status | enum | Si | active o archived |
-| createdBy | string | Si | Usuario creador |
-| createdAt | ISO 8601 | Si | Fecha de creacion |
-| updatedAt | ISO 8601 | Si | Ultima modificacion |
-| version | number | Si | Version incremental |
-| notes | CanvasNote[] | Si | Notas de la instancia |
-| history | CanvasHistory[] | Si | Registro de actividad |
-| shareTokens | CanvasShareToken[] | No | Tokens temporales de consulta |
+| id | string UUID | Sí | Identificador interno |
+| code | string | Sí | Código público del enlace |
+| label | string | No | Etiqueta administrativa |
+| createdBy | string | Sí | Usuario emisor |
+| createdAt | ISO 8601 | Sí | Fecha de creación |
+| expiresAt | ISO 8601 | Sí | Fecha de vencimiento |
+| active | boolean | Sí | Estado del enlace |
+| revokedAt | ISO 8601 | No | Fecha de revocación |
+| revokedBy | string | No | Usuario que revocó |
 
-## CanvasNote
+## CanvasSnapshot
 
-| Campo | Tipo | Obligatorio | Descripcion |
+| Campo | Tipo | Obligatorio | Descripción |
 |---|---|---:|---|
-| id | string UUID | Si | Identificador de la nota |
-| sectionId | string | Si | Seccion metodologica |
-| text | string | Si | Contenido |
-| colorId | enum | Si | Color accesible |
-| position | number | Si | Orden dentro de la seccion |
-| authorId | string | Si | Autor |
-| comments | CanvasComment[] | Si | Comentarios |
-| sourceCanvasId | string | No | Canvas de origen |
-| sourceNoteId | string | No | Nota de origen |
-| createdAt | ISO 8601 | Si | Creacion |
-| updatedAt | ISO 8601 | Si | Actualizacion |
+| id | string UUID | Sí | Identificador de la versión |
+| version | number | Sí | Versión original capturada |
+| label | string | Sí | Motivo o nombre del punto de control |
+| createdAt | ISO 8601 | Sí | Fecha de captura |
+| createdBy | string | Sí | Usuario responsable |
+| title | string | Sí | Título del canvas capturado |
+| templateId | string | Sí | Plantilla del canvas |
+| notes | CanvasNote[] | Sí | Copia completa de las notas |
 
-## Fuente de verdad de canvases
-
-Durante la Entrega 5, CanvasInstance y CanvasNote utilizan `localStorage` mediante MockCanvasAdapter. La fuente futura sera Firestore.
+En modo mock se conservan como máximo 20 snapshots por canvas.

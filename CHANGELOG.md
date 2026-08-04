@@ -127,17 +127,13 @@
 ## 0.1.0 — Entrega 1
 - Núcleo visual navegable.
 
-## Entrega 5 - Innovation Toolkit y Canvas Engine
+## Ajuste 5.1 - Canvases especializados y colaboración mejorada
 
-- Se reemplazo el Toolkit demostrativo por un modulo funcional.
-- Se creo un Canvas Engine comun para seis metodologias.
-- Se agregaron instancias, notas, colores, comentarios e historial.
-- Se incorporo drag and drop y vista lista movil.
-- Se anadio presencia y sincronizacion entre pestanas.
-- Se habilito conversion de notas a tareas Kanban.
-- Se habilito vinculacion de resultados entre canvases.
-- Se incorporaron enlaces de consulta temporales en modo mock.
-- Se agrego exportacion optimizada para guardar como PDF.
-- Se anadieron archivo, restauracion y eliminacion controlada.
-- Se amplio la busqueda global.
-- Se anadieron reglas de Firestore y adaptador Firebase preparado.
+- Se incorporaron layouts metodológicos específicos para BMC, Lean Canvas, Mapa de Empatía, Propuesta de Valor y Matriz de Priorización.
+- Se conservó la estructura del Pitch Canvas.
+- Se corrigieron los flujos Agregar nota y Abrir canvas.
+- Se reemplazó el avance genérico por una fórmula 70/30 basada en cobertura y profundidad.
+- Se agregaron Modo enfoque y Pantalla completa.
+- Se añadieron enlaces con vencimiento flexible, QR, copia con fallback, listado y revocación.
+- Se añadió exportación A4 horizontal en modo resumen y detalle.
+- Se incorporaron snapshots, puntos de control y restauración de versiones para superadministrador.

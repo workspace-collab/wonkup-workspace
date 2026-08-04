@@ -158,51 +158,48 @@ Validar:
 - [ ] No hay errores en la consola del navegador.
 - [ ] `mode: 'mock'` y `kanbanMode: 'mock'` permanecen activos.
 
-## Entrega 5 - Innovation Toolkit
+## Ajuste 5.1
 
-### Toolkit
+### Geometría metodológica
 
-- [ ] Muestra seis plantillas.
-- [ ] Lista canvases por workspace.
-- [ ] Dentro de un proyecto solo muestra sus canvases.
-- [ ] Crea canvas con proyecto, plantilla y titulo.
-- [ ] Abre canvas mediante ruta protegida.
-- [ ] Archiva y restaura canvases.
-- [ ] Bloquea eliminacion definitiva segun rol.
+- [ ] BMC muestra nueve bloques en la distribución de Osterwalder.
+- [ ] BMC incluye emojis en todos los encabezados.
+- [ ] Mapa de Empatía muestra dos columnas y tres filas en escritorio.
+- [ ] Lean Canvas respeta sus bloques verticales y fila económica.
+- [ ] Propuesta de Valor separa Mapa de Valor y Perfil del Cliente.
+- [ ] Matriz muestra ejes Deseabilidad y Factibilidad.
+- [ ] Pitch Canvas conserva su estructura.
 
-### Canvas Engine
+### Navegación y edición
 
-- [ ] Carga todas las secciones de la plantilla.
-- [ ] Agrega notas.
-- [ ] Edita texto, seccion y color.
-- [ ] Elimina notas con confirmacion.
-- [ ] Mueve notas mediante drag and drop.
-- [ ] Permite mover una nota desde el formulario en movil.
-- [ ] Muestra autor, fecha y comentarios.
-- [ ] Agrega comentarios.
-- [ ] Registra historial.
-- [ ] Alterna vista Canvas y Lista.
-- [ ] Calcula avance metodologico.
-- [ ] Mantiene cambios al recargar.
-- [ ] Sincroniza cambios entre dos pestanas.
+- [ ] Agregar nota no cambia de ruta.
+- [ ] Volver al Toolkit y Abrir carga el mismo canvas.
+- [ ] Abrir usa un enlace navegable incluso después de recargar.
+- [ ] Drag and drop conserva notas y sección.
+- [ ] El porcentaje cambia al agregar, mover y eliminar información.
 
-### Integraciones
+### Compartir
 
-- [ ] Convierte una nota en tarjeta Kanban.
-- [ ] Vincula una nota a otro canvas.
-- [ ] El canvas de destino muestra el origen.
-- [ ] La busqueda global encuentra canvases y notas.
-- [ ] Genera enlace compartido.
-- [ ] El enlace compartido abre una vista de solo lectura en el mismo navegador.
-- [ ] Exportar PDF abre impresion con diseno limpio.
+- [ ] Genera enlace de 1, 7, 15 y 30 días.
+- [ ] Genera enlace con fecha personalizada.
+- [ ] Bloquea una fecha pasada.
+- [ ] Copiar enlace funciona o selecciona el campo como fallback.
+- [ ] Muestra QR.
+- [ ] Lista enlaces activos, vencidos y revocados.
+- [ ] Revocar enlace impide abrirlo.
 
-### Accesibilidad y responsive
+### Visualización y PDF
 
-- [ ] Funciona con teclado.
-- [ ] Las notas abren con Enter o Espacio.
-- [ ] Los modales contienen y restauran el foco.
-- [ ] No existe scroll horizontal del documento.
-- [ ] El scroll horizontal queda contenido dentro del canvas.
-- [ ] Vista Lista usable a 320 y 390 px.
-- [ ] Contraste correcto en tema claro y oscuro.
-- [ ] Reduced motion respetado.
+- [ ] Modo enfoque oculta y recupera la barra lateral.
+- [ ] Pantalla completa funciona y sale con Escape.
+- [ ] Resumen A4 usa orientación horizontal.
+- [ ] Detalle A4 continúa en varias páginas cuando corresponde.
+- [ ] Los controles de edición no aparecen en impresión.
+
+### Versiones
+
+- [ ] Crea un punto de control manual.
+- [ ] Registra versiones después de cambios.
+- [ ] Un rol no superadmin no puede restaurar.
+- [ ] Superadmin restaura una versión.
+- [ ] La restauración conserva respaldo del estado anterior.

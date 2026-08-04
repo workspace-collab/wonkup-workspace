@@ -1,0 +1,21 @@
+AJUSTE 5.1 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_1_GUIA.md
+- API_CONTRACTS.md
+- CANVAS_LAYOUTS.md
+- CHANGELOG.md
+- DATA_DICTIONARY.md
+- PROJECT_STATE.md
+- README.md
+- ROADMAP.md
+- TEST_CHECKLIST.md
+- css/components.css
+- data/canvas-templates.js
+- firebase/firestore.rules
+- js/adapters/firebase-canvas-adapter.js
+- js/adapters/mock-canvas-adapter.js
+- js/services/canvas-service.js
+- js/utils/canvas-progress.js
+- js/utils/icons.js
+- js/views/canvas-view.js
+- js/views/toolkit-view.js

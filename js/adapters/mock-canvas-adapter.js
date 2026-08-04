@@ -6,6 +6,8 @@ import { canAccessProject, canDeleteCanvas, canEditCanvas, canManageCanvas } fro
 const STORAGE_KEY = 'wonkup.e5.canvases';
 const PRESENCE_KEY = 'wonkup.e5.canvas-presence';
 const CHANNEL_NAME = 'wonkup-canvas';
+const MAX_HISTORY = 150;
+const MAX_SNAPSHOTS = 20;
 const wait = (milliseconds = 80) => new Promise(resolve => setTimeout(resolve, milliseconds));
 const clone = value => JSON.parse(JSON.stringify(value));
 const subscribers = new Set();
@@ -19,16 +21,21 @@ function uid(prefix) {
     : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function now() {
-  return new Date().toISOString();
-}
+function now() { return new Date().toISOString(); }
+function actor(session) { return session?.user?.id || 'system'; }
+function usersById() { return Object.fromEntries(demoUsers.map(user => [user.id, user])); }
 
-function actor(session) {
-  return session?.user?.id || 'system';
-}
-
-function usersById() {
-  return Object.fromEntries(demoUsers.map(user => [user.id, user]));
+function snapshotPayload(instance, session, label) {
+  return {
+    id: uid('version'),
+    version: Number(instance.version || 1),
+    label: String(label || `Versión ${instance.version || 1}`).slice(0, 120),
+    createdAt: now(),
+    createdBy: actor(session),
+    title: instance.title,
+    templateId: instance.templateId,
+    notes: clone(instance.notes || [])
+  };
 }
 
 function migrate(instance) {
@@ -38,6 +45,7 @@ function migrate(instance) {
   value.shareTokens ||= [];
   value.notes ||= [];
   value.history ||= [];
+  value.snapshots ||= [];
   value.notes = value.notes.map((note, index) => ({
     ...note,
     position: Number(note.position || (index + 1) * 1000),
@@ -46,6 +54,18 @@ function migrate(instance) {
     sourceCanvasId: note.sourceCanvasId || '',
     sourceNoteId: note.sourceNoteId || ''
   }));
+  if (!value.snapshots.length) {
+    value.snapshots = [{
+      id: `version-initial-${value.id}`,
+      version: value.version,
+      label: 'Versión inicial',
+      createdAt: value.updatedAt || value.createdAt || now(),
+      createdBy: value.createdBy || 'system',
+      title: value.title,
+      templateId: value.templateId,
+      notes: clone(value.notes)
+    }];
+  }
   return value;
 }
 
@@ -53,9 +73,7 @@ function readInstances() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw).map(migrate);
-  } catch {
-    // Continue with seeded data.
-  }
+  } catch { /* use seed */ }
   const seeded = demoCanvasInstances.map(migrate);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded)); } catch { /* noop */ }
   return seeded;
@@ -69,29 +87,26 @@ function writeInstances(instances, event = {}) {
   return clone(instances);
 }
 
-channel?.addEventListener('message', event => {
-  subscribers.forEach(listener => listener(event.data || { source: 'broadcast' }));
-});
-
+channel?.addEventListener('message', event => subscribers.forEach(listener => listener(event.data || { source: 'broadcast' })));
 window.addEventListener('storage', event => {
   if (![STORAGE_KEY, PRESENCE_KEY].includes(event.key)) return;
   subscribers.forEach(listener => listener({ source: 'storage', at: now(), key: event.key }));
 });
 
 function requireAccess(session, instance) {
-  if (!instance || !canAccessProject(session, instance.projectId, instance.workspaceId)) {
-    throw new Error('No tienes acceso a este canvas.');
-  }
+  if (!instance || !canAccessProject(session, instance.projectId, instance.workspaceId)) throw new Error('No tienes acceso a este canvas.');
 }
-
 function requireEdit(session, instance) {
   requireAccess(session, instance);
   if (!canEditCanvas(session)) throw new Error('Tu rol no permite modificar canvases.');
 }
-
 function requireManage(session, instance) {
   requireAccess(session, instance);
   if (!canManageCanvas(session)) throw new Error('Tu rol no permite administrar este canvas.');
+}
+function requireSuperadmin(session, instance) {
+  requireAccess(session, instance);
+  if (session?.role !== 'superadmin') throw new Error('Solo el superadministrador puede restaurar versiones.');
 }
 
 function findInstance(instances, canvasId, { includeArchived = false } = {}) {
@@ -103,12 +118,25 @@ function findInstance(instances, canvasId, { includeArchived = false } = {}) {
 function addHistory(instance, type, title, session, meta = {}) {
   instance.history ||= [];
   instance.history.unshift({ id: uid('hist'), type, title, actorId: actor(session), createdAt: now(), meta });
-  instance.history = instance.history.slice(0, 150);
+  instance.history = instance.history.slice(0, MAX_HISTORY);
 }
 
 function touch(instance) {
   instance.updatedAt = now();
   instance.version = Number(instance.version || 0) + 1;
+}
+
+function saveSnapshot(instance, session, label) {
+  instance.snapshots ||= [];
+  instance.snapshots.unshift(snapshotPayload(instance, session, label));
+  instance.snapshots = instance.snapshots.slice(0, MAX_SNAPSHOTS);
+}
+
+function finishMutation(instance, session, historyType, historyTitle, event, meta = {}) {
+  touch(instance);
+  addHistory(instance, historyType, historyTitle, session, meta);
+  saveSnapshot(instance, session, historyTitle);
+  return event;
 }
 
 function normalizePositions(instance, sectionId) {
@@ -130,7 +158,8 @@ function enrich(instance) {
       author: people[note.authorId] || null,
       comments: (note.comments || []).map(comment => ({ ...clone(comment), author: people[comment.authorId] || null }))
     })),
-    history: (instance.history || []).map(entry => ({ ...clone(entry), actor: people[entry.actorId] || null }))
+    history: (instance.history || []).map(entry => ({ ...clone(entry), actor: people[entry.actorId] || null })),
+    snapshots: (instance.snapshots || []).map(snapshot => ({ ...clone(snapshot), actor: people[snapshot.createdBy] || null }))
   };
 }
 
@@ -138,22 +167,17 @@ function readPresence() {
   try { return JSON.parse(localStorage.getItem(PRESENCE_KEY) || '{}'); }
   catch { return {}; }
 }
-
 function writePresence(value) {
   try { localStorage.setItem(PRESENCE_KEY, JSON.stringify(value)); } catch { /* noop */ }
   channel?.postMessage({ source: 'presence', at: now() });
 }
-
 function activePresence(canvasId) {
   const value = readPresence();
   const cutoff = Date.now();
   const people = usersById();
   let dirty = false;
   Object.entries(value).forEach(([key, entry]) => {
-    if (!entry?.expiresAt || entry.expiresAt < cutoff) {
-      delete value[key];
-      dirty = true;
-    }
+    if (!entry?.expiresAt || entry.expiresAt < cutoff) { delete value[key]; dirty = true; }
   });
   if (dirty) writePresence(value);
   const seen = new Set();
@@ -197,9 +221,9 @@ export const MockCanvasAdapter = {
     const createdAt = now();
     const instance = migrate({
       id: uid('canvas'), workspaceId, projectId, templateId,
-      title: String(title || `${template.name}`).trim().slice(0, 140) || template.name,
+      title: String(title || template.name).trim().slice(0, 140) || template.name,
       status: 'active', createdBy: actor(session), createdAt, updatedAt: createdAt,
-      version: 1, shareTokens: [], notes: [], history: []
+      version: 1, shareTokens: [], notes: [], history: [], snapshots: []
     });
     addHistory(instance, 'created', 'Canvas creado', session, { templateId });
     instances.push(instance);
@@ -217,8 +241,7 @@ export const MockCanvasAdapter = {
       if (!title) throw new Error('El título del canvas no puede quedar vacío.');
       instance.title = title;
     }
-    touch(instance);
-    addHistory(instance, 'updated', 'Información del canvas actualizada', session);
+    finishMutation(instance, session, 'updated', 'Información del canvas actualizada');
     writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:updated' });
     return enrich(instance);
   },
@@ -231,8 +254,7 @@ export const MockCanvasAdapter = {
     instance.status = 'archived';
     instance.archivedAt = now();
     instance.archivedBy = actor(session);
-    touch(instance);
-    addHistory(instance, 'archived', 'Canvas archivado', session);
+    finishMutation(instance, session, 'archived', 'Canvas archivado');
     writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:archived' });
     return enrich(instance);
   },
@@ -245,8 +267,7 @@ export const MockCanvasAdapter = {
     instance.status = 'active';
     instance.restoredAt = now();
     instance.restoredBy = actor(session);
-    touch(instance);
-    addHistory(instance, 'restored', 'Canvas restaurado', session);
+    finishMutation(instance, session, 'restored', 'Canvas restaurado');
     writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:restored' });
     return enrich(instance);
   },
@@ -258,8 +279,7 @@ export const MockCanvasAdapter = {
     requireAccess(session, instance);
     if (!canDeleteCanvas(session)) throw new Error('Solo un administrador puede eliminar canvases definitivamente.');
     if (instance.status !== 'archived') throw new Error('Archiva el canvas antes de eliminarlo definitivamente.');
-    const next = instances.filter(item => item.id !== canvasId);
-    writeInstances(next, { canvasId, projectId: instance.projectId, action: 'canvas:deleted' });
+    writeInstances(instances.filter(item => item.id !== canvasId), { canvasId, projectId: instance.projectId, action: 'canvas:deleted' });
     return true;
   },
 
@@ -282,8 +302,8 @@ export const MockCanvasAdapter = {
       sourceCanvasId: input?.sourceCanvasId || '', sourceNoteId: input?.sourceNoteId || ''
     };
     instance.notes.push(note);
-    touch(instance);
-    addHistory(instance, 'note:created', `Nota agregada en ${template.sections.find(section => section.id === sectionId)?.title}`, session, { noteId: note.id, sectionId });
+    const sectionTitle = template.sections.find(section => section.id === sectionId)?.title || 'sección';
+    finishMutation(instance, session, 'note:created', `Nota agregada en ${sectionTitle}`, null, { noteId: note.id, sectionId });
     writeInstances(instances, { canvasId, projectId: instance.projectId, noteId: note.id, action: 'note:created' });
     return enrich(instance);
   },
@@ -310,8 +330,7 @@ export const MockCanvasAdapter = {
       normalizePositions(instance, previousSection);
     }
     note.updatedAt = now();
-    touch(instance);
-    addHistory(instance, 'note:updated', 'Nota actualizada', session, { noteId, sectionId: note.sectionId });
+    finishMutation(instance, session, 'note:updated', 'Nota actualizada', null, { noteId, sectionId: note.sectionId });
     writeInstances(instances, { canvasId, projectId: instance.projectId, noteId, action: 'note:updated' });
     return enrich(instance);
   },
@@ -327,17 +346,14 @@ export const MockCanvasAdapter = {
     const note = instance.notes.find(item => item.id === noteId);
     if (!note) throw new Error('Nota no encontrada.');
     const fromSectionId = note.sectionId;
-    const targetNotes = instance.notes
-      .filter(item => item.id !== noteId && item.sectionId === toSectionId)
-      .sort((a, b) => Number(a.position) - Number(b.position));
+    const targetNotes = instance.notes.filter(item => item.id !== noteId && item.sectionId === toSectionId).sort((a, b) => Number(a.position) - Number(b.position));
     const safeIndex = Math.max(0, Math.min(Number(toIndex || 0), targetNotes.length));
     targetNotes.splice(safeIndex, 0, note);
     note.sectionId = toSectionId;
     targetNotes.forEach((item, index) => { item.position = (index + 1) * 1000; });
     normalizePositions(instance, fromSectionId);
     note.updatedAt = now();
-    touch(instance);
-    addHistory(instance, 'note:moved', `Nota movida a ${destination.title}`, session, { noteId, fromSectionId, toSectionId });
+    finishMutation(instance, session, 'note:moved', `Nota movida a ${destination.title}`, null, { noteId, fromSectionId, toSectionId });
     writeInstances(instances, { canvasId, projectId: instance.projectId, noteId, action: 'note:moved' });
     return enrich(instance);
   },
@@ -351,8 +367,7 @@ export const MockCanvasAdapter = {
     if (!note) throw new Error('Nota no encontrada.');
     instance.notes = instance.notes.filter(item => item.id !== noteId);
     normalizePositions(instance, note.sectionId);
-    touch(instance);
-    addHistory(instance, 'note:deleted', 'Nota eliminada', session, { noteId, sectionId: note.sectionId });
+    finishMutation(instance, session, 'note:deleted', 'Nota eliminada', null, { noteId, sectionId: note.sectionId });
     writeInstances(instances, { canvasId, projectId: instance.projectId, noteId, action: 'note:deleted' });
     return enrich(instance);
   },
@@ -369,8 +384,7 @@ export const MockCanvasAdapter = {
     note.comments ||= [];
     note.comments.push({ id: uid('comment'), authorId: actor(session), text: value, createdAt: now() });
     note.updatedAt = now();
-    touch(instance);
-    addHistory(instance, 'note:commented', 'Comentario agregado a una nota', session, { noteId });
+    finishMutation(instance, session, 'note:commented', 'Comentario agregado a una nota', null, { noteId });
     writeInstances(instances, { canvasId, projectId: instance.projectId, noteId, action: 'comment:created' });
     return enrich(instance);
   },
@@ -394,25 +408,51 @@ export const MockCanvasAdapter = {
       comments: [], sourceCanvasId, sourceNoteId
     };
     target.notes.push(linked);
-    touch(target);
-    addHistory(target, 'note:linked', 'Resultado vinculado desde otro canvas', session, { sourceCanvasId, sourceNoteId, noteId: linked.id });
+    finishMutation(target, session, 'note:linked', 'Resultado vinculado desde otro canvas', null, { sourceCanvasId, sourceNoteId, noteId: linked.id });
     writeInstances(instances, { canvasId: targetCanvasId, projectId: target.projectId, noteId: linked.id, action: 'note:linked' });
     return enrich(target);
   },
 
-  async createShareToken({ canvasId, session }) {
+  async createShareToken({ canvasId, expiresAt, label = '', session }) {
     await wait(80);
     const instances = readInstances();
     const instance = findInstance(instances, canvasId);
     requireManage(session, instance);
+    const expiry = new Date(expiresAt || Date.now() + 7 * 86400000);
+    if (!Number.isFinite(expiry.getTime()) || expiry.getTime() <= Date.now()) throw new Error('Selecciona una fecha de vencimiento futura.');
     const rawToken = uid('share').replace(/-/g, '').slice(-18).toUpperCase();
-    const token = { id: uid('token'), code: rawToken, createdBy: actor(session), createdAt: now(), expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(), active: true };
+    const token = {
+      id: uid('token'), code: rawToken,
+      label: String(label || '').trim().slice(0, 80),
+      createdBy: actor(session), createdAt: now(), expiresAt: expiry.toISOString(), active: true
+    };
     instance.shareTokens ||= [];
     instance.shareTokens.push(token);
-    touch(instance);
-    addHistory(instance, 'shared', 'Enlace de consulta generado', session, { tokenId: token.id });
+    finishMutation(instance, session, 'shared', 'Enlace de consulta generado', null, { tokenId: token.id, expiresAt: token.expiresAt });
     writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:shared' });
     return { ...token, canvasId, workspaceId: instance.workspaceId, projectId: instance.projectId };
+  },
+
+  async listShareTokens({ canvasId, session }) {
+    await wait(50);
+    const instance = findInstance(readInstances(), canvasId, { includeArchived: true });
+    requireManage(session, instance);
+    return clone((instance.shareTokens || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+  },
+
+  async revokeShareToken({ canvasId, tokenId, session }) {
+    await wait(60);
+    const instances = readInstances();
+    const instance = findInstance(instances, canvasId, { includeArchived: true });
+    requireManage(session, instance);
+    const token = (instance.shareTokens || []).find(item => item.id === tokenId);
+    if (!token) throw new Error('Enlace no encontrado.');
+    token.active = false;
+    token.revokedAt = now();
+    token.revokedBy = actor(session);
+    finishMutation(instance, session, 'share:revoked', 'Enlace de consulta revocado', null, { tokenId });
+    writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:share-revoked' });
+    return clone(token);
   },
 
   async getSharedInstance({ token }) {
@@ -422,7 +462,44 @@ export const MockCanvasAdapter = {
     if (!instance) throw new Error('El enlace compartido no existe, expiró o fue revocado.');
     const enriched = enrich(instance);
     delete enriched.shareTokens;
+    delete enriched.snapshots;
     return enriched;
+  },
+
+  async listVersions({ canvasId, session }) {
+    await wait(50);
+    const instance = findInstance(readInstances(), canvasId, { includeArchived: true });
+    requireAccess(session, instance);
+    return enrich(instance).snapshots;
+  },
+
+  async createVersion({ canvasId, label = '', session }) {
+    await wait(60);
+    const instances = readInstances();
+    const instance = findInstance(instances, canvasId);
+    requireManage(session, instance);
+    saveSnapshot(instance, session, label || `Punto de control · versión ${instance.version}`);
+    addHistory(instance, 'version:created', 'Punto de control creado', session, { snapshotId: instance.snapshots[0].id });
+    instance.updatedAt = now();
+    writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:version-created' });
+    return clone(instance.snapshots[0]);
+  },
+
+  async restoreVersion({ canvasId, snapshotId, session }) {
+    await wait(100);
+    const instances = readInstances();
+    const instance = findInstance(instances, canvasId);
+    requireSuperadmin(session, instance);
+    const snapshot = (instance.snapshots || []).find(item => item.id === snapshotId);
+    if (!snapshot) throw new Error('Versión no encontrada.');
+    saveSnapshot(instance, session, `Respaldo antes de restaurar versión ${snapshot.version}`);
+    instance.title = snapshot.title;
+    instance.notes = clone(snapshot.notes || []);
+    touch(instance);
+    addHistory(instance, 'version:restored', `Versión ${snapshot.version} restaurada`, session, { snapshotId });
+    saveSnapshot(instance, session, `Restauración de versión ${snapshot.version}`);
+    writeInstances(instances, { canvasId, projectId: instance.projectId, action: 'canvas:version-restored' });
+    return enrich(instance);
   },
 
   subscribe(listener) {

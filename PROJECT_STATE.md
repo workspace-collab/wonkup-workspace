@@ -6,49 +6,44 @@ WonkUp Workspace
 
 ## Fase actual
 
-Entrega 5 - Innovation Toolkit y Canvas Engine
+Ajuste 5.1 - Canvases especializados y colaboración mejorada
 
 ## Estado
 
-EN REVISION
+EN REVISIÓN
 
 ## Fases cerradas
 
 - Entrega 0 - Blueprint.
-- Entrega 1 - Nucleo visual.
+- Entrega 1 - Núcleo visual.
 - Entrega 2 - Workspaces y acceso.
 - Entrega 3 - Proyectos, clientes y Google Drive.
-- Ajuste 3.1 - Portadas y restauracion.
 - Entrega 4 - Kanban funcional.
-- Ajuste 4.1 - Kanban configurable y usabilidad.
-- Ajuste 4.2 - Responsive, accesibilidad y endurecimiento UI.
+- Ajustes 4.1 y 4.2 - Usabilidad, responsive y accesibilidad.
+- Entrega 5 - Canvas Engine inicial.
 
-## Construido en esta entrega
+## Construido en este ajuste
 
-- Canvas Engine reutilizable.
-- Seis plantillas metodologicas.
-- Instancias vinculadas a proyectos.
-- Notas con colores, autor, fecha y comentarios.
-- Drag and drop entre secciones.
-- Vista Canvas y Lista.
-- Historial de actividad.
-- Presencia y sincronizacion local entre pestanas.
-- Exportacion mediante impresion a PDF.
-- Enlaces compartidos demostrativos.
-- Vinculacion de notas entre canvases.
-- Conversion de notas a tareas Kanban.
-- Archivo, restauracion y eliminacion de canvases.
-- Busqueda global de canvases y notas.
-- Estructura y reglas de Firebase preparadas.
+- Geometría especializada para BMC, Lean Canvas, Mapa de Empatía, Propuesta de Valor y Matriz de Priorización.
+- Pitch Canvas conservado.
+- Corrección del flujo Agregar nota y Abrir canvas.
+- Avance de llenado dinámico 70/30.
+- Modo enfoque y pantalla completa.
+- Enlaces con vencimiento flexible.
+- QR para compartir.
+- Copia de enlace con fallback.
+- Revocación y listado de enlaces.
+- Exportación A4 horizontal resumen y detalle.
+- Versiones restaurables y puntos de control.
 
 ## Fuente de datos vigente
 
 - Proyectos: mock local.
 - Kanban: mock local.
-- Canvases: mock local.
-- Colaboracion real Firebase: pendiente de configuracion.
+- Canvases y versiones: mock local.
+- Colaboración real entre dispositivos: pendiente de Firebase.
 
-## Configuracion
+## Configuración
 
 ```javascript
 mode: 'mock',
@@ -56,18 +51,6 @@ kanbanMode: 'mock',
 canvasMode: 'mock'
 ```
 
-## Pendientes de validacion
+## Próxima fase
 
-- Creacion y edicion de canvases.
-- Drag and drop.
-- Comentarios.
-- Conversion a Kanban.
-- Vinculacion entre canvases.
-- Compartir.
-- Exportacion PDF.
-- Responsive y tema oscuro.
-- Sincronizacion entre pestanas.
-
-## Proxima fase
-
-Entrega 6 - Portal del cliente y entregables.
+Entrega 6 - Portal del cliente y entregables, después de aprobar el Ajuste 5.1.

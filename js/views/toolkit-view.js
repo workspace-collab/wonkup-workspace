@@ -6,6 +6,7 @@ import { icon } from '../utils/icons.js';
 import { escapeHtml, formatDate } from '../utils/format.js';
 import { openModal, confirmModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js';
 
 let unsubscribeToolkit = null;
 
@@ -63,7 +64,6 @@ function renderToolkitContent(container, context) {
   }
   root.querySelector('#empty-new-canvas')?.addEventListener('click', () => create(''));
   root.querySelectorAll('[data-create-template]').forEach(button => button.addEventListener('click', () => create(button.dataset.createTemplate)));
-  root.querySelectorAll('[data-open-canvas]').forEach(button => button.addEventListener('click', () => { location.hash = button.dataset.openCanvas; }));
   root.querySelectorAll('[data-restore-canvas]').forEach(button => button.addEventListener('click', async () => {
     try {
       await CanvasService.restoreInstance({ canvasId: button.dataset.restoreCanvas, session });
@@ -90,16 +90,14 @@ function renderToolkitContent(container, context) {
 
 function instanceCard(instance, project, session) {
   const template = instance.template;
-  const sectionCount = new Set(instance.notes.map(note => note.sectionId)).size;
-  const totalSections = template?.sections?.length || 1;
-  const progress = Math.min(100, Math.round((sectionCount / totalSections) * 100));
+  const progress = calculateCanvasProgress(instance);
   return `<article class="canvas-instance-card" style="--canvas-accent:${escapeHtml(template?.color || '#50a8f3')}">
     <div class="canvas-instance-top"><span class="canvas-template-icon">${icon(template?.icon || 'lightbulb')}</span><span class="status-badge status-active">Activo</span></div>
     <h3>${escapeHtml(instance.title)}</h3>
     <p>${escapeHtml(template?.name || 'Canvas')} · ${escapeHtml(project?.name || 'Proyecto')}</p>
-    <div class="canvas-instance-progress"><span><strong>${instance.notes.length}</strong> notas</span><span><strong>${progress}%</strong> secciones</span></div>
+    <div class="canvas-instance-progress"><span><strong>${instance.notes.length}</strong> notas</span><span><strong>${progress}%</strong> avance</span></div>
     <div class="progress-track"><div class="progress-bar" style="width:${progress}%"></div></div>
-    <div class="canvas-instance-footer"><span>Actualizado ${relativeTime(instance.updatedAt)}</span><button class="button button-secondary" data-open-canvas="${canvasHref(instance)}">Abrir</button></div>
+    <div class="canvas-instance-footer"><span>Actualizado ${relativeTime(instance.updatedAt)}</span><a class="button button-secondary" href="${canvasHref(instance)}">Abrir</a></div>
   </article>`;
 }
 
@@ -108,7 +106,20 @@ function archivedCard(instance, project, session) {
 }
 
 function templateCard(template, editable) {
-  return `<article class="tool-card canvas-template-card" style="--template-color:${escapeHtml(template.color)}"><div class="tool-icon">${icon(template.icon)}</div><span class="template-category">${escapeHtml(template.category)}</span><h2>${escapeHtml(template.name)}</h2><p>${escapeHtml(template.description)}</p><div class="tool-meta"><span>${template.sections.length} secciones</span><span>${template.columns} columnas</span></div>${editable ? `<button class="button button-secondary" data-create-template="${escapeHtml(template.id)}">Usar plantilla</button>` : ''}</article>`;
+  return `<article class="tool-card canvas-template-card" style="--template-color:${escapeHtml(template.color)}"><div class="tool-icon">${icon(template.icon)}</div><span class="template-category">${escapeHtml(template.category)}</span><h2>${escapeHtml(template.name)}</h2><p>${escapeHtml(template.description)}</p><div class="tool-meta"><span>${template.sections.length} secciones</span><span>${templateLayoutLabel(template)}</span></div>${editable ? `<button class="button button-secondary" data-create-template="${escapeHtml(template.id)}">Usar plantilla</button>` : ''}</article>`;
+}
+
+
+function templateLayoutLabel(template) {
+  const labels = {
+    'business-model': '9 bloques',
+    lean: '9 bloques',
+    empathy: '2 columnas',
+    'value-proposition': '2 paneles',
+    prioritization: '4 cuadrantes',
+    generic: `${template.columns || 3} columnas`
+  };
+  return labels[template.layout] || `${template.columns || 3} columnas`;
 }
 
 function openCreateCanvas({ workspaceId, projectId, projects, templateId, session, onCreated }) {

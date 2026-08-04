@@ -127,32 +127,22 @@ Eliminación definitiva exclusiva del superadministrador. Solo procede si el cli
 
 No se modifican contratos de backend, Google Apps Script ni Firebase. Los cambios pertenecen a presentacion, accesibilidad, navegacion, validacion de formularios y modos de visualizacion del Kanban.
 
-## CanvasService
+## Ajuste 5.1 - Compartir y versiones
 
 ```text
-listInstances({ workspaceId, projectId, session, includeArchived })
-getInstance({ canvasId, session })
-createInstance({ workspaceId, projectId, templateId, title, session })
-updateInstance({ canvasId, patch, session })
-archiveInstance({ canvasId, session })
-restoreInstance({ canvasId, session })
-deleteInstance({ canvasId, session })
-
-createNote({ canvasId, sectionId, input, session })
-updateNote({ canvasId, noteId, patch, session })
-moveNote({ canvasId, noteId, toSectionId, toIndex, session })
-deleteNote({ canvasId, noteId, session })
-addComment({ canvasId, noteId, text, session })
-linkNote({ sourceCanvasId, sourceNoteId, targetCanvasId, targetSectionId, session })
-
-createShareToken({ canvasId, session })
+createShareToken({ canvasId, expiresAt, label, session })
+listShareTokens({ canvasId, session })
+revokeShareToken({ canvasId, tokenId, session })
 getSharedInstance({ token })
-subscribe(listener)
-startPresence({ canvasId, session, onChange })
-resetDemo({ session })
+
+listVersions({ canvasId, session })
+createVersion({ canvasId, label, session })
+restoreVersion({ canvasId, snapshotId, session })
 ```
 
-### Adaptadores de canvas
+### Reglas
 
-- MockCanvasAdapter: activo.
-- FirebaseCanvasAdapter: contrato preparado; no activar sin autenticacion y reglas.
+- `expiresAt` debe ser una fecha futura ISO 8601.
+- Revocar un enlace impide nuevas consultas inmediatamente.
+- Restaurar una versión requiere rol `superadmin`.
+- La restauración crea una versión nueva y conserva un respaldo del estado previo.

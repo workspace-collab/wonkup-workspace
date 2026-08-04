@@ -7,7 +7,17 @@ export const CANVAS_NOTE_COLORS = Object.freeze([
   { id: 'neutral', name: 'Neutral', background: '#f1f4f8', border: '#c9d1dd', text: '#243144' }
 ]);
 
-const section = (id, title, prompt, tone = 'sky', colSpan = 1) => ({ id, title, prompt, tone, colSpan });
+const section = (id, title, prompt, tone = 'sky', options = {}) => ({
+  id,
+  title,
+  prompt,
+  tone,
+  emoji: options.emoji || '',
+  area: options.area || id,
+  group: options.group || '',
+  step: options.step || '',
+  colSpan: options.colSpan || 1
+});
 
 export const canvasTemplates = [
   {
@@ -19,100 +29,110 @@ export const canvasTemplates = [
     color: '#50a8f3',
     category: 'Descubrimiento',
     recommendedOrder: 10,
-    columns: 3,
+    layout: 'empathy',
+    columns: 2,
     sections: [
-      section('thinks-feels', 'Piensa y siente', '¿Qué le importa realmente? ¿Qué le preocupa y qué desea?', 'sky'),
-      section('sees', 'Ve', '¿Qué observa en su entorno, mercado y comunidad?', 'mint'),
-      section('hears', 'Oye', '¿Qué escucha de amigos, familia, referentes o medios?', 'violet'),
-      section('says-does', 'Dice y hace', '¿Qué expresa y cómo se comporta en público?', 'gold'),
-      section('pains', 'Esfuerzos y dolores', '¿Qué obstáculos, miedos, frustraciones y riesgos enfrenta?', 'rose'),
-      section('gains', 'Resultados y ganancias', '¿Qué espera conseguir y cómo define el éxito?', 'mint')
+      section('thinks-feels', '¿Qué piensa y siente?', 'Sus valores, preocupaciones reales, metas y aspiraciones.', 'gold', { emoji: '🧠', area: 'thinks' }),
+      section('sees', '¿Qué ve?', 'Su entorno, amigos, mercado y competencia.', 'sky', { emoji: '👁️', area: 'sees' }),
+      section('hears', '¿Qué oye?', 'Lo que dicen personas influyentes, familia, jefes o redes.', 'violet', { emoji: '👂', area: 'hears' }),
+      section('says-does', '¿Qué dice y hace?', 'Su comportamiento en público, actitud y acciones.', 'rose', { emoji: '💬', area: 'says' }),
+      section('pains', 'Esfuerzos y dolores', 'Frustraciones, obstáculos, miedos y riesgos que enfrenta.', 'rose', { emoji: '💔', area: 'pains' }),
+      section('gains', 'Resultados y ganancias', 'Deseos, necesidades, medidas de éxito y metas.', 'mint', { emoji: '🏆', area: 'gains' })
     ],
-    completionRule: { minimumNotes: 6, minimumSections: 4 }
+    completionRule: { targetNotesPerSection: 2, sectionWeight: 0.7, depthWeight: 0.3 }
   },
   {
     id: 'value-proposition',
     name: 'Lienzo de Propuesta de Valor',
     shortName: 'Propuesta de Valor',
-    description: 'Conecta trabajos, dolores y alegrías del cliente con productos, aliviadores y creadores de valor.',
+    description: 'Conecta el perfil del cliente con los productos, aliviadores y creadores de valor.',
     icon: 'target',
     color: '#f1c22d',
     category: 'Definición',
     recommendedOrder: 20,
-    columns: 3,
-    sections: [
-      section('customer-jobs', 'Trabajos del cliente', '¿Qué intenta lograr el cliente en su vida o trabajo?', 'sky'),
-      section('customer-pains', 'Dolores', '¿Qué le molesta, limita o genera riesgos?', 'rose'),
-      section('customer-gains', 'Alegrías', '¿Qué resultados y beneficios espera?', 'mint'),
-      section('products-services', 'Productos y servicios', '¿Qué ofreces concretamente?', 'violet'),
-      section('pain-relievers', 'Aliviadores de dolor', '¿Cómo reduces obstáculos, costos, riesgos o frustraciones?', 'gold'),
-      section('gain-creators', 'Creadores de alegría', '¿Cómo produces beneficios o resultados deseados?', 'mint')
+    layout: 'value-proposition',
+    columns: 2,
+    groups: [
+      { id: 'value-map', title: 'El mapa de valor', emoji: '🎁', tone: 'sky' },
+      { id: 'customer-profile', title: 'El perfil del cliente', emoji: '👤', tone: 'gold' }
     ],
-    completionRule: { minimumNotes: 6, minimumSections: 6 }
+    sections: [
+      section('products-services', 'Productos y servicios', 'Qué ofreces de forma física, digital o como servicio.', 'sky', { emoji: '💼', group: 'value-map', area: 'products' }),
+      section('gain-creators', 'Creadores de alegrías', 'Cómo tus productos crean beneficios o valor adicional.', 'sky', { emoji: '📈', group: 'value-map', area: 'gain-creators' }),
+      section('pain-relievers', 'Aliviadores de dolores', 'Cómo eliminas frustraciones, riesgos o molestias.', 'sky', { emoji: '💊', group: 'value-map', area: 'pain-relievers' }),
+      section('customer-gains', 'Alegrías', 'Resultados positivos y beneficios que el cliente busca.', 'gold', { emoji: '🤗', group: 'customer-profile', area: 'gains' }),
+      section('customer-pains', 'Dolores', 'Malos resultados, riesgos, obstáculos o temores.', 'gold', { emoji: '😕', group: 'customer-profile', area: 'pains' }),
+      section('customer-jobs', 'Trabajos del cliente', 'Tareas funcionales, sociales o emocionales que intenta realizar.', 'gold', { emoji: '🗒️', group: 'customer-profile', area: 'jobs' })
+    ],
+    completionRule: { targetNotesPerSection: 2, sectionWeight: 0.7, depthWeight: 0.3 }
   },
   {
     id: 'lean-canvas',
     name: 'Lean Canvas',
     shortName: 'Lean Canvas',
-    description: 'Estructura una idea de negocio mediante problema, solución, propuesta, métricas, canales y economía.',
+    description: 'Estructura una idea mediante problema, solución, propuesta, métricas, canales y economía.',
     icon: 'grid',
     color: '#7c69d8',
     category: 'Modelo de negocio',
     recommendedOrder: 30,
-    columns: 5,
+    layout: 'lean',
+    columns: 10,
     sections: [
-      section('problem', 'Problema', 'Tres problemas principales y alternativas actuales.', 'rose'),
-      section('solution', 'Solución', 'Características esenciales de la solución para cada problema.', 'sky'),
-      section('unique-value', 'Propuesta única de valor', 'Mensaje claro, diferente y convincente.', 'gold'),
-      section('unfair-advantage', 'Ventaja especial', '¿Qué es difícil de copiar o comprar?', 'violet'),
-      section('customer-segments', 'Segmentos de clientes', 'Usuarios, clientes y primeros adoptantes.', 'mint'),
-      section('key-metrics', 'Métricas clave', 'Indicadores que evidencian aprendizaje y tracción.', 'sky'),
-      section('channels', 'Canales', 'Cómo llegarás, venderás y atenderás.', 'violet'),
-      section('cost-structure', 'Estructura de costos', 'Costos fijos, variables y críticos.', 'rose'),
-      section('revenue-streams', 'Fuentes de ingreso', 'Cómo y cuánto pagará el cliente.', 'mint')
+      section('problem', 'Problema', 'Los tres problemas principales del cliente objetivo.', 'gold', { emoji: '⚠️', area: 'problem', step: 'Paso 1: El problema' }),
+      section('solution', 'Solución', 'Características esenciales del producto mínimo viable.', 'sky', { emoji: '⚙️', area: 'solution' }),
+      section('unique-value', 'Propuesta única de valor', 'Mensaje claro que explica por qué eres diferente y valioso.', 'violet', { emoji: '💎', area: 'unique' }),
+      section('unfair-advantage', 'Ventaja injusta', 'Algo difícil de copiar o comprar fácilmente.', 'violet', { emoji: '⭐', area: 'advantage' }),
+      section('customer-segments', 'Segmentos / primeros adoptantes', 'Público objetivo y adoptantes tempranos.', 'sky', { emoji: '👥', area: 'segments', step: 'Paso 2: El cliente' }),
+      section('key-metrics', 'Métricas clave', 'Indicadores que muestran aprendizaje y tracción.', 'sky', { emoji: '📈', area: 'metrics' }),
+      section('channels', 'Canales', 'Ruta para llegar y atender a los segmentos de clientes.', 'violet', { emoji: '🚀', area: 'channels' }),
+      section('cost-structure', 'Estructura de costos', 'Costos de desarrollo, marketing, personal e infraestructura.', 'rose', { emoji: '💸', area: 'costs' }),
+      section('revenue-streams', 'Fuentes de ingreso', 'Suscripción, venta, comisiones u otras fuentes.', 'mint', { emoji: '💰', area: 'revenue' })
     ],
-    completionRule: { minimumNotes: 9, minimumSections: 7 }
+    completionRule: { targetNotesPerSection: 2, sectionWeight: 0.7, depthWeight: 0.3 }
   },
   {
     id: 'business-model',
     name: 'Business Model Canvas',
     shortName: 'Modelo de Negocio',
-    description: 'Diseña el modelo de negocio completo mediante nueve bloques interdependientes.',
+    description: 'Diseña el modelo de negocio mediante los nueve bloques de Osterwalder.',
     icon: 'briefcase',
     color: '#36a269',
     category: 'Modelo de negocio',
     recommendedOrder: 40,
-    columns: 5,
+    layout: 'business-model',
+    columns: 10,
     sections: [
-      section('key-partners', 'Socios clave', 'Proveedores, aliados y redes necesarias.', 'violet'),
-      section('key-activities', 'Actividades clave', 'Acciones esenciales para operar la propuesta.', 'sky'),
-      section('value-propositions', 'Propuestas de valor', 'Beneficios que resuelven necesidades concretas.', 'gold'),
-      section('customer-relationships', 'Relaciones con clientes', 'Cómo captar, atender y fidelizar.', 'rose'),
-      section('customer-segments', 'Segmentos de clientes', 'Grupos de personas u organizaciones atendidas.', 'mint'),
-      section('key-resources', 'Recursos clave', 'Activos humanos, físicos, intelectuales y financieros.', 'sky'),
-      section('channels', 'Canales', 'Comunicación, venta, distribución y soporte.', 'violet'),
-      section('cost-structure', 'Estructura de costos', 'Principales costos del modelo.', 'rose'),
-      section('revenue-streams', 'Fuentes de ingreso', 'Mecanismos y precios que generan ingresos.', 'mint')
+      section('key-partners', 'Socios clave', '¿Quiénes son nuestros socios y proveedores clave?', 'violet', { emoji: '🤝', area: 'partners' }),
+      section('key-activities', 'Actividades clave', '¿Qué acciones clave requiere nuestra propuesta?', 'sky', { emoji: '🛠️', area: 'activities' }),
+      section('value-propositions', 'Propuesta de valor', '¿Qué valor entregamos y qué problema resolvemos?', 'sky', { emoji: '🎁', area: 'value', step: 'Paso 2: La solución' }),
+      section('customer-relationships', 'Relaciones con clientes', '¿Qué tipo de relación espera cada segmento?', 'rose', { emoji: '❤️', area: 'relationships' }),
+      section('customer-segments', 'Segmentos de clientes', '¿Para quién creamos valor?', 'gold', { emoji: '👥', area: 'segments', step: 'Paso 1: El cliente' }),
+      section('key-resources', 'Recursos clave', '¿Qué recursos físicos, humanos o intelectuales requerimos?', 'mint', { emoji: '🧩', area: 'resources' }),
+      section('channels', 'Canales', '¿Cómo llegamos a nuestros segmentos de clientes?', 'violet', { emoji: '🚀', area: 'channels' }),
+      section('cost-structure', 'Estructura de costos', '¿Cuáles son los costos más importantes del modelo?', 'rose', { emoji: '💸', area: 'costs' }),
+      section('revenue-streams', 'Fuentes de ingreso', '¿Por qué valor están dispuestos a pagar?', 'mint', { emoji: '💰', area: 'revenue' })
     ],
-    completionRule: { minimumNotes: 9, minimumSections: 7 }
+    completionRule: { targetNotesPerSection: 2, sectionWeight: 0.7, depthWeight: 0.3 }
   },
   {
     id: 'prioritization',
     name: 'Matriz de Priorización',
     shortName: 'Priorización',
-    description: 'Ordena ideas por impacto y esfuerzo para decidir qué ejecutar, validar o descartar.',
+    description: 'Ordena ideas por deseabilidad y factibilidad para decidir qué implementar, investigar, validar o descartar.',
     icon: 'layers',
     color: '#f59e0b',
     category: 'Decisión',
     recommendedOrder: 50,
+    layout: 'prioritization',
     columns: 2,
+    axes: { vertical: 'Deseabilidad', horizontal: 'Factibilidad' },
     sections: [
-      section('quick-wins', 'Alto impacto · Bajo esfuerzo', 'Victorias rápidas que conviene ejecutar primero.', 'mint'),
-      section('strategic-bets', 'Alto impacto · Alto esfuerzo', 'Iniciativas estratégicas que requieren planificación.', 'gold'),
-      section('fill-ins', 'Bajo impacto · Bajo esfuerzo', 'Tareas complementarias para momentos disponibles.', 'sky'),
-      section('avoid', 'Bajo impacto · Alto esfuerzo', 'Ideas que conviene replantear, postergar o descartar.', 'rose')
+      section('strategic-bets', 'Investigar', 'Muy deseable, pero difícil de implementar hoy.', 'sky', { emoji: '🕵️', area: 'investigate' }),
+      section('quick-wins', 'Implementar', 'Muy deseable y fácil de construir.', 'mint', { emoji: '⚡', area: 'implement' }),
+      section('avoid', 'Descartar', 'Poco deseable y difícil de realizar.', 'rose', { emoji: '🗑️', area: 'discard' }),
+      section('fill-ins', 'Validar', 'Es fácil de hacer, pero no sabemos si el mercado lo desea.', 'gold', { emoji: '🧪', area: 'validate' })
     ],
-    completionRule: { minimumNotes: 4, minimumSections: 3 }
+    completionRule: { targetNotesPerSection: 2, sectionWeight: 0.7, depthWeight: 0.3 }
   },
   {
     id: 'pitch-canvas',
@@ -123,19 +143,20 @@ export const canvasTemplates = [
     color: '#dc5a5a',
     category: 'Comunicación',
     recommendedOrder: 60,
+    layout: 'generic',
     columns: 3,
     sections: [
-      section('hook', 'Gancho', 'Frase, dato o historia que capta atención.', 'gold'),
-      section('problem', 'Problema', 'Qué ocurre, a quién afecta y por qué importa.', 'rose'),
-      section('solution', 'Solución', 'Qué propones y cómo funciona.', 'sky'),
-      section('market', 'Oportunidad', 'Tamaño, contexto y segmento prioritario.', 'mint'),
-      section('business-model', 'Modelo', 'Cómo se crea, entrega y captura valor.', 'violet'),
-      section('traction', 'Evidencia', 'Validaciones, resultados, métricas y aprendizajes.', 'mint'),
-      section('competition', 'Diferenciación', 'Alternativas y ventaja relevante.', 'gold'),
-      section('team', 'Equipo', 'Por qué este equipo puede ejecutarlo.', 'sky'),
-      section('ask', 'Petición', 'Qué necesitas y cuál es el siguiente paso.', 'rose')
+      section('hook', 'Gancho', 'Frase, dato o historia que capta atención.', 'gold', { emoji: '🪝' }),
+      section('problem', 'Problema', 'Qué ocurre, a quién afecta y por qué importa.', 'rose', { emoji: '⚠️' }),
+      section('solution', 'Solución', 'Qué propones y cómo funciona.', 'sky', { emoji: '💡' }),
+      section('market', 'Oportunidad', 'Tamaño, contexto y segmento prioritario.', 'mint', { emoji: '📊' }),
+      section('business-model', 'Modelo', 'Cómo se crea, entrega y captura valor.', 'violet', { emoji: '💼' }),
+      section('traction', 'Evidencia', 'Validaciones, resultados, métricas y aprendizajes.', 'mint', { emoji: '📈' }),
+      section('competition', 'Diferenciación', 'Alternativas y ventaja relevante.', 'gold', { emoji: '🏁' }),
+      section('team', 'Equipo', 'Por qué este equipo puede ejecutarlo.', 'sky', { emoji: '👥' }),
+      section('ask', 'Petición', 'Qué necesitas y cuál es el siguiente paso.', 'rose', { emoji: '🎯' })
     ],
-    completionRule: { minimumNotes: 9, minimumSections: 7 }
+    completionRule: { targetNotesPerSection: 1, sectionWeight: 0.7, depthWeight: 0.3 }
   }
 ];
 
