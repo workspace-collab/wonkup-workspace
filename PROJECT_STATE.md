@@ -22,7 +22,7 @@ EN REVISIÓN
 - Entrega 4 - Kanban funcional.
 - Ajuste 4.1 - Kanban configurable y usabilidad.
 - Ajuste 4.2 - Responsive, accesibilidad y endurecimiento UI.
-- Entrega 5 - Innovation Toolkit y Canvas Engine.
+- Ajuste 5.3 - Estabilidad de drag, copia y pantalla completa.
 - Ajuste 5.1 - Canvases especializados, QR y versiones.
 
 ## Correcciones de esta fase
@@ -49,3 +49,9 @@ EN REVISIÓN
 ## Próximo paso
 
 Validar el Ajuste 5.2 en GitHub Pages y continuar la revisión funcional del Innovation Toolkit.
+
+## Ajuste actual
+
+- Cabecera fullscreen compacta.
+- Copia visible y verificable en el visor QR.
+- Drag and drop sin rerender completo ni cambio de ruta.

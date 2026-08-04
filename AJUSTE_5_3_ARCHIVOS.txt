@@ -1,0 +1,9 @@
+AJUSTE 5.3 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_3_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- TEST_CHECKLIST.md
+- css/components.css
+- js/views/canvas-view.js
+- AJUSTE_5_3_ARCHIVOS.txt

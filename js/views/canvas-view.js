@@ -13,6 +13,8 @@ let cleanupEditor = null;
 let draggedNoteId = '';
 let refreshSequence = 0;
 let timerTicker = null;
+let postDragGuardTimer = null;
+let postDragClickHandler = null;
 const VIEW_KEY = 'wonkup.canvas.view';
 const FOCUS_KEY = 'wonkup.canvas.focusMode';
 const TIMER_KEY = 'wonkup.canvas.teamTimer';
@@ -84,7 +86,7 @@ function renderCanvasEditor(container, context) {
         <button class="button button-ghost ${viewMode === 'board' ? 'active' : ''}" data-canvas-view="board" type="button" aria-pressed="${viewMode === 'board'}">${icon('columns')} Canvas</button>
         <button class="button button-ghost ${viewMode === 'list' ? 'active' : ''}" data-canvas-view="list" type="button" aria-pressed="${viewMode === 'list'}">${icon('list')} Lista</button>
       </div>
-      <div class="canvas-toolbar-meta"><span>${instance.notes.length} notas</span><span>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span>Versión ${instance.version}</span>${CanvasService.mode === 'mock' ? '<span class="demo-chip">Demo local</span>' : ''}</div>
+      <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${CanvasService.mode === 'mock' ? '<span class="demo-chip">Demo local</span>' : ''}</div>
       ${canEdit ? `<button class="button button-primary" id="canvas-add-note" type="button">${icon('plus')} Nueva nota</button>` : ''}
     </div>
 
@@ -92,7 +94,7 @@ function renderCanvasEditor(container, context) {
       ${viewMode === 'list' ? renderCanvasList(instance, canEdit) : renderCanvasBoard(instance, canEdit)}
     </div>
 
-    <footer class="canvas-editor-footer"><span>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
+    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
   </section>`;
 
   bindCanvasEvents(container, context, viewMode);
@@ -186,7 +188,8 @@ function noteCard(note, canEdit, draggable) {
 }
 
 function bindCanvasEvents(container, context, currentView) {
-  const { instance, session, readOnly } = context;
+  let instance = context.instance;
+  const { session, readOnly } = context;
   const canEdit = !readOnly && canEditCanvas(session);
   container.querySelectorAll('[data-canvas-view]').forEach(button => button.addEventListener('click', event => {
     event.preventDefault();
@@ -234,6 +237,7 @@ function bindCanvasEvents(container, context, currentView) {
       event.stopPropagation();
       card.classList.remove('dragging');
       container.querySelectorAll('.canvas-note-stack').forEach(stack => stack.classList.remove('drag-over'));
+      armPostDragGuard(container);
       setTimeout(() => { draggedNoteId = ''; }, 0);
     });
   });
@@ -247,12 +251,34 @@ function bindCanvasEvents(container, context, currentView) {
         stack.classList.remove('drag-over');
         const noteId = event.dataTransfer.getData('text/plain') || draggedNoteId;
         if (!noteId) return;
+        const expectedHash = location.hash;
+        const card = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId) || null;
+        const previousStack = card?.closest('[data-drop-section]');
+        armPostDragGuard(container, expectedHash);
+        if (card && !stack.contains(card)) {
+          stack.querySelector('.canvas-empty-section')?.remove();
+          stack.appendChild(card);
+          ensureEmptyCanvasStack(previousStack, canEdit);
+        }
         try {
-          const next = await CanvasService.moveNote({ canvasId: instance.id, noteId, toSectionId: stack.dataset.dropSection, session });
+          const visualIndex = Math.max(0, [...stack.querySelectorAll('.canvas-note')].findIndex(item => item.dataset.noteId === noteId));
+          const next = await CanvasService.moveNote({ canvasId: instance.id, noteId, toSectionId: stack.dataset.dropSection, toIndex: visualIndex, session });
+          instance = next;
+          context.instance = next;
           draggedNoteId = '';
+          updateCanvasMutationSummary(container, next);
+          const movedCard = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId);
+          const movedTime = movedCard?.querySelector('time');
+          if (movedTime) {
+            movedTime.dateTime = next.notes.find(note => note.id === noteId)?.updatedAt || new Date().toISOString();
+            movedTime.textContent = 'Ahora';
+          }
           showToast('Nota movida.');
-          renderCanvasEditor(container, { ...context, instance: next });
-        } catch (error) { showToast(error.message, { type: 'error' }); }
+          if (location.hash !== expectedHash) history.replaceState(null, '', expectedHash);
+        } catch (error) {
+          showToast(error.message, { type: 'error' });
+          window.setTimeout(() => reloadCanvas(container, context), 120);
+        }
       });
     });
   }
@@ -539,24 +565,43 @@ function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
   root.querySelector('#copy-canvas-link')?.addEventListener('click', async event => {
     const button = event.currentTarget;
     const feedback = root.querySelector('#copy-feedback');
+    button.disabled = true;
+    button.innerHTML = `${icon('copy')} Copiando...`;
     const copied = await copyText(resultLink, root.querySelector('#canvas-share-link'));
-    button.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} Selecciona y copia`;
+    button.disabled = false;
+    button.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} Enlace seleccionado`;
     button.classList.toggle('copy-success', copied);
-    if (feedback) feedback.textContent = copied ? '✓ El enlace se copió al portapapeles.' : 'No se pudo copiar automáticamente. El enlace quedó seleccionado.';
-    showToast(copied ? 'Enlace copiado al portapapeles.' : 'El enlace quedó seleccionado para copiarlo manualmente.', { duration: 5200 });
+    if (feedback) {
+      feedback.textContent = copied ? '✓ El enlace se copió al portapapeles.' : 'El enlace quedó seleccionado. Presiona Ctrl+C o Cmd+C.';
+      feedback.classList.toggle('is-success', copied);
+      feedback.classList.toggle('is-manual', !copied);
+    }
+    showToast(copied ? 'Enlace copiado al portapapeles.' : 'Enlace seleccionado para copia manual.', { duration: 6500 });
     setTimeout(() => {
       if (!button.isConnected) return;
       button.innerHTML = `${icon('copy')} Copiar`;
       button.classList.remove('copy-success');
-    }, 3200);
+    }, 4200);
   });
   root.querySelectorAll('[data-expand-qr]').forEach(button => button.addEventListener('click', () => {
     const token = tokens.find(item => item.id === button.dataset.expandQr);
     if (token) openQrZoom(root, token);
   }));
   root.querySelectorAll('[data-copy-token]').forEach(button => button.addEventListener('click', async () => {
+    const original = button.innerHTML;
+    button.disabled = true;
     const copied = await copyText(button.dataset.copyToken);
-    showToast(copied ? 'Enlace copiado.' : 'No se pudo copiar automáticamente.');
+    button.disabled = false;
+    button.innerHTML = copied ? icon('check') : icon('copy');
+    button.classList.toggle('copy-success', copied);
+    button.setAttribute('aria-label', copied ? 'Enlace copiado' : 'Copiar enlace');
+    showToast(copied ? 'Enlace copiado al portapapeles.' : 'No se pudo copiar automáticamente.', { duration: 5200 });
+    setTimeout(() => {
+      if (!button.isConnected) return;
+      button.innerHTML = original;
+      button.classList.remove('copy-success');
+      button.setAttribute('aria-label', 'Copiar enlace');
+    }, 3200);
   }));
   root.querySelectorAll('[data-show-token]').forEach(button => button.addEventListener('click', () => {
     const token = tokens.find(item => item.id === button.dataset.showToken);
@@ -636,6 +681,49 @@ function notesForSection(instance, sectionId) {
   return instance.notes.filter(note => note.sectionId === sectionId).sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
 }
 
+function updateCanvasMutationSummary(container, instance) {
+  const completion = calculateCanvasProgress(instance);
+  const completionValue = container.querySelector('.canvas-completion strong');
+  const noteCount = container.querySelector('[data-canvas-note-count]');
+  const sectionCount = container.querySelector('[data-canvas-section-count]');
+  const version = container.querySelector('[data-canvas-version]');
+  const updated = container.querySelector('[data-canvas-updated]');
+  if (completionValue) completionValue.textContent = `${completion}%`;
+  if (noteCount) noteCount.textContent = `${instance.notes.length} notas`;
+  if (sectionCount) sectionCount.textContent = `${new Set(instance.notes.map(note => note.sectionId)).size}/${instance.template.sections.length} secciones con contenido`;
+  if (version) version.textContent = `Versión ${instance.version}`;
+  if (updated) updated.textContent = `Última actualización: ${formatDate(instance.updatedAt)}`;
+}
+
+function ensureEmptyCanvasStack(stack, canEdit) {
+  if (!stack || stack.querySelector('.canvas-note')) return;
+  if (!stack.querySelector('.canvas-empty-section')) {
+    stack.insertAdjacentHTML('beforeend', `<div class="canvas-empty-section">${canEdit ? 'Agrega o arrastra una nota aquí.' : 'Sin notas.'}</div>`);
+  }
+}
+
+function clearPostDragGuard(container) {
+  if (postDragGuardTimer) window.clearTimeout(postDragGuardTimer);
+  postDragGuardTimer = null;
+  if (postDragClickHandler) document.removeEventListener('click', postDragClickHandler, true);
+  postDragClickHandler = null;
+  container?.classList.remove('canvas-post-drag-guard');
+}
+
+function armPostDragGuard(container, expectedHash = location.hash) {
+  clearPostDragGuard(container);
+  container.classList.add('canvas-post-drag-guard');
+  const expiresAt = performance.now() + 850;
+  postDragClickHandler = event => {
+    if (performance.now() > expiresAt) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (location.hash !== expectedHash) history.replaceState(null, '', expectedHash);
+  };
+  document.addEventListener('click', postDragClickHandler, true);
+  postDragGuardTimer = window.setTimeout(() => clearPostDragGuard(container), 900);
+}
+
 async function reloadCanvas(container, context) {
   const requestId = ++refreshSequence;
   const canvasId = context.instance.id;
@@ -687,34 +775,57 @@ function printCanvas(mode, templateId) {
 }
 
 async function copyText(value, visibleField = null) {
-  const text = String(value || '');
+  const text = String(value || '').trim();
   if (!text) return false;
+
   try {
     if (navigator.clipboard?.writeText && globalThis.isSecureContext) {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch { /* fallback below */ }
+  } catch { /* continue with selection fallback */ }
+
+  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const host = document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : document.body;
   const field = document.createElement('textarea');
   field.value = text;
   field.setAttribute('readonly', '');
-  field.style.position = 'fixed';
-  field.style.top = '0';
-  field.style.left = '-9999px';
-  field.style.opacity = '0';
-  (document.fullscreenElement || document.body).appendChild(field);
-  field.focus();
+  field.setAttribute('aria-hidden', 'true');
+  Object.assign(field.style, {
+    position: 'fixed',
+    top: '8px',
+    left: '8px',
+    width: '2px',
+    height: '2px',
+    padding: '0',
+    border: '0',
+    opacity: '0.01',
+    pointerEvents: 'none',
+    fontSize: '16px',
+    zIndex: '2147483647'
+  });
+  host.appendChild(field);
+  field.focus({ preventScroll: true });
   field.select();
-  field.setSelectionRange(0, field.value.length);
+  field.setSelectionRange(0, text.length);
+
   let copied = false;
-  try { copied = document.execCommand('copy'); } catch { copied = false; }
+  try { copied = Boolean(document.execCommand('copy')); } catch { copied = false; }
   field.remove();
-  if (!copied && visibleField) {
-    visibleField.focus();
-    visibleField.select();
-    visibleField.setSelectionRange?.(0, visibleField.value.length);
+
+  if (copied) {
+    activeElement?.focus?.({ preventScroll: true });
+    return true;
   }
-  return copied;
+
+  if (visibleField) {
+    visibleField.focus({ preventScroll: true });
+    visibleField.select?.();
+    visibleField.setSelectionRange?.(0, visibleField.value?.length || text.length);
+  } else {
+    activeElement?.focus?.({ preventScroll: true });
+  }
+  return false;
 }
 
 function openQrZoom(root, token) {
@@ -725,16 +836,30 @@ function openQrZoom(root, token) {
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', 'Código QR ampliado');
-  overlay.innerHTML = `<div class="qr-zoom-card"><button class="icon-button qr-zoom-close" type="button" aria-label="Cerrar QR ampliado">${icon('x')}</button><img src="${escapeHtml(qrImageUrl(link))}" alt="Código QR ampliado" width="420" height="420"><span>Código de acceso</span><strong>${escapeHtml(token.code)}</strong><p>${escapeHtml(link)}</p><div class="qr-zoom-actions"><button class="button button-secondary" type="button" data-copy-zoom>${icon('copy')} Copiar enlace</button><a class="button button-primary" href="${escapeHtml(qrImageUrl(link))}" target="_blank" rel="noopener">${icon('download')} Abrir imagen</a></div><div class="copy-feedback" data-qr-feedback role="status" aria-live="polite"></div></div>`;
+  overlay.innerHTML = `<div class="qr-zoom-card"><button class="icon-button qr-zoom-close" type="button" aria-label="Cerrar QR ampliado">${icon('x')}</button><img src="${escapeHtml(qrImageUrl(link))}" alt="Código QR ampliado" width="420" height="420"><span>Código de acceso</span><strong>${escapeHtml(token.code)}</strong><label class="sr-only" for="qr-expanded-link">Enlace compartido</label><input class="input qr-zoom-link" id="qr-expanded-link" data-qr-link-field readonly value="${escapeHtml(link)}"><div class="qr-zoom-actions"><button class="button button-secondary" type="button" data-copy-zoom>${icon('copy')} Copiar enlace</button><a class="button button-primary" href="${escapeHtml(qrImageUrl(link))}" target="_blank" rel="noopener">${icon('download')} Abrir imagen</a></div><div class="copy-feedback" data-qr-feedback role="status" aria-live="polite"></div></div>`;
   root.appendChild(overlay);
   const close = () => overlay.remove();
   overlay.querySelector('.qr-zoom-close').addEventListener('click', close);
   overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
   overlay.querySelector('[data-copy-zoom]').addEventListener('click', async event => {
-    const copied = await copyText(link);
-    event.currentTarget.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} No se pudo copiar`;
-    overlay.querySelector('[data-qr-feedback]').textContent = copied ? '✓ Enlace copiado al portapapeles.' : 'Copia manualmente la dirección mostrada.';
-    showToast(copied ? 'Enlace copiado.' : 'No se pudo copiar automáticamente.');
+    const button = event.currentTarget;
+    const feedback = overlay.querySelector('[data-qr-feedback]');
+    const visibleField = overlay.querySelector('[data-qr-link-field]');
+    button.disabled = true;
+    button.innerHTML = `${icon('copy')} Copiando...`;
+    const copied = await copyText(link, visibleField);
+    button.disabled = false;
+    button.innerHTML = copied ? `${icon('check')} Enlace copiado` : `${icon('copy')} Enlace seleccionado`;
+    button.classList.toggle('copy-success', copied);
+    feedback.textContent = copied ? '✓ Enlace copiado al portapapeles.' : 'El enlace quedó seleccionado. Presiona Ctrl+C o Cmd+C.';
+    feedback.classList.toggle('is-success', copied);
+    feedback.classList.toggle('is-manual', !copied);
+    showToast(copied ? 'Enlace copiado al portapapeles.' : 'Enlace seleccionado para copia manual.', { duration: 6500 });
+    window.setTimeout(() => {
+      if (!button.isConnected) return;
+      button.innerHTML = `${icon('copy')} Copiar enlace`;
+      button.classList.remove('copy-success');
+    }, 4200);
   });
   overlay.querySelector('.qr-zoom-close').focus();
 }
@@ -875,6 +1000,7 @@ export function cleanupCanvasView() {
   cleanupEditor?.();
   cleanupEditor = null;
   stopTimerTicker();
+  clearPostDragGuard(document.querySelector('#main-view'));
   document.querySelector('#main-view')?.classList.remove('canvas-fullscreen-host');
   document.body.classList.remove('canvas-focus-mode', 'canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
 }

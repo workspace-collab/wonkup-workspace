@@ -150,3 +150,12 @@
 - Punto de control incrementa correctamente la versión.
 - Restaurar versión mantiene abierto el canvas.
 - Se incorporó un TIMER de ideación para pantalla completa.
+
+## Ajuste 5.3 - Estabilidad de drag, copia y fullscreen
+
+- Se compactó la cabecera del editor en pantalla completa.
+- Se corrigió la confirmación asíncrona del botón Copiar enlace del QR ampliado.
+- Se añadió feedback persistente de copia dentro del modal.
+- Se eliminó el rerender completo después de mover una nota.
+- Se añadió protección contra el clic residual posterior al drag.
+- Se actualizan métricas y versión sin destruir el lienzo.

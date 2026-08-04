@@ -248,3 +248,16 @@ Validar:
 - [ ] Pausa conservando el tiempo.
 - [ ] Reinicia a la duración seleccionada.
 - [ ] Muestra aviso al finalizar.
+
+## Ajuste 5.3
+
+- [ ] La cabecera fullscreen no genera una zona blanca sobredimensionada.
+- [ ] El título no se divide palabra por palabra.
+- [ ] Copiar enlace cambia el texto del botón.
+- [ ] La confirmación aparece dentro del visor QR.
+- [ ] El fallback selecciona el enlace cuando Clipboard API falla.
+- [ ] Arrastrar una nota no cambia la ruta.
+- [ ] Arrastrar una nota no cierra fullscreen.
+- [ ] Arrastrar una nota no destruye los listeners del editor.
+- [ ] La nota conserva su nueva sección después de recargar.
+- [ ] El lápiz sigue funcionando después de un drag.

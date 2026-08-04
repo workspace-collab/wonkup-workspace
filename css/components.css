@@ -2043,3 +2043,146 @@ body.canvas-focus-mode .app-header { grid-area: header; }
   .qr-zoom-card { padding: 18px 12px; }
 }
 .note-color-options em { font-style: normal; }
+
+/* Ajuste 5.3 - cabecera compacta, copia visible y protección posterior al drag */
+#main-view:fullscreen .canvas-editor-header {
+  display: grid !important;
+  grid-template-columns: minmax(300px, 1fr) max-content;
+  align-items: center !important;
+  gap: 12px;
+  min-height: 0;
+  padding: 10px 12px;
+  border-top-width: 4px;
+}
+#main-view:fullscreen .canvas-editor-identity {
+  min-width: 0;
+  display: block;
+}
+#main-view:fullscreen .canvas-back-link { display: none; }
+#main-view:fullscreen .canvas-title-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+#main-view:fullscreen .canvas-title-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+#main-view:fullscreen .canvas-title-icon svg { width: 23px; height: 23px; }
+#main-view:fullscreen .canvas-title-row > div { min-width: 0; }
+#main-view:fullscreen .page-kicker {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .62rem;
+}
+#main-view:fullscreen .canvas-title-row h1 {
+  max-width: 100%;
+  margin: 1px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+  font-size: clamp(1.08rem, 1.65vw, 1.45rem);
+  line-height: 1.12;
+}
+#main-view:fullscreen .canvas-title-row p { display: none; }
+#main-view:fullscreen .canvas-editor-actions {
+  width: auto !important;
+  max-width: none;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+#main-view:fullscreen .canvas-editor-actions .button {
+  width: auto !important;
+  min-height: 38px;
+  padding: 0 10px;
+  white-space: nowrap;
+  font-size: .69rem;
+}
+#main-view:fullscreen .canvas-editor-actions .icon-button {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+}
+#main-view:fullscreen .canvas-presence { min-height: 38px; }
+#main-view:fullscreen .presence-avatar { width: 32px; height: 32px; }
+#main-view:fullscreen .canvas-completion {
+  min-width: 72px;
+  min-height: 38px;
+  padding: 3px 8px;
+}
+#main-view:fullscreen .canvas-completion strong { font-size: 1rem; }
+#main-view:fullscreen .canvas-completion span { font-size: .58rem; }
+#main-view:fullscreen .canvas-toolbar {
+  top: 66px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+#main-view:fullscreen .canvas-workspace { padding-top: 10px; }
+
+.canvas-post-drag-guard { cursor: progress; }
+.canvas-post-drag-guard .canvas-back-link,
+.canvas-post-drag-guard a { pointer-events: none !important; }
+
+.copy-feedback:not(:empty) {
+  min-height: 0;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid rgba(12,107,67,.25);
+  border-radius: 10px;
+  color: #075c39;
+  background: rgba(22,128,82,.10);
+}
+.copy-feedback.is-manual {
+  color: #6b4d00;
+  border-color: rgba(160,112,0,.28);
+  background: rgba(241,194,45,.14);
+}
+.qr-zoom-link {
+  width: min(100%, 480px);
+  text-align: center;
+  font-size: .72rem;
+}
+.qr-zoom-card .copy-feedback { width: min(100%, 480px); text-align: center; }
+
+@media (max-width: 1320px) {
+  #main-view:fullscreen .canvas-editor-header {
+    grid-template-columns: minmax(240px, .8fr) minmax(0, 1.7fr);
+  }
+  #main-view:fullscreen .canvas-editor-actions {
+    flex-wrap: wrap;
+  }
+  #main-view:fullscreen .canvas-editor-actions .button {
+    min-height: 36px;
+    padding-inline: 8px;
+    font-size: .64rem;
+  }
+  #main-view:fullscreen .canvas-team-timer {
+    min-height: 36px;
+    padding-block: 2px;
+  }
+  #main-view:fullscreen .canvas-toolbar { position: relative; top: auto; }
+}
+
+@media (max-width: 900px) {
+  #main-view:fullscreen .canvas-editor-header {
+    display: flex !important;
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #main-view:fullscreen .canvas-editor-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  #main-view:fullscreen .canvas-title-row h1 { white-space: normal; }
+}
