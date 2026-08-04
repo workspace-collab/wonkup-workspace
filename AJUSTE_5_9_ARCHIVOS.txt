@@ -1,0 +1,16 @@
+AJUSTE 5.9 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_9_GUIA.md
+- CHANGELOG.md
+- DATA_DICTIONARY.md
+- PROJECT_STATE.md
+- README.md
+- TEST_RESULTS_5_9.md
+- css/components.css
+- index.html
+- js/adapters/mock-canvas-adapter.js
+- js/app.js
+- js/components/canvas-workspace-controller.js
+- js/views/canvas-view.js
+- tests/canvas-ux-smoke-5-9.png
+- tests/canvas-ux-smoke-5-9.py

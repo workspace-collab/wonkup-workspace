@@ -66,4 +66,4 @@ El script `tests/canvas-ux-smoke-5-8.py` reproduce el flujo real del Lean Canvas
 
 ## Publicación
 
-GitHub Pages puede desplegar directamente la rama `main` desde la carpeta raíz. Después de actualizar, el editor debe mostrar `Motor 5.8.0`.
+GitHub Pages puede desplegar directamente la rama `main` desde la carpeta raíz. Después de actualizar, el editor debe mostrar `Motor 5.9.0`.

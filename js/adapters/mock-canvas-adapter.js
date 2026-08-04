@@ -50,6 +50,7 @@ function migrate(instance) {
     ...note,
     position: Number(note.position || (index + 1) * 1000),
     colorId: note.colorId || 'sky',
+    colorHex: /^#[0-9a-f]{6}$/i.test(String(note.colorHex || '')) ? String(note.colorHex).toLowerCase() : '',
     comments: note.comments || [],
     sourceCanvasId: note.sourceCanvasId || '',
     sourceNoteId: note.sourceNoteId || ''
@@ -301,6 +302,7 @@ export const MockCanvasAdapter = {
     const note = {
       id: uid('note'), sectionId, text,
       colorId: input?.colorId || 'sky',
+      colorHex: /^#[0-9a-f]{6}$/i.test(String(input?.colorHex || '')) ? String(input.colorHex).toLowerCase() : '',
       authorId: actor(session), createdAt, updatedAt: createdAt,
       position: (existing.length + 1) * 1000, comments: [],
       sourceCanvasId: input?.sourceCanvasId || '', sourceNoteId: input?.sourceNoteId || ''
@@ -325,6 +327,7 @@ export const MockCanvasAdapter = {
       note.text = text;
     }
     if ('colorId' in patch) note.colorId = String(patch.colorId || 'sky');
+    if ('colorHex' in patch) note.colorHex = /^#[0-9a-f]{6}$/i.test(String(patch.colorHex || '')) ? String(patch.colorHex).toLowerCase() : '';
     if ('sectionId' in patch) {
       const template = getCanvasTemplate(instance.templateId);
       if (!template?.sections.some(section => section.id === patch.sectionId)) throw new Error('Sección no válida.');
@@ -406,7 +409,7 @@ export const MockCanvasAdapter = {
     if (!targetTemplate?.sections.some(section => section.id === targetSectionId)) throw new Error('Sección de destino no válida.');
     const createdAt = now();
     const linked = {
-      id: uid('note'), sectionId: targetSectionId, text: note.text, colorId: note.colorId,
+      id: uid('note'), sectionId: targetSectionId, text: note.text, colorId: note.colorId, colorHex: note.colorHex || '',
       authorId: actor(session), createdAt, updatedAt: createdAt,
       position: (target.notes.filter(item => item.sectionId === targetSectionId).length + 1) * 1000,
       comments: [], sourceCanvasId, sourceNoteId

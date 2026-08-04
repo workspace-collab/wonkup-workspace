@@ -2504,66 +2504,12 @@ body.canvas-immersive-mode .toast-stack { position: fixed; }
 .canvas-editor-actions .button { min-height: 40px; padding-inline: 13px; }
 .canvas-editor-page > .canvas-toolbar { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
 
-.note-detail-color-field { margin: 0; padding: 0; border: 0; }
-.note-detail-color-field legend { margin-bottom: 8px; color: var(--text); font-size: .82rem; font-weight: 800; }
-.note-detail-color-palette {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-.note-detail-color-palette label {
-  min-width: 0;
-  min-height: 58px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  cursor: pointer;
-}
-.note-detail-color-palette input { position: absolute; opacity: 0; pointer-events: none; }
-.note-detail-color-palette label:has(input:checked) {
-  border-color: var(--action-primary);
-  box-shadow: 0 0 0 3px rgba(8,104,184,.12);
-}
-.note-detail-color-swatch {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 auto;
-  border: 2px solid var(--swatch-border);
-  border-radius: 9px;
-  background: var(--swatch);
-}
-.note-detail-color-copy { min-width: 0; display: grid; gap: 2px; }
-.note-detail-color-copy strong { overflow: hidden; color: var(--text); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
-.note-detail-color-copy code { color: var(--text-muted); font-size: .61rem; }
-
-.canvas-team-timer.is-finished {
-  border-color: rgba(180,35,24,.45);
-  color: var(--danger);
-  background: var(--danger-soft);
-  animation: canvasTimerFinished 1s ease-in-out 3;
-}
-.canvas-team-timer.is-finished .timer-caption,
-.canvas-team-timer.is-finished strong { color: var(--danger); }
-@keyframes canvasTimerFinished {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(180,35,24,0); }
-  50% { box-shadow: 0 0 0 6px rgba(180,35,24,.14); }
-}
-
-@media (max-width: 1180px) {
-  .canvas-editor-actions { justify-content: flex-start; }
-}
-@media (max-width: 760px) {
-  .canvas-editor-header { padding: 15px 14px; }
-  .canvas-title-row { gap: 10px; }
-  .canvas-title-icon { width: 44px; height: 44px; }
-  .canvas-editor-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .canvas-editor-actions .button { width: 100%; }
-  .note-detail-color-palette { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+.note-detail-color-field { display: grid; gap: 7px; }
+.note-detail-color-field > label { color: var(--text); font-size: .82rem; font-weight: 800; }
+.note-detail-color-field > small { color: var(--text-muted); font-size: .65rem; }
+.note-detail-color-input { width: min(100%, 330px); }
+.note-detail-color-input .color-input { width: 52px; height: 36px; }
+.note-detail-color-input code { font-size: .78rem; font-weight: 750; letter-spacing: .02em; text-transform: uppercase; }
 
 /* Mantiene el encabezado inmersivo compacto sin perder el color de marca. */
 body.canvas-immersive-mode #main-view .canvas-editor-header {

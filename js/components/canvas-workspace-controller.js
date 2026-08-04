@@ -333,7 +333,7 @@ export function createCanvasWorkspaceController({
       card.querySelectorAll('[data-note-color]').forEach(button => button.classList.toggle('active', button === quickColor));
       onInteractionStart('update');
       try {
-        const next = await onUpdateNote({ noteId, patch: { colorId } });
+        const next = await onUpdateNote({ noteId, patch: { colorId, colorHex: '' } });
         if (next) controller.sync(next, { focusNoteId: noteId });
       } catch (error) {
         if (previousNote) controller.sync(previous, { focusNoteId: noteId });

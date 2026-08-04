@@ -96,7 +96,7 @@ function renderCanvasEditor(container, context) {
       ${viewMode === 'list' ? renderCanvasList(instance, canEdit) : renderCanvasBoard(instance, canEdit)}
     </div>
 
-    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.8.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
+    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.9.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
   </section>`;
 
   bindCanvasEvents(container, context, viewMode);
@@ -189,12 +189,57 @@ function canvasSection(instance, section, canEdit, extraClass = '') {
   </section>`;
 }
 
+function normalizeHexColor(value, fallback = '#dff1ff') {
+  const color = String(value || '').trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : fallback;
+}
+
+function hexRgb(hex) {
+  const value = normalizeHexColor(hex).slice(1);
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16)
+  };
+}
+
+function mixHex(hex, target, ratio) {
+  const source = hexRgb(hex);
+  const destination = hexRgb(target);
+  const mix = channel => Math.round(channel[0] + (channel[1] - channel[0]) * ratio).toString(16).padStart(2, '0');
+  return `#${mix([source.r, destination.r])}${mix([source.g, destination.g])}${mix([source.b, destination.b])}`;
+}
+
+function textColorForHex(hex) {
+  const { r, g, b } = hexRgb(hex);
+  const linear = value => {
+    const channel = value / 255;
+    return channel <= .03928 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
+  };
+  const luminance = .2126 * linear(r) + .7152 * linear(g) + .0722 * linear(b);
+  return luminance > .43 ? '#172238' : '#ffffff';
+}
+
+function resolveNoteColor(note) {
+  const preset = getCanvasNoteColor(note.colorId);
+  if (!note.colorHex) return preset;
+  const background = normalizeHexColor(note.colorHex, preset.background);
+  return {
+    ...preset,
+    id: 'custom',
+    name: 'Personalizado',
+    background,
+    border: mixHex(background, '#000000', .22),
+    text: textColorForHex(background)
+  };
+}
+
 function noteCard(note, canEdit, draggable) {
-  const color = getCanvasNoteColor(note.colorId);
+  const color = resolveNoteColor(note);
   const comments = note.comments?.length || 0;
-  const renderKey = [note.text, note.colorId, comments, note.sourceCanvasId || '', note.sourceNoteId || ''].join('|');
+  const renderKey = [note.text, note.colorId, note.colorHex || '', comments, note.sourceCanvasId || '', note.sourceNoteId || ''].join('|');
   const quickTools = canEdit ? `<div class="canvas-note-quick-actions" aria-label="Acciones rápidas de la nota">
-    <div class="canvas-note-color-dots">${CANVAS_NOTE_COLORS.map(item => `<button class="note-color-dot ${item.id === note.colorId ? 'active' : ''}" type="button" data-note-color="${escapeHtml(item.id)}" style="--dot:${item.background};--dot-border:${item.border}" aria-label="Cambiar a color ${escapeHtml(item.name)}" title="${escapeHtml(item.name)}"></button>`).join('')}</div>
+    <div class="canvas-note-color-dots">${CANVAS_NOTE_COLORS.map(item => `<button class="note-color-dot ${!note.colorHex && item.id === note.colorId ? 'active' : ''}" type="button" data-note-color="${escapeHtml(item.id)}" style="--dot:${item.background};--dot-border:${item.border}" aria-label="Cambiar a color ${escapeHtml(item.name)}" title="${escapeHtml(item.name)}"></button>`).join('')}</div>
     <button class="note-quick-icon note-quick-delete" type="button" data-delete-note="${escapeHtml(note.id)}" aria-label="Eliminar nota" title="Eliminar">${icon('trash')}</button>
   </div>` : '';
   return `<article class="canvas-note" data-note-id="${escapeHtml(note.id)}" data-note-render-key="${escapeHtml(renderKey)}" tabindex="0" style="--note-bg:${color.background};--note-border:${color.border};--note-text:${color.text}">
@@ -442,11 +487,18 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
     body: `<div class="note-detail-layout"><form id="note-detail-form" class="form-grid" novalidate>
       <div class="field field-full"><label for="note-detail-text">Contenido *</label><textarea class="input textarea" id="note-detail-text" rows="6" maxlength="1200" required>${escapeHtml(note.text)}</textarea><small class="field-error" id="note-detail-error"></small></div>
       <div class="field"><label for="note-detail-section">Sección</label><select class="select" id="note-detail-section">${instance.template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === note.sectionId ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div>
-      ${detailColorField(note.colorId)}
+      ${detailColorField(note)}
       <div class="note-meta field-full"><span>Creada por <strong>${escapeHtml(note.author?.name || 'Usuario')}</strong></span><span>${formatDate(note.createdAt)}</span>${note.sourceCanvasId ? `<span>${icon('link')} Resultado vinculado</span>` : ''}</div>
       <div class="modal-actions field-full note-actions"><button class="button button-danger" type="button" id="delete-note">${icon('trash')} Eliminar</button><button class="button button-secondary" type="button" id="link-note">${icon('link')} Vincular</button><button class="button button-secondary" type="button" id="convert-note">${icon('checkSquare')} Crear tarea</button><button class="button button-primary" type="submit">Guardar cambios</button></div>
     </form>
     <aside class="note-comments-panel"><h3>Comentarios</h3><div class="note-comment-list">${note.comments?.length ? note.comments.map(comment => `<article><span class="note-author">${escapeHtml(comment.author?.initials || '?')}</span><div><strong>${escapeHtml(comment.author?.name || 'Usuario')}</strong><p>${escapeHtml(comment.text)}</p><time>${relativeTime(comment.createdAt)}</time></div></article>`).join('') : '<p class="muted-copy">No hay comentarios todavía.</p>'}</div><form id="note-comment-form"><label class="sr-only" for="note-comment-text">Nuevo comentario</label><textarea class="input textarea" id="note-comment-text" rows="3" maxlength="800" placeholder="Escribe un comentario..."></textarea><button class="button button-secondary" type="submit">${icon('message')} Comentar</button></form></aside></div>`
+  });
+
+  const noteColorInput = modal.root.querySelector('#note-detail-color');
+  const noteColorCode = modal.root.querySelector('#note-detail-color-code');
+  noteColorInput?.addEventListener('input', event => {
+    const value = normalizeHexColor(event.target.value);
+    if (noteColorCode) noteColorCode.textContent = value;
   });
 
   modal.root.querySelector('#note-detail-form').addEventListener('submit', async event => {
@@ -468,7 +520,8 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
         patch: {
           text,
           sectionId: modal.root.querySelector('#note-detail-section').value,
-          colorId: modal.root.querySelector('[name="note-detail-color"]:checked')?.value || note.colorId
+          colorId: note.colorId || 'sky',
+          colorHex: normalizeHexColor(modal.root.querySelector('#note-detail-color')?.value, getCanvasNoteColor(note.colorId).background)
         },
         session
       });
@@ -854,8 +907,10 @@ function normalizeCanvasBrand(value) {
   return /^#[0-9a-f]{6}$/i.test(color) ? color : '#50a8f3';
 }
 
-function detailColorField(selected) {
-  return `<fieldset class="field field-full note-detail-color-field"><legend>Color de la nota</legend><div class="note-detail-color-palette">${CANVAS_NOTE_COLORS.map(color => `<label style="--swatch:${color.background};--swatch-border:${color.border}"><input type="radio" name="note-detail-color" value="${escapeHtml(color.id)}" ${color.id === selected ? 'checked' : ''}><span class="note-detail-color-swatch" aria-hidden="true"></span><span class="note-detail-color-copy"><strong>${escapeHtml(color.name)}</strong><code>${escapeHtml(color.background.toUpperCase())}</code></span></label>`).join('')}</div></fieldset>`;
+function detailColorField(note) {
+  const preset = getCanvasNoteColor(note.colorId);
+  const selected = normalizeHexColor(note.colorHex || preset.background, preset.background);
+  return `<div class="field field-full note-detail-color-field"><label for="note-detail-color">Color de la nota</label><div class="color-input-row note-detail-color-input"><input class="color-input" type="color" id="note-detail-color" name="note-detail-color" value="${escapeHtml(selected)}" aria-describedby="note-detail-color-code"><code id="note-detail-color-code">${escapeHtml(selected)}</code></div><small>Selecciona cualquier color. El texto se ajustará automáticamente para conservar legibilidad.</small></div>`;
 }
 
 function colorField(name, selected, compact = false) {

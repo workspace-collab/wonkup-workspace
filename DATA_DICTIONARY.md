@@ -156,3 +156,11 @@ No se agregan entidades persistentes. La preferencia de vista del Kanban (`board
 | notes | CanvasNote[] | Sí | Copia completa de las notas |
 
 En modo mock se conservan como máximo 20 snapshots por canvas.
+
+## Ajuste 5.9 - Color personalizado de notas
+
+`CanvasNote` incorpora el campo opcional `colorHex`:
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| colorHex | string hexadecimal | No | Color personalizado de la nota en formato `#RRGGBB`. Cuando está vacío, se utiliza el preset indicado por `colorId`. |

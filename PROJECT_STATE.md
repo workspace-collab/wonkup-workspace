@@ -16,7 +16,7 @@ EN REVISIÓN EN GITHUB PAGES
 
 - Reconstrucción del Canvas Engine 5.6.
 - Interacción ágil de notas 5.7.
-- Versión visible del motor: `5.8.0`.
+- Versión visible del motor: `5.9.0`.
 
 ## Construido en 5.8
 

@@ -215,3 +215,11 @@
 - El detalle de nota muestra una paleta visual con nombre y código hexadecimal.
 - El timer ahora emite tres tonos, muestra una alerta y mantiene vibración compatible al finalizar.
 - Se añadió identificación visible `Motor 5.8.0`.
+
+## Ajuste 5.9 - Selector compacto de color
+
+- Se reemplazó la cuadrícula de seis colores del detalle de nota por un selector compacto tipo Color de marca.
+- Se añadió soporte para colores personalizados en formato hexadecimal.
+- El texto de la nota adapta automáticamente su contraste al color seleccionado.
+- Los colores rápidos del post-it continúan disponibles y restablecen el preset elegido.
+- Se actualizó la identificación visible a Motor 5.9.0.
