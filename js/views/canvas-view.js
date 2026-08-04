@@ -15,6 +15,10 @@ let refreshSequence = 0;
 let timerTicker = null;
 let postDragGuardTimer = null;
 let postDragClickHandler = null;
+let canvasExpectedHash = '';
+let canvasMutationActive = false;
+let canvasNavigationAllowed = false;
+let suppressNavigationUntil = 0;
 const VIEW_KEY = 'wonkup.canvas.view';
 const FOCUS_KEY = 'wonkup.canvas.focusMode';
 const TIMER_KEY = 'wonkup.canvas.teamTimer';
@@ -59,11 +63,24 @@ function renderCanvasEditor(container, context) {
   const focusMode = !readOnly && localStorage.getItem(FOCUS_KEY) === '1';
   document.body.classList.toggle('canvas-focus-mode', focusMode);
   container.dataset.activeCanvasId = instance.id;
+  canvasExpectedHash = location.hash;
+  globalThis.__wonkupCanvasNavigationGuard = route => {
+    if (canvasNavigationAllowed) {
+      canvasNavigationAllowed = false;
+      return true;
+    }
+    const blocked = canvasMutationActive || Boolean(draggedNoteId) || Date.now() < suppressNavigationUntil;
+    if (blocked && route?.hash && route.hash !== canvasExpectedHash) {
+      history.replaceState(null, '', canvasExpectedHash);
+      return false;
+    }
+    return true;
+  };
 
   container.innerHTML = `<section class="${readOnly ? 'shared-canvas-page' : 'page canvas-editor-page'}" data-canvas-id="${escapeHtml(instance.id)}" data-template-layout="${escapeHtml(template.layout || 'generic')}">
     <header class="canvas-editor-header" style="--canvas-accent:${escapeHtml(template.color)}">
       <div class="canvas-editor-identity">
-        <a class="canvas-back-link" href="${readOnly ? '#/access' : `#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`}">${icon('arrowLeft')} ${readOnly ? 'Acceso WonkUp' : 'Volver al Toolkit'}</a>
+        <button class="canvas-back-link" id="canvas-back" type="button" data-back-hash="${readOnly ? '#/access' : `#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`}">${icon('arrowLeft')} ${readOnly ? 'Acceso WonkUp' : 'Volver al Toolkit'}</button>
         <div class="canvas-title-row"><span class="canvas-title-icon">${icon(template.icon)}</span><div><span class="page-kicker">${escapeHtml(template.category)} · ${escapeHtml(project.name || 'Proyecto')}</span><h1>${escapeHtml(instance.title)}</h1><p>${escapeHtml(template.description)}</p></div></div>
       </div>
       <div class="canvas-editor-actions">
@@ -188,47 +205,112 @@ function noteCard(note, canEdit, draggable) {
 }
 
 function bindCanvasEvents(container, context, currentView) {
-  let instance = context.instance;
   const { session, readOnly } = context;
-  const canEdit = !readOnly && canEditCanvas(session);
+
+  container.querySelector('#canvas-back')?.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (canvasMutationActive || draggedNoteId || Date.now() < suppressNavigationUntil) return;
+    navigateFromCanvas(event.currentTarget.dataset.backHash || '#/');
+  });
+
   container.querySelectorAll('[data-canvas-view]').forEach(button => button.addEventListener('click', event => {
     event.preventDefault();
     const value = button.dataset.canvasView;
     localStorage.setItem(VIEW_KEY, value);
-    localStorage.setItem(`${VIEW_KEY}.${instance.templateId}`, value);
+    localStorage.setItem(`${VIEW_KEY}.${context.instance.templateId}`, value);
     renderCanvasEditor(container, context);
   }));
+
   container.querySelector('#canvas-add-note')?.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
-    openNoteForm({ instance, session, onSaved: next => renderCanvasEditor(container, { ...context, instance: next }) });
+    openNoteForm({
+      instance: context.instance,
+      session,
+      container,
+      onSaved: next => refreshCanvasWorkspace(container, context, next, currentView)
+    });
   });
+
+  bindCanvasWorkspaceEvents(container, context, currentView);
+
+  container.querySelector('#canvas-history')?.addEventListener('click', () => openHistory({ instance: context.instance, session, context, container }));
+  container.querySelector('#canvas-share')?.addEventListener('click', () => openShare(context.instance, session));
+  container.querySelector('#canvas-print')?.addEventListener('click', () => openExport(context.instance));
+  container.querySelector('#canvas-settings')?.addEventListener('click', () => openCanvasSettings({ instance: context.instance, session, context, container }));
+  container.querySelector('#canvas-focus')?.addEventListener('click', () => toggleFocusMode(container, context));
+  container.querySelector('#canvas-fullscreen')?.addEventListener('click', () => toggleFullscreen(container));
+}
+
+function bindCanvasWorkspaceEvents(container, context, currentView) {
+  const { session, readOnly } = context;
+  const canEdit = !readOnly && canEditCanvas(session);
+
   container.querySelectorAll('[data-add-note]').forEach(button => button.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
-    openNoteForm({ instance, session, sectionId: button.dataset.addNote, onSaved: next => renderCanvasEditor(container, { ...context, instance: next }) });
+    openNoteForm({
+      instance: context.instance,
+      session,
+      sectionId: button.dataset.addNote,
+      container,
+      onSaved: next => refreshCanvasWorkspace(container, context, next, currentView)
+    });
   }));
+
   container.querySelectorAll('[data-open-note]').forEach(button => {
     button.addEventListener('pointerdown', event => event.stopPropagation());
     button.addEventListener('dragstart', event => event.preventDefault());
     button.addEventListener('click', event => {
-    event.preventDefault();
-    event.stopPropagation();
-    openNoteDetail({ instance, noteId: button.dataset.openNote, session, onSaved: next => next ? renderCanvasEditor(container, { ...context, instance: next }) : reloadCanvas(container, context) });
+      event.preventDefault();
+      event.stopPropagation();
+      openNoteDetail({
+        instance: context.instance,
+        noteId: button.dataset.openNote,
+        session,
+        container,
+        onSaved: next => next
+          ? refreshCanvasWorkspace(container, context, next, currentView)
+          : reloadCanvas(container, context)
+      });
     });
   });
+
   container.querySelectorAll('.canvas-note').forEach(card => {
-    card.addEventListener('dblclick', () => { if (canEdit) openNoteDetail({ instance, noteId: card.dataset.noteId, session, onSaved: next => next ? renderCanvasEditor(container, { ...context, instance: next }) : reloadCanvas(container, context) }); });
+    card.addEventListener('dblclick', event => {
+      if (!canEdit || Date.now() < suppressNavigationUntil) return;
+      event.preventDefault();
+      openNoteDetail({
+        instance: context.instance,
+        noteId: card.dataset.noteId,
+        session,
+        container,
+        onSaved: next => next
+          ? refreshCanvasWorkspace(container, context, next, currentView)
+          : reloadCanvas(container, context)
+      });
+    });
     card.addEventListener('keydown', event => {
       if ((event.key === 'Enter' || event.key === ' ') && canEdit) {
         event.preventDefault();
-        openNoteDetail({ instance, noteId: card.dataset.noteId, session, onSaved: next => next ? renderCanvasEditor(container, { ...context, instance: next }) : reloadCanvas(container, context) });
+        openNoteDetail({
+          instance: context.instance,
+          noteId: card.dataset.noteId,
+          session,
+          container,
+          onSaved: next => next
+            ? refreshCanvasWorkspace(container, context, next, currentView)
+            : reloadCanvas(container, context)
+        });
       }
     });
     if (!canEdit || currentView !== 'board') return;
     card.addEventListener('dragstart', event => {
       event.stopPropagation();
       draggedNoteId = card.dataset.noteId;
+      suppressNavigationUntil = Date.now() + 3000;
+      armPostDragGuard(container, canvasExpectedHash);
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', draggedNoteId);
       card.classList.add('dragging');
@@ -237,60 +319,107 @@ function bindCanvasEvents(container, context, currentView) {
       event.stopPropagation();
       card.classList.remove('dragging');
       container.querySelectorAll('.canvas-note-stack').forEach(stack => stack.classList.remove('drag-over'));
-      armPostDragGuard(container);
-      setTimeout(() => { draggedNoteId = ''; }, 0);
+      suppressNavigationUntil = Date.now() + 1000;
+      armPostDragGuard(container, canvasExpectedHash);
+      window.setTimeout(() => { draggedNoteId = ''; }, 150);
     });
   });
-  if (canEdit && currentView === 'board') {
-    container.querySelectorAll('[data-drop-section]').forEach(stack => {
-      stack.addEventListener('dragover', event => { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'move'; stack.classList.add('drag-over'); });
-      stack.addEventListener('dragleave', event => { if (!stack.contains(event.relatedTarget)) stack.classList.remove('drag-over'); });
-      stack.addEventListener('drop', async event => {
-        event.preventDefault();
-        event.stopPropagation();
-        stack.classList.remove('drag-over');
-        const noteId = event.dataTransfer.getData('text/plain') || draggedNoteId;
-        if (!noteId) return;
-        const expectedHash = location.hash;
-        const card = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId) || null;
-        const previousStack = card?.closest('[data-drop-section]');
-        armPostDragGuard(container, expectedHash);
-        if (card && !stack.contains(card)) {
-          stack.querySelector('.canvas-empty-section')?.remove();
-          stack.appendChild(card);
-          ensureEmptyCanvasStack(previousStack, canEdit);
-        }
-        try {
-          const visualIndex = Math.max(0, [...stack.querySelectorAll('.canvas-note')].findIndex(item => item.dataset.noteId === noteId));
-          const next = await CanvasService.moveNote({ canvasId: instance.id, noteId, toSectionId: stack.dataset.dropSection, toIndex: visualIndex, session });
-          instance = next;
-          context.instance = next;
-          draggedNoteId = '';
-          updateCanvasMutationSummary(container, next);
-          const movedCard = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId);
-          const movedTime = movedCard?.querySelector('time');
-          if (movedTime) {
-            movedTime.dateTime = next.notes.find(note => note.id === noteId)?.updatedAt || new Date().toISOString();
-            movedTime.textContent = 'Ahora';
-          }
-          showToast('Nota movida.');
-          if (location.hash !== expectedHash) history.replaceState(null, '', expectedHash);
-        } catch (error) {
-          showToast(error.message, { type: 'error' });
-          window.setTimeout(() => reloadCanvas(container, context), 120);
-        }
-      });
+
+  if (!canEdit || currentView !== 'board') return;
+  container.querySelectorAll('[data-drop-section]').forEach(stack => {
+    stack.addEventListener('dragover', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = 'move';
+      stack.classList.add('drag-over');
     });
-  }
-  container.querySelector('#canvas-history')?.addEventListener('click', () => openHistory({ instance, session, context, container }));
-  container.querySelector('#canvas-share')?.addEventListener('click', () => openShare(instance, session));
-  container.querySelector('#canvas-print')?.addEventListener('click', () => openExport(instance));
-  container.querySelector('#canvas-settings')?.addEventListener('click', () => openCanvasSettings({ instance, session, context, container }));
-  container.querySelector('#canvas-focus')?.addEventListener('click', () => toggleFocusMode(container, context));
-  container.querySelector('#canvas-fullscreen')?.addEventListener('click', () => toggleFullscreen(container));
+    stack.addEventListener('dragleave', event => {
+      if (!stack.contains(event.relatedTarget)) stack.classList.remove('drag-over');
+    });
+    stack.addEventListener('drop', async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      stack.classList.remove('drag-over');
+      const noteId = event.dataTransfer.getData('text/plain') || draggedNoteId;
+      if (!noteId) return;
+      const originalInstance = context.instance;
+      const card = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId) || null;
+      const previousStack = card?.closest('[data-drop-section]');
+      suppressNavigationUntil = Date.now() + 1400;
+      beginCanvasMutation(container);
+
+      if (card && !stack.contains(card)) {
+        stack.querySelector('.canvas-empty-section')?.remove();
+        stack.appendChild(card);
+        ensureEmptyCanvasStack(previousStack, canEdit);
+      }
+
+      try {
+        const visualIndex = Math.max(0, [...stack.querySelectorAll('.canvas-note')].findIndex(item => item.dataset.noteId === noteId));
+        const next = await CanvasService.moveNote({
+          canvasId: originalInstance.id,
+          noteId,
+          toSectionId: stack.dataset.dropSection,
+          toIndex: visualIndex,
+          session
+        });
+        context.instance = next;
+        draggedNoteId = '';
+        updateCanvasMutationSummary(container, next);
+        const movedCard = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId);
+        const movedTime = movedCard?.querySelector('time');
+        if (movedTime) {
+          movedTime.dateTime = next.notes.find(note => note.id === noteId)?.updatedAt || new Date().toISOString();
+          movedTime.textContent = 'Ahora';
+        }
+        showToast('Nota movida.');
+      } catch (error) {
+        showToast(error.message, { type: 'error' });
+        refreshCanvasWorkspace(container, context, originalInstance, currentView);
+      } finally {
+        endCanvasMutation(container);
+      }
+    });
+  });
 }
 
-function openNoteForm({ instance, session, sectionId = '', onSaved }) {
+function refreshCanvasWorkspace(container, context, next, currentView = null) {
+  if (!next || container.dataset.activeCanvasId !== next.id) return;
+  context.instance = next;
+  const view = currentView || container.querySelector('[data-canvas-view].active')?.dataset.canvasView || 'board';
+  const workspace = container.querySelector('#canvas-workspace');
+  if (!workspace) return;
+  const canEdit = !context.readOnly && canEditCanvas(context.session);
+  workspace.innerHTML = view === 'list' ? renderCanvasList(next, canEdit) : renderCanvasBoard(next, canEdit);
+  updateCanvasMutationSummary(container, next);
+  bindCanvasWorkspaceEvents(container, context, view);
+}
+
+function beginCanvasMutation(container) {
+  canvasMutationActive = true;
+  canvasExpectedHash = location.hash;
+  suppressNavigationUntil = Math.max(suppressNavigationUntil, Date.now() + 1200);
+  container.dataset.canvasMutating = 'true';
+}
+
+function endCanvasMutation(container) {
+  suppressNavigationUntil = Math.max(suppressNavigationUntil, Date.now() + 500);
+  window.setTimeout(() => {
+    canvasMutationActive = false;
+    delete container.dataset.canvasMutating;
+  }, 260);
+}
+
+function navigateFromCanvas(hash) {
+  clearPostDragGuard(document.querySelector('#main-view'));
+  canvasMutationActive = false;
+  draggedNoteId = '';
+  suppressNavigationUntil = 0;
+  canvasNavigationAllowed = true;
+  location.hash = hash;
+}
+
+function openNoteForm({ instance, session, sectionId = '', container, onSaved }) {
   const template = instance.template;
   const selectedSection = template.sections.find(section => section.id === sectionId) || template.sections[0];
   const modal = openModal({
@@ -328,6 +457,7 @@ function openNoteForm({ instance, session, sectionId = '', onSaved }) {
     submit.disabled = true;
     status.textContent = 'Guardando nota...';
     try {
+      beginCanvasMutation(container);
       const data = new FormData(form);
       const next = await CanvasService.createNote({
         canvasId: instance.id,
@@ -335,18 +465,20 @@ function openNoteForm({ instance, session, sectionId = '', onSaved }) {
         input: { text, colorId: data.get('canvas-note-color') || 'sky' },
         session
       });
+      onSaved?.(next);
       modal.close();
       showToast('Nota agregada correctamente.');
-      onSaved?.(next);
     } catch (error) {
       status.textContent = error.message || 'No se pudo guardar la nota.';
       showToast(error.message, { type: 'error' });
       submit.disabled = false;
+    } finally {
+      endCanvasMutation(container);
     }
   });
 }
 
-function openNoteDetail({ instance, noteId, session, onSaved }) {
+function openNoteDetail({ instance, noteId, session, container, onSaved }) {
   const note = instance.notes.find(item => item.id === noteId);
   if (!note) return;
   const modal = openModal({
@@ -374,31 +506,37 @@ function openNoteDetail({ instance, noteId, session, onSaved }) {
       return;
     }
     try {
+      beginCanvasMutation(container);
       const next = await CanvasService.updateNote({ canvasId: instance.id, noteId, patch: { text, sectionId: modal.root.querySelector('#note-detail-section').value, colorId: modal.root.querySelector('#note-detail-color').value }, session });
+      onSaved?.(next);
       modal.close();
       showToast('Nota actualizada.');
-      onSaved?.(next);
     } catch (error) { showToast(error.message, { type: 'error' }); }
+    finally { endCanvasMutation(container); }
   });
   modal.root.querySelector('#note-comment-form').addEventListener('submit', async event => {
     event.preventDefault();
     const field = modal.root.querySelector('#note-comment-text');
     try {
+      beginCanvasMutation(container);
       const next = await CanvasService.addComment({ canvasId: instance.id, noteId, text: field.value, session });
+      onSaved?.(next);
       modal.close();
       showToast('Comentario agregado.');
-      onSaved?.(next);
     } catch (error) { showToast(error.message, { type: 'error' }); }
+    finally { endCanvasMutation(container); }
   });
   modal.root.querySelector('#delete-note').addEventListener('click', async () => {
     const confirmed = await confirmModal({ title: 'Eliminar nota', message: 'La nota y sus comentarios se eliminarán del canvas.', confirmLabel: 'Eliminar', danger: true });
     if (!confirmed) return;
     try {
+      beginCanvasMutation(container);
       const next = await CanvasService.deleteNote({ canvasId: instance.id, noteId, session });
+      onSaved?.(next);
       closeModal();
       showToast('Nota eliminada.');
-      onSaved?.(next);
     } catch (error) { showToast(error.message, { type: 'error' }); }
+    finally { endCanvasMutation(container); }
   });
   modal.root.querySelector('#convert-note').addEventListener('click', () => { modal.close(); openConvertToTask({ instance, note, session, onSaved }); });
   modal.root.querySelector('#link-note').addEventListener('click', () => { modal.close(); openLinkNote({ instance, note, session, onSaved }); });
@@ -490,14 +628,17 @@ async function openHistory({ instance, session, context, container }) {
     event.currentTarget.disabled = true;
     feedback.textContent = 'Restaurando versión...';
     try {
+      beginCanvasMutation(container);
       const next = await CanvasService.restoreVersion({ canvasId: instance.id, snapshotId: event.currentTarget.dataset.restoreVersion, session });
+      refreshCanvasWorkspace(container, context, next);
       modal.close();
       showToast('Versión restaurada sin salir del canvas.');
-      renderCanvasEditor(container, { ...context, instance: next });
     } catch (error) {
       feedback.textContent = error.message || 'No se pudo restaurar la versión.';
       showToast(error.message, { type: 'error' });
       event.currentTarget.disabled = false;
+    } finally {
+      endCanvasMutation(container);
     }
   }));
 }
@@ -657,7 +798,7 @@ function openCanvasSettings({ instance, session, context, container }) {
       await CanvasService.archiveInstance({ canvasId: instance.id, session });
       closeModal();
       showToast('Canvas archivado.');
-      location.hash = `#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`;
+      navigateFromCanvas(`#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   });
 }
@@ -712,16 +853,17 @@ function clearPostDragGuard(container) {
 
 function armPostDragGuard(container, expectedHash = location.hash) {
   clearPostDragGuard(container);
+  canvasExpectedHash = expectedHash;
+  suppressNavigationUntil = Math.max(suppressNavigationUntil, Date.now() + 1000);
   container.classList.add('canvas-post-drag-guard');
-  const expiresAt = performance.now() + 850;
+  const expiresAt = performance.now() + 950;
   postDragClickHandler = event => {
     if (performance.now() > expiresAt) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (location.hash !== expectedHash) history.replaceState(null, '', expectedHash);
   };
   document.addEventListener('click', postDragClickHandler, true);
-  postDragGuardTimer = window.setTimeout(() => clearPostDragGuard(container), 900);
+  postDragGuardTimer = window.setTimeout(() => clearPostDragGuard(container), 980);
 }
 
 async function reloadCanvas(container, context) {
@@ -730,7 +872,7 @@ async function reloadCanvas(container, context) {
   try {
     const next = await CanvasService.getInstance({ canvasId, session: context.session });
     if (requestId !== refreshSequence || container.dataset.activeCanvasId !== canvasId) return;
-    renderCanvasEditor(container, { ...context, instance: next });
+    refreshCanvasWorkspace(container, context, next);
   } catch (error) { showToast(error.message, { type: 'error' }); }
 }
 
@@ -1002,5 +1144,10 @@ export function cleanupCanvasView() {
   stopTimerTicker();
   clearPostDragGuard(document.querySelector('#main-view'));
   document.querySelector('#main-view')?.classList.remove('canvas-fullscreen-host');
+  canvasExpectedHash = '';
+  canvasMutationActive = false;
+  canvasNavigationAllowed = false;
+  suppressNavigationUntil = 0;
+  if (globalThis.__wonkupCanvasNavigationGuard) delete globalThis.__wonkupCanvasNavigationGuard;
   document.body.classList.remove('canvas-focus-mode', 'canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
 }

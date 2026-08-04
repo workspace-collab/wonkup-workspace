@@ -1390,7 +1390,7 @@ input[type="radio"] {
   box-shadow: var(--shadow-sm);
 }
 .canvas-editor-identity { min-width: 0; flex: 1; }
-.canvas-back-link { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; margin-bottom: 13px; color: var(--action-primary); font-size: var(--text-sm); font-weight: 800; }
+.canvas-back-link { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; margin: 0 0 13px; padding: 0; border: 0; background: transparent; color: var(--action-primary); font: inherit; font-size: var(--text-sm); font-weight: 800; cursor: pointer; }
 .canvas-back-link svg { width: 18px; height: 18px; }
 .canvas-title-row { align-items: flex-start; gap: 14px; min-width: 0; }
 .canvas-title-icon { width: 52px; height: 52px; display: grid; place-items: center; flex: 0 0 auto; border-radius: var(--radius-lg); color: var(--canvas-accent); background: color-mix(in srgb, var(--canvas-accent) 13%, var(--surface)); }

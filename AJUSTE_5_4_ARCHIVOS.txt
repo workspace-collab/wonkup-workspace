@@ -1,0 +1,11 @@
+AJUSTE 5.4 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_4_ARCHIVOS.txt
+- AJUSTE_5_4_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- TEST_CHECKLIST.md
+- css/components.css
+- index.html
+- js/app.js
+- js/views/canvas-view.js

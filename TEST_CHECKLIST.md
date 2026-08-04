@@ -261,3 +261,14 @@ Validar:
 - [ ] Arrastrar una nota no destruye los listeners del editor.
 - [ ] La nota conserva su nueva sección después de recargar.
 - [ ] El lápiz sigue funcionando después de un drag.
+
+## Ajuste 5.4 - Prueba de estabilidad
+
+- [ ] Crear 10 notas consecutivas sin salir del canvas.
+- [ ] Mover una misma nota 10 veces entre secciones.
+- [ ] Mover 5 notas diferentes consecutivamente.
+- [ ] Editar una nota inmediatamente después de moverla.
+- [ ] Repetir creación y drag en pantalla completa.
+- [ ] La ruta no cambia durante una mutación.
+- [ ] El listado del Toolkit solo aparece al usar Volver al Toolkit.
+- [ ] La URL y la vista nunca quedan desincronizadas.

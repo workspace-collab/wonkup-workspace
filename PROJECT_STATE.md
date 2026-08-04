@@ -6,7 +6,7 @@ WonkUp Workspace
 
 ## Fase actual
 
-Ajuste 5.2 - Estabilidad del Canvas Engine
+Ajuste 5.4 - Estabilidad transaccional del Canvas Engine
 
 ## Estado
 

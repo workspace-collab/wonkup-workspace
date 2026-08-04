@@ -159,3 +159,12 @@
 - Se eliminó el rerender completo después de mover una nota.
 - Se añadió protección contra el clic residual posterior al drag.
 - Se actualizan métricas y versión sin destruir el lienzo.
+
+## Ajuste 5.4 - Estabilidad transaccional del Canvas Engine
+
+- Se eliminó la reconstrucción completa del editor después de mutaciones de notas.
+- Se incorporó actualización parcial del workspace del canvas.
+- Se reemplazó el enlace de retorno por navegación explícita controlada.
+- Se añadió un guard del router para bloquear salidas accidentales durante mutaciones y drag.
+- Se corrigió el estado inconsistente URL/canvas provocado por `history.replaceState`.
+- Se reforzó creación, edición, comentarios, eliminación, restauración y movimiento de notas.
