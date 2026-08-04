@@ -28,3 +28,16 @@ workspaces/{workspaceId}
 ```
 
 Los comentarios, checklist e historial se almacenan dentro de cada documento de tarjeta durante el MVP. Si una tarjeta crece demasiado, deberán migrarse a subcolecciones.
+
+## Entrega 5 - Canvas Engine
+
+La estructura prevista para colaboración en tiempo real es:
+
+```text
+workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId}
+  notes/{noteId}
+    comments/{commentId}
+  history/{eventId}
+```
+
+La versión publicada continúa en `canvasMode: 'mock'`. No actives las reglas de Canvas hasta configurar Firebase Authentication y el broker de tokens de Apps Script. Los enlaces públicos de consulta del modo demo no representan todavía un mecanismo de seguridad productivo.

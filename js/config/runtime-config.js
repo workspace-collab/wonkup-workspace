@@ -2,6 +2,7 @@
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
   kanbanMode: 'mock',
+  canvasMode: 'mock',
   appsScriptUrl: '',
   demoCodesVisible: true,
   firebase: {

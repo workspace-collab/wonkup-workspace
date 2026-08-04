@@ -1,94 +1,54 @@
 # WonkUp Workspace
 
-Centro operativo de WonkUp para la gestión de proyectos, innovación y colaboración.
+Centro operativo de WonkUp para la gestion de proyectos, innovacion y colaboracion.
 
 ## Estado actual
 
-**Entrega 4 + Ajuste 4.2 - Kanban funcional, responsive y accesible.**
+- Entrega 0: Blueprint aprobado.
+- Entrega 1: Nucleo visual aprobado.
+- Entrega 2: Workspaces y accesos aprobados.
+- Entrega 3: Proyectos y Google Drive aprobado.
+- Entrega 4: Kanban funcional aprobado.
+- Ajustes 4.1 y 4.2: usabilidad, responsive y accesibilidad validados.
+- Entrega 5: Innovation Toolkit y Canvas Engine en revision.
 
-- Entrega 0 - Blueprint: APROBADA.
-- Entrega 1 - Núcleo visual: APROBADA.
-- Entrega 2 - Workspaces y acceso: APROBADA.
-- Entrega 3 - Proyectos y Drive: APROBADA.
-- Entrega 4 - Kanban: EN REVISIÓN.
-- Ajuste 4.1 - Usabilidad y Kanban configurable: VALIDADO FUNCIONALMENTE.
-- Ajuste 4.2 - Responsive, accesibilidad y endurecimiento UI: EN REVISIÓN.
+## Modulos funcionales
 
-## Funcionalidades disponibles
-
-- Acceso por códigos y permisos demostrativos.
-- Panel maestro y selector multiworkspace.
-- Gestión de proyectos, clientes, miembros y recursos.
-- Portadas de proyecto y Google Drive simulado.
-- Kanban configurable con plantillas de 4, 5, 6 y 9 columnas.
-- Límites WIP, checklist, comentarios, historial, dependencias y horas.
-- Archivo y restauración de proyectos, clientes y tarjetas.
-- Buscador global y notificaciones locales.
+- Panel Maestro y workspaces.
+- Acceso mediante codigos y roles.
+- Proyectos, clientes, equipo y recursos.
+- Google Drive simulado y servicio Apps Script preparado.
+- Kanban configurable.
+- Innovation Toolkit.
+- Canvas Engine con seis plantillas.
+- Notas, comentarios, historial y presencia local.
+- Conversion de notas a tareas.
+- Enlaces compartidos demostrativos.
 - Temas claro, oscuro y sistema.
-- Vista Kanban alternativa en lista para móviles.
-- Navegación por teclado y tratamiento accesible de modales y formularios.
 
-## Ajuste 4.2
+## Plantillas del Innovation Toolkit
 
-Este ciclo corrige los hallazgos críticos y altos de la auditoría profesional de interfaz:
+1. Mapa de Empatia.
+2. Lienzo de Propuesta de Valor.
+3. Lean Canvas.
+4. Business Model Canvas.
+5. Matriz de Priorizacion.
+6. Pitch Canvas.
 
-- reflow de la ficha interna de proyecto;
-- desbordamiento horizontal del Kanban embebido;
-- foco contenido y restaurado en modales;
-- contraste WCAG AA de acciones y textos;
-- objetivos táctiles, etiquetas accesibles y estados ARIA;
-- orden de contenido móvil;
-- navegación futura marcada como Próximamente;
-- escala tipográfica, radios y colores semánticos consolidados.
+## Publicacion sin terminal
 
-Consulta `AJUSTE_4_2_GUIA.md`, `AUDITORIA_UI_REMEDIACION.md` y `DESIGN_SYSTEM.md`.
+1. Crear o abrir el repositorio `wonkup-workspace`.
+2. Subir el contenido conservando la estructura.
+3. En **Settings > Pages** seleccionar **Deploy from a branch**.
+4. Elegir `main` y la carpeta raiz.
+5. Abrir la URL generada por GitHub Pages.
 
-## Publicación sin terminal
+## Configuracion del MVP
 
-1. Crea o abre el repositorio `wonkup-workspace` en GitHub.
-2. Sube el contenido conservando la estructura de carpetas.
-3. En **Settings > Pages**, selecciona **Deploy from a branch**.
-4. Elige la rama `main` y la carpeta raíz `/`.
-5. Espera el despliegue y abre la URL de GitHub Pages.
-6. Realiza una recarga forzada: `Ctrl + Shift + R` o `Cmd + Shift + R`.
-
-## Configuración del MVP
-
-Mantén en `js/config/runtime-config.js`:
-
-```js
+```javascript
 mode: 'mock',
-kanbanMode: 'mock'
+kanbanMode: 'mock',
+canvasMode: 'mock'
 ```
 
-Firebase, Apps Script, Google Sheets y Google Drive real todavía no deben activarse. Los adaptadores permanecerán preparados para entregas posteriores.
-
-## Códigos de prueba
-
-- `WONKUP-ADMIN`
-- `AGORA-ADMIN`
-- `TAXI-LIDER`
-- `TAXI-CLIENTE`
-- `HUELLITAS-INVITADO`
-
-## Logotipo oficial
-
-Coloca el archivo oficial en:
-
-```text
-assets/brand/logo-wonkup.png
-```
-
-La interfaz utiliza un respaldo visual mientras el archivo no exista.
-
-## Validación requerida
-
-Antes de aprobar el Ajuste 4.2, verifica tema claro y oscuro, teclado, permisos, texto al 200 % y estas anchuras:
-
-```text
-320 px
-390 px
-768 px
-1280 px
-1440 px
-```
+Google Sheets, Apps Script, Firebase y Google Drive real se conectaran progresivamente. No colocar secretos ni claves privadas en el frontend.

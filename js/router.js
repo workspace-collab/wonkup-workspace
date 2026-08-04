@@ -1,4 +1,5 @@
 const routes = [
+  { pattern: /^#\/share\/canvas\/([^/]+)$/, view: 'sharedCanvas', keys: ['token'] },
   { pattern: /^#\/access(?:\?reason=([^&]+))?$/, view: 'access', keys: ['reason'] },
   { pattern: /^#\/forbidden$/, view: 'forbidden' },
   { pattern: /^#\/$/, view: 'dashboard' },
@@ -14,6 +15,7 @@ const routes = [
   { pattern: /^#\/w\/([^/]+)\/kanban$/, view: 'kanban', keys: ['workspaceId'] },
   { pattern: /^#\/w\/([^/]+)\/clients$/, view: 'clients', keys: ['workspaceId'] },
   { pattern: /^#\/w\/([^/]+)\/(calendar|team|documents|reports|settings)$/, view: 'placeholder', keys: ['workspaceId', 'section'] },
+  { pattern: /^#\/w\/([^/]+)\/p\/([^/]+)\/canvas\/([^/]+)$/, view: 'canvas', keys: ['workspaceId', 'projectId', 'canvasId'] },
   { pattern: /^#\/w\/([^/]+)\/p\/([^/]+)\/([^/]+)$/, view: 'project', keys: ['workspaceId', 'projectId', 'tab'] }
 ];
 

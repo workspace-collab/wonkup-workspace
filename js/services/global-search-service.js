@@ -2,6 +2,7 @@ import { ProjectService } from './project-service.js';
 import { KanbanService } from './kanban-service.js';
 import { DemoService } from './demo-service.js';
 import { canvasTemplates } from '../../data/canvas-templates.js';
+import { CanvasService } from './canvas-service.js';
 
 function includesQuery(values, query) {
   return values.filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query);
@@ -49,15 +50,25 @@ export const GlobalSearchService = {
       if (boardResults.length >= 8) break;
     }
 
-    const canvasResults = canvasTemplates
+    const instances = await CanvasService.listInstances({ workspaceId, session }).catch(() => []);
+    const canvasInstanceResults = instances
+      .filter(instance => includesQuery([instance.title, instance.template?.name, ...instance.notes.map(note => note.text)], normalized))
+      .slice(0, 6)
+      .map(instance => ({
+        id: `canvas-instance-${instance.id}`, type: 'Canvas', title: instance.title,
+        subtitle: instance.template?.name || 'Innovation Toolkit',
+        href: `#/w/${instance.workspaceId}/p/${instance.projectId}/canvas/${instance.id}`, icon: 'lightbulb'
+      }));
+
+    const canvasTemplateResults = canvasTemplates
       .filter(template => includesQuery([template.name, template.description], normalized))
-      .slice(0, 4)
+      .slice(0, 3)
       .map(template => ({
-        id: `canvas-${template.id}`, type: 'Herramienta', title: template.name,
+        id: `canvas-template-${template.id}`, type: 'Plantilla', title: template.name,
         subtitle: 'Innovation Toolkit',
         href: workspaceId === 'all' ? '#/master/toolkit' : `#/w/${workspaceId}/toolkit`, icon: 'lightbulb'
       }));
 
-    return [...projectResults, ...boardResults.slice(0, 8), ...clientResults, ...canvasResults].slice(0, 18);
+    return [...projectResults, ...boardResults.slice(0, 8), ...canvasInstanceResults, ...clientResults, ...canvasTemplateResults].slice(0, 20);
   }
 };

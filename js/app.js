@@ -9,6 +9,7 @@ import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
 import { renderProject } from './views/project-view.js';
 import { renderToolkit } from './views/toolkit-view.js';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js';
 import { renderKanban } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
@@ -85,8 +86,15 @@ async function bootstrap() {
 }
 
 function handleRoute(route) {
+  cleanupCanvasView();
   const state = getState();
   const session = state.session;
+
+  if (route.view === 'sharedCanvas') {
+    renderShell({ view: 'access', params: {} });
+    renderSharedCanvas(shell.main, route.params.token);
+    return;
+  }
 
   if (route.view === 'access') {
     if (session) {
@@ -132,6 +140,9 @@ function handleRoute(route) {
       break;
     case 'toolkit':
       renderToolkit(shell.main, workspaceId, null, false, session);
+      break;
+    case 'canvas':
+      renderCanvas(shell.main, route.params, session);
       break;
     case 'kanban':
       renderKanban(shell.main, workspaceId, null, false, session);

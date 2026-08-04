@@ -83,7 +83,7 @@ export function renderShell(route = null) {
     ? { name: 'Panel Maestro', shortName: 'Todos los workspaces' }
     : DemoService.getWorkspace(selected);
 
-  const active = route?.view || 'dashboard';
+  const active = route?.view === 'canvas' ? 'toolkit' : (route?.view || 'dashboard');
   const readOnly = isReadOnlyRole(session);
   const navItems = readOnly ? createReadOnlyNav(session) : internalNavItems;
   const notifications = NotificationService.list(session);
@@ -128,7 +128,7 @@ export function renderShell(route = null) {
 
   const quickMenu = popover({
     id: 'quick-menu', triggerId: 'quick-add', className: 'header-popover compact-menu',
-    body: `<div class="popover-title">Crear rápidamente</div><button role="menuitem" data-action="project">${icon('folder')}<span><strong>Nuevo proyecto</strong><small>Registra una nueva iniciativa</small></span></button><button role="menuitem" data-action="task">${icon('checkSquare')}<span><strong>Nueva tarea</strong><small>Crea una tarjeta en el Kanban</small></span></button>`
+    body: `<div class="popover-title">Crear rápidamente</div><button role="menuitem" data-action="project">${icon('folder')}<span><strong>Nuevo proyecto</strong><small>Registra una nueva iniciativa</small></span></button><button role="menuitem" data-action="task">${icon('checkSquare')}<span><strong>Nueva tarea</strong><small>Crea una tarjeta en el Kanban</small></span></button><button role="menuitem" data-action="canvas">${icon('lightbulb')}<span><strong>Nuevo canvas</strong><small>Abre el Innovation Toolkit</small></span></button>`
   });
 
   const themeMenu = popover({
@@ -149,7 +149,7 @@ export function renderShell(route = null) {
   document.querySelector('#header').innerHTML = `
     <button class="header-icon-button mobile-menu-button" id="menu-toggle" aria-label="Abrir menú lateral" data-open-label="Abrir menú lateral" data-close-label="Cerrar menú lateral" aria-expanded="${state.sidebarOpen ? 'true' : 'false'}" aria-controls="sidebar">${icon('menu')}</button>
     <div class="header-workspace"><strong>${escapeHtml(current?.name || 'WonkUp Workspace')}</strong><small>${escapeHtml(current?.shortName || 'Centro de operaciones')}</small></div>
-    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="sr-only" for="global-search">Búsqueda global de proyectos, tareas y clientes</label><div class="header-search">${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas o clientes..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></div>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
+    ${isInternalUser(session) ? `<div class="header-search-wrap"><label class="sr-only" for="global-search">Búsqueda global de proyectos, tareas, clientes y canvases</label><div class="header-search">${icon('search')}<input id="global-search" type="search" autocomplete="off" placeholder="Buscar proyectos, tareas, clientes o canvases..." aria-controls="global-search-results" aria-expanded="false"><kbd>⌘ K</kbd></div>${popover({ id: 'global-search-results', triggerId: 'global-search', className: 'search-popover', body: '<div class="search-hint">Escribe al menos 2 caracteres para buscar.</div>' })}</div>` : '<div class="header-search-spacer"></div>'}
     <div class="header-actions">
       ${isInternalUser(session) ? `<div class="relative"><button class="header-icon-button" id="quick-add" aria-label="Abrir menú Crear" aria-expanded="false" aria-controls="quick-menu">${icon('plus')}</button>${quickMenu}</div>` : ''}
       <div class="relative"><button class="header-icon-button" id="theme-button" aria-label="Abrir opciones de apariencia" aria-expanded="false" aria-controls="theme-menu">${icon('sun')}</button>${themeMenu}</div>
@@ -225,6 +225,11 @@ function bindShellEvents(session, selectedWorkspaceId) {
       } else if (action === 'task') {
         sessionStorage.setItem('wonkup.intent.newTask', '1');
         const target = selectedWorkspaceId === 'all' ? '#/master/kanban' : `#/w/${selectedWorkspaceId}/kanban`;
+        if (location.hash === target) window.dispatchEvent(new HashChangeEvent('hashchange'));
+        else location.hash = target;
+      } else if (action === 'canvas') {
+        sessionStorage.setItem('wonkup.intent.newCanvas', '1');
+        const target = selectedWorkspaceId === 'all' ? '#/master/toolkit' : `#/w/${selectedWorkspaceId}/toolkit`;
         if (location.hash === target) window.dispatchEvent(new HashChangeEvent('hashchange'));
         else location.hash = target;
       } else {

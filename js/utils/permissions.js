@@ -83,6 +83,14 @@ export function canEditCanvas(session) {
   return Boolean(session && INTERNAL_ROLES.has(session.role));
 }
 
+export function canManageCanvas(session) {
+  return Boolean(session && ['superadmin', 'workspace_admin', 'project_lead'].includes(session.role));
+}
+
+export function canDeleteCanvas(session) {
+  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+}
+
 export function isReadOnlyRole(session) {
   return Boolean(session && ['client', 'guest'].includes(session.role));
 }
@@ -113,6 +121,11 @@ export function canAccessRoute(route, session) {
   if (['dashboard', 'projects', 'toolkit', 'kanban', 'clients', 'placeholder'].includes(route.view)) {
     if (!isInternalUser(session)) return false;
     return canAccessWorkspace(session, route.params?.workspaceId);
+  }
+
+  if (route.view === 'canvas') {
+    if (!isInternalUser(session)) return false;
+    return canAccessProject(session, route.params?.projectId, route.params?.workspaceId);
   }
 
   if (route.view === 'project') {

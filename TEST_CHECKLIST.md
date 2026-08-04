@@ -157,3 +157,52 @@ Validar:
 - [ ] Dashboard, Proyectos, Clientes, Drive simulado y Kanban conservan la funcionalidad previa.
 - [ ] No hay errores en la consola del navegador.
 - [ ] `mode: 'mock'` y `kanbanMode: 'mock'` permanecen activos.
+
+## Entrega 5 - Innovation Toolkit
+
+### Toolkit
+
+- [ ] Muestra seis plantillas.
+- [ ] Lista canvases por workspace.
+- [ ] Dentro de un proyecto solo muestra sus canvases.
+- [ ] Crea canvas con proyecto, plantilla y titulo.
+- [ ] Abre canvas mediante ruta protegida.
+- [ ] Archiva y restaura canvases.
+- [ ] Bloquea eliminacion definitiva segun rol.
+
+### Canvas Engine
+
+- [ ] Carga todas las secciones de la plantilla.
+- [ ] Agrega notas.
+- [ ] Edita texto, seccion y color.
+- [ ] Elimina notas con confirmacion.
+- [ ] Mueve notas mediante drag and drop.
+- [ ] Permite mover una nota desde el formulario en movil.
+- [ ] Muestra autor, fecha y comentarios.
+- [ ] Agrega comentarios.
+- [ ] Registra historial.
+- [ ] Alterna vista Canvas y Lista.
+- [ ] Calcula avance metodologico.
+- [ ] Mantiene cambios al recargar.
+- [ ] Sincroniza cambios entre dos pestanas.
+
+### Integraciones
+
+- [ ] Convierte una nota en tarjeta Kanban.
+- [ ] Vincula una nota a otro canvas.
+- [ ] El canvas de destino muestra el origen.
+- [ ] La busqueda global encuentra canvases y notas.
+- [ ] Genera enlace compartido.
+- [ ] El enlace compartido abre una vista de solo lectura en el mismo navegador.
+- [ ] Exportar PDF abre impresion con diseno limpio.
+
+### Accesibilidad y responsive
+
+- [ ] Funciona con teclado.
+- [ ] Las notas abren con Enter o Espacio.
+- [ ] Los modales contienen y restauran el foco.
+- [ ] No existe scroll horizontal del documento.
+- [ ] El scroll horizontal queda contenido dentro del canvas.
+- [ ] Vista Lista usable a 320 y 390 px.
+- [ ] Contraste correcto en tema claro y oscuro.
+- [ ] Reduced motion respetado.

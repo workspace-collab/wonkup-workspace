@@ -45,5 +45,29 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
+
+
+    match /workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId} {
+      allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+      allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+      allow delete: if false;
+
+      match /notes/{noteId} {
+        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow delete: if false;
+
+        match /comments/{commentId} {
+          allow read, create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+          allow delete: if false;
+        }
+      }
+
+      match /history/{eventId} {
+        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow create: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow update, delete: if false;
+      }
+    }
   }
 }

@@ -127,3 +127,41 @@ Las entidades administrativas de la Entrega 3.1 se mantienen sin cambios. Esta e
 ## Ajuste 4.2
 
 No se agregan entidades persistentes. La preferencia de vista del Kanban (`board` o `list`) se almacena localmente como preferencia de interfaz y no forma parte de la fuente oficial de verdad del proyecto.
+
+## CanvasInstance
+
+| Campo | Tipo | Obligatorio | Descripcion |
+|---|---|---:|---|
+| id | string UUID | Si | Identificador tecnico del canvas |
+| workspaceId | string | Si | Workspace propietario |
+| projectId | string | Si | Proyecto vinculado |
+| templateId | string | Si | Plantilla metodologica |
+| title | string | Si | Titulo visible |
+| status | enum | Si | active o archived |
+| createdBy | string | Si | Usuario creador |
+| createdAt | ISO 8601 | Si | Fecha de creacion |
+| updatedAt | ISO 8601 | Si | Ultima modificacion |
+| version | number | Si | Version incremental |
+| notes | CanvasNote[] | Si | Notas de la instancia |
+| history | CanvasHistory[] | Si | Registro de actividad |
+| shareTokens | CanvasShareToken[] | No | Tokens temporales de consulta |
+
+## CanvasNote
+
+| Campo | Tipo | Obligatorio | Descripcion |
+|---|---|---:|---|
+| id | string UUID | Si | Identificador de la nota |
+| sectionId | string | Si | Seccion metodologica |
+| text | string | Si | Contenido |
+| colorId | enum | Si | Color accesible |
+| position | number | Si | Orden dentro de la seccion |
+| authorId | string | Si | Autor |
+| comments | CanvasComment[] | Si | Comentarios |
+| sourceCanvasId | string | No | Canvas de origen |
+| sourceNoteId | string | No | Nota de origen |
+| createdAt | ISO 8601 | Si | Creacion |
+| updatedAt | ISO 8601 | Si | Actualizacion |
+
+## Fuente de verdad de canvases
+
+Durante la Entrega 5, CanvasInstance y CanvasNote utilizan `localStorage` mediante MockCanvasAdapter. La fuente futura sera Firestore.
