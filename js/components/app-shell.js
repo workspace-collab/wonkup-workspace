@@ -92,7 +92,7 @@ export function renderShell(route = null) {
   document.querySelector('#sidebar').innerHTML = `
     <div class="sidebar-inner">
       <div class="sidebar-brand">
-        <div class="brand-logo"><img src="./assets/brand/logo-wonkup.png" alt="" onerror="this.remove(); this.parentElement.textContent='W';"></div>
+        <div class="brand-logo"><img src="./assets/brand/logo-wonkup.png" alt="" onerror="const p=this.parentElement; this.remove(); if(p) p.textContent='W';"></div>
         <div class="brand-copy"><strong>WonkUp</strong><small>Workspace</small></div>
       </div>
 

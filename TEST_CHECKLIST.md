@@ -281,3 +281,30 @@ Validar:
 - [ ] Editar después de mover.
 - [ ] Repetir en pantalla completa.
 - [ ] Confirmar cero errores en la consola.
+
+## Ajuste 5.6 - Reconstrucción estable
+
+### Integración automatizada completada
+
+- [x] Iniciar sesión con `WONKUP-ADMIN`.
+- [x] Abrir Ágora Education > TaxiChurro > Canvases > Lean Canvas.
+- [x] Confirmar la ruta `#/w/w-agora/p/p-taxichurro/canvas/canvas-taxi-lean`.
+- [x] Activar pantalla completa.
+- [x] Crear 20 notas consecutivas sin reemplazar el workspace.
+- [x] Conservar la misma ruta después de cada alta.
+- [x] Mover una nota 20 veces mediante eventos reales de puntero.
+- [x] Conservar la misma ruta después de cada movimiento.
+- [x] Editar la nota después de moverla.
+- [x] Recrear la ruta y comprobar persistencia.
+- [x] Confirmar cero errores de página.
+
+### Validación pendiente en GitHub Pages
+
+- [ ] La publicación muestra `Motor 5.6.0`.
+- [ ] Crear 10 notas consecutivas mantiene abierto el canvas.
+- [ ] Mover una nota 10 veces mantiene abierto el canvas.
+- [ ] Mover mediante mouse, trackpad y selector funciona.
+- [ ] Editar después de mover funciona.
+- [ ] Repetir en pantalla completa funciona.
+- [ ] La URL no cambia durante ninguna operación.
+- [ ] El Toolkit solo aparece al pulsar deliberadamente Volver al Toolkit.

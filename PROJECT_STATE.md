@@ -6,11 +6,17 @@ WonkUp Workspace
 
 ## Fase actual
 
-Ajuste 5.4 - Estabilidad transaccional del Canvas Engine
+Ajuste 5.6 - Reconstrucción estable del Canvas Engine
 
 ## Estado
 
-EN REVISIÓN
+EN REVISIÓN EN GITHUB PAGES
+
+## Base analizada
+
+- Repositorio real descargado después del Ajuste 5.5.
+- Ruta reproducida: `#/w/w-agora/p/p-taxichurro/canvas/canvas-taxi-lean`.
+- Versión visible del motor: `5.6.0`.
 
 ## Fases cerradas
 
@@ -22,22 +28,35 @@ EN REVISIÓN
 - Entrega 4 - Kanban funcional.
 - Ajuste 4.1 - Kanban configurable y usabilidad.
 - Ajuste 4.2 - Responsive, accesibilidad y endurecimiento UI.
-- Ajuste 5.3 - Estabilidad de drag, copia y pantalla completa.
+- Entrega 5 - Innovation Toolkit y Canvas Engine inicial.
 - Ajuste 5.1 - Canvases especializados, QR y versiones.
 
-## Correcciones de esta fase
+## Corrección estructural 5.6
 
-- Portal de modales compatible con Fullscreen API.
-- Toasts visibles sobre el canvas en pantalla completa.
-- Fullscreen basado en un contenedor estable.
-- Nueva nota simplificada.
-- Edición de notas recuperada.
-- Drag and drop sin recargas duplicadas.
-- Copiado con confirmación visible.
-- QR ampliable con código y URL.
-- Punto de control funcional y versiones correlativas.
-- Restauración sin salir del canvas.
-- TIMER de ideación en pantalla completa.
+- Se eliminó la reconstrucción completa del workspace después de crear, editar o mover notas.
+- Se incorporó un controlador estable con delegación de eventos.
+- Las notas se insertan, actualizan y mueven sobre el DOM existente.
+- Se aisló cada ruta en un `route-host` propio.
+- Las vistas asíncronas obsoletas ya no pueden sobrescribir la ruta activa.
+- Canvas, Toolkit y Kanban disponen de limpieza explícita de suscripciones y listeners.
+- El adaptador mock distingue eventos locales de eventos de otras pestañas.
+- El movimiento visual se revierte si falla la persistencia.
+- Se mantiene una alternativa explícita para mover notas desde el formulario.
+- Se corrigieron fallbacks de imagen que generaban errores secundarios.
+
+## Verificación automatizada
+
+Prueba de integración en Chromium sobre la aplicación completa:
+
+- Inicio de sesión con `WONKUP-ADMIN`.
+- Apertura de Ágora Education > TaxiChurro > Canvases > Lean Canvas.
+- Activación de pantalla completa.
+- Creación consecutiva de 20 notas.
+- Movimiento real de una nota 20 veces mediante Pointer Events.
+- Edición después del movimiento.
+- Recreación de la ruta y verificación de persistencia.
+- Cero errores de página.
+- Cero cambios inesperados de hash.
 
 ## Fuente de datos vigente
 
@@ -48,14 +67,4 @@ EN REVISIÓN
 
 ## Próximo paso
 
-Validar el Ajuste 5.2 en GitHub Pages y continuar la revisión funcional del Innovation Toolkit.
-
-## Ajuste actual
-
-- Cabecera fullscreen compacta.
-- Copia visible y verificable en el visor QR.
-- Drag and drop sin rerender completo ni cambio de ruta.
-
-## Ajuste actual
-
-Ajuste 5.5 - corrección raíz de creación, edición y movimiento de notas.
+Validar el Ajuste 5.6 en GitHub Pages. No continuar con la Entrega 6 hasta que creación, edición y movimiento de notas sean estables en la publicación real.

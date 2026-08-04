@@ -11,6 +11,7 @@ let activeContext = null;
 let unsubscribeEvents = null;
 let unsubscribeRealtime = null;
 let realtimeRefreshTimer = null;
+let kanbanGeneration = 0;
 
 const PRIORITIES = {
   high: { label: 'Alta', className: 'badge-red' },
@@ -25,14 +26,16 @@ const VISIBILITY_LABELS = {
 };
 
 export function renderKanban(container, workspaceId, projectId = null, embedded = false, session = null) {
+  const generation = ++kanbanGeneration;
   teardownRealtime();
   container.innerHTML = `<section class="${embedded ? '' : 'page'}" style="${embedded ? 'margin-top:18px' : ''}"><div class="loading-panel"><span class="spinner spinner-blue"></span><p>Cargando Kanban...</p></div></section>`;
-  initializeKanban({ container, workspaceId, projectId, embedded, session });
+  initializeKanban({ container, workspaceId, projectId, embedded, session, generation });
 }
 
-async function initializeKanban({ container, workspaceId, projectId, embedded, session }) {
+async function initializeKanban({ container, workspaceId, projectId, embedded, session, generation }) {
   try {
     const projects = await ProjectService.listProjects({ workspaceId, session, includeArchived: false });
+    if (generation !== kanbanGeneration || !container.isConnected) return;
     const selectedProject = projectId
       ? projects.find(project => project.id === projectId) || await ProjectService.getProject({ projectId, session })
       : projects[0];
@@ -47,6 +50,7 @@ async function initializeKanban({ container, workspaceId, projectId, embedded, s
       ProjectService.listMembers({ projectId: selectedProject.id, session }).catch(() => []),
       ProjectService.listUsers({ workspaceId: selectedProject.workspaceId, session }).catch(() => [])
     ]);
+    if (generation !== kanbanGeneration || !container.isConnected) return;
     const peopleMap = new Map();
     workspaceUsers.forEach(user => peopleMap.set(user.id, user));
     members.forEach(member => {
@@ -77,8 +81,9 @@ async function initializeKanban({ container, workspaceId, projectId, embedded, s
       sessionStorage.removeItem('wonkup.intent.newTask');
       setTimeout(() => openCardEditor(), 0);
     }
-    attachRealtime();
+    attachRealtime(generation);
   } catch (error) {
+    if (generation !== kanbanGeneration || !container.isConnected) return;
     container.innerHTML = `<section class="${embedded ? '' : 'page'}"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el Kanban</h2><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p></div></section>`;
   }
 }
@@ -91,19 +96,28 @@ function teardownRealtime() {
   clearTimeout(realtimeRefreshTimer);
 }
 
-async function attachRealtime() {
-  if (!activeContext) return;
+async function attachRealtime(generation) {
+  if (!activeContext || generation !== kanbanGeneration || !activeContext.container?.isConnected) return;
   unsubscribeEvents = KanbanService.subscribe(event => {
     if (!activeContext || activeContext.busy) return;
     if (event?.projectId && event.projectId !== activeContext.projectId) return;
     clearTimeout(realtimeRefreshTimer);
     realtimeRefreshTimer = setTimeout(() => refreshBoard({ silent: true }), 100);
   });
-  unsubscribeRealtime = await KanbanService.startRealtime({
+  const realtime = await KanbanService.startRealtime({
     projectId: activeContext.projectId,
     workspaceId: activeContext.project.workspaceId,
     session: activeContext.session
   }).catch(() => () => {});
+  if (generation !== kanbanGeneration || !activeContext?.container?.isConnected) { realtime?.(); return; }
+  unsubscribeRealtime = realtime;
+}
+
+
+export function cleanupKanbanView() {
+  kanbanGeneration += 1;
+  teardownRealtime();
+  activeContext = null;
 }
 
 function filteredCards() {

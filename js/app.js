@@ -8,9 +8,9 @@ import { renderForbidden } from './views/forbidden-view.js';
 import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
 import { renderProject } from './views/project-view.js';
-import { renderToolkit } from './views/toolkit-view.js';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.5.0';
-import { renderKanban } from './views/kanban-view.js';
+import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.6.0';
+import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
 import { icon } from './utils/icons.js';
@@ -18,6 +18,7 @@ import { icon } from './utils/icons.js';
 const shell = createAppShell();
 let sessionExpiryTimer = null;
 let lastSessionToken = getState().session?.token || null;
+let routeSequence = 0;
 
 function scheduleSessionExpiry(session) {
   clearTimeout(sessionExpiryTimer);
@@ -85,14 +86,30 @@ async function bootstrap() {
   }
 }
 
-function handleRoute(route) {
+function createRouteHost(route) {
+  const host = document.createElement('div');
+  host.className = `route-host route-host-${route.view}`;
+  host.dataset.routeSequence = String(++routeSequence);
+  host.dataset.routeHash = route.hash || '';
+  shell.main.replaceChildren(host);
+  return host;
+}
+
+function cleanupActiveViews() {
   cleanupCanvasView();
+  cleanupToolkitView();
+  cleanupKanbanView();
+}
+
+function handleRoute(route) {
+  cleanupActiveViews();
   const state = getState();
   const session = state.session;
 
   if (route.view === 'sharedCanvas') {
     renderShell({ view: 'access', params: {} });
-    renderSharedCanvas(shell.main, route.params.token);
+    const host = createRouteHost(route);
+    renderSharedCanvas(host, route.params.token);
     return;
   }
 
@@ -102,7 +119,8 @@ function handleRoute(route) {
       return;
     }
     renderShell(route);
-    renderAccess(shell.main, { reason: route.params.reason });
+    const host = createRouteHost(route);
+    renderAccess(host, { reason: route.params.reason });
     return;
   }
 
@@ -113,7 +131,8 @@ function handleRoute(route) {
 
   if (!canAccessRoute(route, session)) {
     renderShell({ view: 'forbidden', params: {} });
-    renderForbidden(shell.main, session);
+    const host = createRouteHost({ ...route, view: 'forbidden' });
+    renderForbidden(host, session);
     return;
   }
 
@@ -126,44 +145,46 @@ function handleRoute(route) {
   }
 
   renderShell(route);
+  const host = createRouteHost(route);
   const workspaceId = routeWorkspace || getState().selectedWorkspaceId;
 
   switch (route.view) {
     case 'dashboard':
-      renderDashboard(shell.main, workspaceId, session);
+      renderDashboard(host, workspaceId, session);
       break;
     case 'projects':
-      renderProjects(shell.main, workspaceId, session);
+      renderProjects(host, workspaceId, session);
       break;
     case 'project':
-      renderProject(shell.main, route.params, session);
+      renderProject(host, route.params, session);
       break;
     case 'toolkit':
-      renderToolkit(shell.main, workspaceId, null, false, session);
+      renderToolkit(host, workspaceId, null, false, session);
       break;
     case 'canvas':
-      renderCanvas(shell.main, route.params, session);
+      renderCanvas(host, route.params, session);
       break;
     case 'kanban':
-      renderKanban(shell.main, workspaceId, null, false, session);
+      renderKanban(host, workspaceId, null, false, session);
       break;
     case 'clients':
-      renderClients(shell.main, workspaceId, session);
+      renderClients(host, workspaceId, session);
       break;
     case 'placeholder':
-      renderPlaceholder(shell.main, route.params.section);
+      renderPlaceholder(host, route.params.section);
       break;
     case 'forbidden':
-      renderForbidden(shell.main, session);
+      renderForbidden(host, session);
       break;
     default:
-      shell.main.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h1>Ruta no encontrada</h1><p>Regresa a tu espacio autorizado para continuar.</p><a class="button button-primary" href="${getDefaultRoute(session)}">Volver</a></div></section>`;
+      host.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h1>Ruta no encontrada</h1><p>Regresa a tu espacio autorizado para continuar.</p><a class="button button-primary" href="${getDefaultRoute(session)}">Volver</a></div></section>`;
   }
 
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
   requestAnimationFrame(() => {
-    const heading = shell.main.querySelector('h1');
+    if (!host.isConnected) return;
+    const heading = host.querySelector('h1');
     if (heading) {
       heading.setAttribute('tabindex', '-1');
       heading.focus({ preventScroll: true });

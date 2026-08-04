@@ -10,8 +10,9 @@
 | Ajuste 4.1 - Usabilidad y configuración | Aprobado |
 | Ajuste 4.2 - Responsive y accesibilidad | Validado |
 | Entrega 5 - Innovation Toolkit y Canvas Engine | Implementada |
-| Ajuste 5.1 - Canvases especializados, QR y versiones | En revisión |
-| Entrega 6 - Portal del cliente y entregables | Pendiente |
+| Ajuste 5.1 - Canvases especializados, QR y versiones | Implementado |
+| Ajuste 5.6 - Reconstrucción estable del Canvas Engine | En revisión |
+| Entrega 6 - Portal del cliente y entregables | Bloqueada hasta validar 5.6 |
 | Entrega 7 - Finanzas y horas | Pendiente |
 | Entrega 8 - Dashboard y reportes | Pendiente |
 | Entrega 9 - Seguridad y publicación | Pendiente |

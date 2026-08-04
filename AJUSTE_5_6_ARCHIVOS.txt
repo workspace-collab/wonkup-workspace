@@ -1,0 +1,22 @@
+AJUSTE 5.6 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_6_DIAGNOSTICO.md
+- AJUSTE_5_6_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- README.md
+- ROADMAP.md
+- TEST_CHECKLIST.md
+- TEST_RESULTS_5_6.md
+- css/layout.css
+- index.html
+- js/adapters/mock-canvas-adapter.js
+- js/app.js
+- js/components/app-shell.js
+- js/components/canvas-workspace-controller.js
+- js/views/access-view.js
+- js/views/canvas-view.js
+- js/views/kanban-view.js
+- js/views/project-view.js
+- js/views/toolkit-view.js
+- tests/canvas-engine-smoke.py

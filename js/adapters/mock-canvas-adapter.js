@@ -81,13 +81,17 @@ function readInstances() {
 
 function writeInstances(instances, event = {}) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(instances));
-  const payload = { source: 'mock', at: now(), ...event };
-  subscribers.forEach(listener => listener(payload));
-  channel?.postMessage(payload);
+  const base = { at: now(), originClientId: clientId, ...event };
+  subscribers.forEach(listener => listener({ ...base, source: 'local' }));
+  channel?.postMessage({ ...base, source: 'broadcast' });
   return clone(instances);
 }
 
-channel?.addEventListener('message', event => subscribers.forEach(listener => listener(event.data || { source: 'broadcast' })));
+channel?.addEventListener('message', event => {
+  const payload = event.data || { source: 'broadcast' };
+  if (payload.originClientId === clientId) return;
+  subscribers.forEach(listener => listener(payload));
+});
 window.addEventListener('storage', event => {
   if (![STORAGE_KEY, PRESENCE_KEY].includes(event.key)) return;
   subscribers.forEach(listener => listener({ source: 'storage', at: now(), key: event.key }));

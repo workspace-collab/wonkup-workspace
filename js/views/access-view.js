@@ -18,7 +18,7 @@ export function renderAccess(container, options = {}) {
       <div class="auth-layout-grid">
         <article class="auth-intro">
           <div class="auth-brand">
-            <span class="auth-brand-logo"><img src="./assets/brand/logo-wonkup.png" alt="" onerror="this.remove(); this.parentElement.textContent='W';"></span>
+            <span class="auth-brand-logo"><img src="./assets/brand/logo-wonkup.png" alt="" onerror="const p=this.parentElement; this.remove(); if(p) p.textContent='W';"></span>
             <div><strong>WonkUp Workspace</strong><small>Innovación y gestión de proyectos</small></div>
           </div>
           <span class="auth-kicker">ACCESO SEGURO</span>

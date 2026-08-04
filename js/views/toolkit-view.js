@@ -9,8 +9,10 @@ import { showToast } from '../components/toast.js';
 import { calculateCanvasProgress } from '../utils/canvas-progress.js';
 
 let unsubscribeToolkit = null;
+let toolkitGeneration = 0;
 
 export async function renderToolkit(container, workspaceId, projectId = null, embedded = false, session = null) {
+  const generation = ++toolkitGeneration;
   unsubscribeToolkit?.();
   unsubscribeToolkit = null;
   container.innerHTML = `<section class="${embedded ? 'toolkit-embedded' : 'page'}" ${embedded ? '' : 'aria-labelledby="toolkit-title"'}>
@@ -23,13 +25,18 @@ export async function renderToolkit(container, workspaceId, projectId = null, em
       CanvasService.listInstances({ workspaceId, projectId, session, includeArchived: canManageCanvas(session) }),
       ProjectService.listProjects({ workspaceId, session, includeArchived: false })
     ]);
+    if (generation !== toolkitGeneration || !container.isConnected) return;
     renderToolkitContent(container, { workspaceId, projectId, embedded, session, instances, projects });
     unsubscribeToolkit = CanvasService.subscribe(event => {
+      if (generation !== toolkitGeneration || !container.isConnected) return;
       if (!String(event.action || '').startsWith('canvas') && !String(event.action || '').startsWith('note')) return;
       renderToolkit(container, workspaceId, projectId, embedded, session);
     });
   } catch (error) {
-    container.querySelector('.toolkit-loading').innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el Toolkit</h2><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p></div>`;
+    if (generation !== toolkitGeneration || !container.isConnected) return;
+    const loading = container.querySelector('.toolkit-loading');
+    if (!loading) return;
+    loading.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el Toolkit</h2><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p></div>`;
   }
 }
 
@@ -173,6 +180,13 @@ function openCreateCanvas({ workspaceId, projectId, projects, templateId, sessio
 
 function canvasHref(instance) {
   return `#/w/${encodeURIComponent(instance.workspaceId)}/p/${encodeURIComponent(instance.projectId)}/canvas/${encodeURIComponent(instance.id)}`;
+}
+
+
+export function cleanupToolkitView() {
+  toolkitGeneration += 1;
+  unsubscribeToolkit?.();
+  unsubscribeToolkit = null;
 }
 
 function relativeTime(value) {

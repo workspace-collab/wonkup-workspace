@@ -61,12 +61,14 @@ export function renderProject(container, { projectId, tab = 'summary' }, session
 async function loadProject(container, projectId, tab, session) {
   try {
     const project = await ProjectService.getProject({ projectId, session });
+    if (!container.isConnected) return;
     if (!project) {
       container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('lock')}</div><h2>Proyecto no encontrado o no autorizado</h2><p>Revisa tu enlace o vuelve a la lista de proyectos.</p></div></section>`;
       return;
     }
     renderProjectShell(container, project, tab, session);
   } catch (error) {
+    if (!container.isConnected) return;
     container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el proyecto</h2><p>${escapeHtml(error.message)}</p></div></section>`;
   }
 }

@@ -176,3 +176,19 @@
 - Arrastre limitado a un asa explícita del post-it.
 - Flujo de guardado y renderizado estabilizado.
 - Prueba automatizada de 20 altas y 20 movimientos sin salidas de ruta.
+
+## Ajuste 5.6 - Reconstrucción estable del Canvas Engine
+
+- Se trabajó sobre el ZIP real publicado después del Ajuste 5.5.
+- Se eliminó el reemplazo de `innerHTML` del workspace durante altas, ediciones y movimientos.
+- Se añadió `CanvasWorkspaceController` con delegación de eventos y actualización incremental del DOM.
+- Las notas nuevas se insertan sin destruir las existentes.
+- Las notas editadas se actualizan de manera localizada.
+- El movimiento traslada el mismo nodo y revierte el cambio si falla la persistencia.
+- Se aisló cada ruta mediante un `route-host` independiente.
+- Se impidió que respuestas asíncronas de rutas anteriores sobrescriban la vista activa.
+- Se añadieron ciclos de limpieza para Canvas, Toolkit y Kanban.
+- El adaptador mock diferencia mutaciones locales y sincronización entre pestañas.
+- Se corrigieron errores secundarios en fallbacks de imágenes.
+- Se añadió identificación visible `Motor 5.6.0`.
+- Se añadió una prueba Chromium de la aplicación completa con 20 altas y 20 movimientos sin cambios de ruta ni errores.
