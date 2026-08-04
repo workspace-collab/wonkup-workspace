@@ -272,3 +272,12 @@ Validar:
 - [ ] La ruta no cambia durante una mutación.
 - [ ] El listado del Toolkit solo aparece al usar Volver al Toolkit.
 - [ ] La URL y la vista nunca quedan desincronizadas.
+
+## Ajuste 5.5 - Estabilidad repetitiva
+
+- [ ] Crear 10 notas consecutivas sin cambiar de ruta.
+- [ ] Mover una nota 10 veces desde el asa superior.
+- [ ] Mover 5 notas diferentes.
+- [ ] Editar después de mover.
+- [ ] Repetir en pantalla completa.
+- [ ] Confirmar cero errores en la consola.

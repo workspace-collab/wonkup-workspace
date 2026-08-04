@@ -168,3 +168,11 @@
 - Se añadió un guard del router para bloquear salidas accidentales durante mutaciones y drag.
 - Se corrigió el estado inconsistente URL/canvas provocado por `history.replaceState`.
 - Se reforzó creación, edición, comentarios, eliminación, restauración y movimiento de notas.
+
+## Ajuste 5.5 - Corrección raíz del Canvas Engine
+
+- Corregido error asíncrono de restauración de foco en modales.
+- Eliminadas guardas temporales de navegación y manipulación de hash.
+- Arrastre limitado a un asa explícita del post-it.
+- Flujo de guardado y renderizado estabilizado.
+- Prueba automatizada de 20 altas y 20 movimientos sin salidas de ruta.

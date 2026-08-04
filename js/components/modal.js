@@ -94,7 +94,7 @@ export function openModal({
   document.body.classList.add('modal-open');
   lockBackground(host, root);
 
-  const close = () => closeModal();
+  const close = options => closeModal(options);
   root.querySelectorAll('[data-modal-close]').forEach(button => button.addEventListener('click', close));
 
   if (closeOnBackdrop) {
@@ -139,6 +139,7 @@ export function openModal({
       || root.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')
       || getFocusable(root)[0]
       || root.querySelector('#modal-title');
+    if (!root.isConnected) return;
     firstMeaningful?.focus();
   });
 
@@ -154,10 +155,13 @@ export function closeModal({ restoreFocus = true } = {}) {
   document.body.classList.remove('modal-open');
   unlockBackground();
 
-  if (restoreFocus && lastTrigger?.isConnected) {
-    requestAnimationFrame(() => lastTrigger.focus());
-  }
+  const triggerToRestore = restoreFocus && lastTrigger?.isConnected ? lastTrigger : null;
   lastTrigger = null;
+  if (triggerToRestore) {
+    requestAnimationFrame(() => {
+      if (triggerToRestore.isConnected) triggerToRestore.focus();
+    });
+  }
   onClose?.();
 }
 

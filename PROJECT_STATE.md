@@ -55,3 +55,7 @@ Validar el Ajuste 5.2 en GitHub Pages y continuar la revisión funcional del Inn
 - Cabecera fullscreen compacta.
 - Copia visible y verificable en el visor QR.
 - Drag and drop sin rerender completo ni cambio de ruta.
+
+## Ajuste actual
+
+Ajuste 5.5 - corrección raíz de creación, edición y movimiento de notas.

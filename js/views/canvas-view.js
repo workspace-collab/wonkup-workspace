@@ -13,12 +13,9 @@ let cleanupEditor = null;
 let draggedNoteId = '';
 let refreshSequence = 0;
 let timerTicker = null;
-let postDragGuardTimer = null;
-let postDragClickHandler = null;
-let canvasExpectedHash = '';
 let canvasMutationActive = false;
-let canvasNavigationAllowed = false;
-let suppressNavigationUntil = 0;
+let dragJustEndedUntil = 0;
+let activePointerDrag = null;
 const VIEW_KEY = 'wonkup.canvas.view';
 const FOCUS_KEY = 'wonkup.canvas.focusMode';
 const TIMER_KEY = 'wonkup.canvas.teamTimer';
@@ -63,19 +60,6 @@ function renderCanvasEditor(container, context) {
   const focusMode = !readOnly && localStorage.getItem(FOCUS_KEY) === '1';
   document.body.classList.toggle('canvas-focus-mode', focusMode);
   container.dataset.activeCanvasId = instance.id;
-  canvasExpectedHash = location.hash;
-  globalThis.__wonkupCanvasNavigationGuard = route => {
-    if (canvasNavigationAllowed) {
-      canvasNavigationAllowed = false;
-      return true;
-    }
-    const blocked = canvasMutationActive || Boolean(draggedNoteId) || Date.now() < suppressNavigationUntil;
-    if (blocked && route?.hash && route.hash !== canvasExpectedHash) {
-      history.replaceState(null, '', canvasExpectedHash);
-      return false;
-    }
-    return true;
-  };
 
   container.innerHTML = `<section class="${readOnly ? 'shared-canvas-page' : 'page canvas-editor-page'}" data-canvas-id="${escapeHtml(instance.id)}" data-template-layout="${escapeHtml(template.layout || 'generic')}">
     <header class="canvas-editor-header" style="--canvas-accent:${escapeHtml(template.color)}">
@@ -196,8 +180,8 @@ function canvasSection(instance, section, canEdit, extraClass = '') {
 function noteCard(note, canEdit, draggable) {
   const color = getCanvasNoteColor(note.colorId);
   const comments = note.comments?.length || 0;
-  return `<article class="canvas-note" data-note-id="${escapeHtml(note.id)}" ${canEdit && draggable ? 'draggable="true"' : ''} tabindex="0" style="--note-bg:${color.background};--note-border:${color.border};--note-text:${color.text}">
-    <div class="canvas-note-handle">${canEdit && draggable ? icon('grip') : ''}<span>${escapeHtml(color.name)}</span></div>
+  return `<article class="canvas-note" data-note-id="${escapeHtml(note.id)}" tabindex="0" style="--note-bg:${color.background};--note-border:${color.border};--note-text:${color.text}">
+    <div class="canvas-note-handle" ${canEdit && draggable ? `data-drag-note="${escapeHtml(note.id)}" role="button" tabindex="0" aria-label="Mover nota"` : ''}>${canEdit && draggable ? icon('grip') : ''}<span>${escapeHtml(color.name)}</span></div>
     <p>${escapeHtml(note.text)}</p>
     ${note.sourceCanvasId ? `<span class="linked-note-label">${icon('link')} Vinculada</span>` : ''}
     <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${canEdit ? `<button class="note-open" type="button" draggable="false" data-open-note="${escapeHtml(note.id)}" aria-label="Editar nota">${icon('edit')}</button>` : ''}</footer>
@@ -210,7 +194,7 @@ function bindCanvasEvents(container, context, currentView) {
   container.querySelector('#canvas-back')?.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
-    if (canvasMutationActive || draggedNoteId || Date.now() < suppressNavigationUntil) return;
+    if (canvasMutationActive || draggedNoteId) return;
     navigateFromCanvas(event.currentTarget.dataset.backHash || '#/');
   });
 
@@ -279,7 +263,7 @@ function bindCanvasWorkspaceEvents(container, context, currentView) {
 
   container.querySelectorAll('.canvas-note').forEach(card => {
     card.addEventListener('dblclick', event => {
-      if (!canEdit || Date.now() < suppressNavigationUntil) return;
+      if (!canEdit || Date.now() < dragJustEndedUntil || event.target.closest('[data-drag-note], [data-open-note]')) return;
       event.preventDefault();
       openNoteDetail({
         instance: context.instance,
@@ -305,82 +289,155 @@ function bindCanvasWorkspaceEvents(container, context, currentView) {
         });
       }
     });
-    if (!canEdit || currentView !== 'board') return;
-    card.addEventListener('dragstart', event => {
-      event.stopPropagation();
-      draggedNoteId = card.dataset.noteId;
-      suppressNavigationUntil = Date.now() + 3000;
-      armPostDragGuard(container, canvasExpectedHash);
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', draggedNoteId);
-      card.classList.add('dragging');
-    });
-    card.addEventListener('dragend', event => {
-      event.stopPropagation();
-      card.classList.remove('dragging');
-      container.querySelectorAll('.canvas-note-stack').forEach(stack => stack.classList.remove('drag-over'));
-      suppressNavigationUntil = Date.now() + 1000;
-      armPostDragGuard(container, canvasExpectedHash);
-      window.setTimeout(() => { draggedNoteId = ''; }, 150);
-    });
   });
 
   if (!canEdit || currentView !== 'board') return;
-  container.querySelectorAll('[data-drop-section]').forEach(stack => {
-    stack.addEventListener('dragover', event => {
+
+  container.querySelectorAll('[data-drag-note]').forEach(handle => {
+    handle.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
-      event.dataTransfer.dropEffect = 'move';
-      stack.classList.add('drag-over');
     });
-    stack.addEventListener('dragleave', event => {
-      if (!stack.contains(event.relatedTarget)) stack.classList.remove('drag-over');
+    handle.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        event.stopPropagation();
+        showToast('Para mover con teclado, abre el lápiz y cambia la sección.');
+      }
     });
-    stack.addEventListener('drop', async event => {
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || canvasMutationActive || activePointerDrag) return;
       event.preventDefault();
       event.stopPropagation();
-      stack.classList.remove('drag-over');
-      const noteId = event.dataTransfer.getData('text/plain') || draggedNoteId;
-      if (!noteId) return;
-      const originalInstance = context.instance;
-      const card = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId) || null;
-      const previousStack = card?.closest('[data-drop-section]');
-      suppressNavigationUntil = Date.now() + 1400;
-      beginCanvasMutation(container);
-
-      if (card && !stack.contains(card)) {
-        stack.querySelector('.canvas-empty-section')?.remove();
-        stack.appendChild(card);
-        ensureEmptyCanvasStack(previousStack, canEdit);
-      }
-
-      try {
-        const visualIndex = Math.max(0, [...stack.querySelectorAll('.canvas-note')].findIndex(item => item.dataset.noteId === noteId));
-        const next = await CanvasService.moveNote({
-          canvasId: originalInstance.id,
-          noteId,
-          toSectionId: stack.dataset.dropSection,
-          toIndex: visualIndex,
-          session
-        });
-        context.instance = next;
-        draggedNoteId = '';
-        updateCanvasMutationSummary(container, next);
-        const movedCard = [...container.querySelectorAll('[data-note-id]')].find(item => item.dataset.noteId === noteId);
-        const movedTime = movedCard?.querySelector('time');
-        if (movedTime) {
-          movedTime.dateTime = next.notes.find(note => note.id === noteId)?.updatedAt || new Date().toISOString();
-          movedTime.textContent = 'Ahora';
-        }
-        showToast('Nota movida.');
-      } catch (error) {
-        showToast(error.message, { type: 'error' });
-        refreshCanvasWorkspace(container, context, originalInstance, currentView);
-      } finally {
-        endCanvasMutation(container);
-      }
+      startPointerDrag({ event, handle, container, context, currentView });
     });
   });
+
+}
+
+function startPointerDrag({ event, handle, container, context, currentView }) {
+  const card = handle.closest('.canvas-note');
+  if (!card) return;
+  const origin = { x: event.clientX, y: event.clientY };
+  const host = document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : document.body;
+  activePointerDrag = {
+    pointerId: event.pointerId,
+    noteId: handle.dataset.dragNote,
+    handle,
+    card,
+    container,
+    context,
+    currentView,
+    origin,
+    host,
+    ghost: null,
+    targetStack: null,
+    lastX: event.clientX,
+    lastY: event.clientY,
+    moved: false
+  };
+  handle.setPointerCapture?.(event.pointerId);
+  handle.addEventListener('pointermove', handlePointerDragMove);
+  handle.addEventListener('pointerup', handlePointerDragEnd, { once: true });
+  handle.addEventListener('pointercancel', handlePointerDragCancel, { once: true });
+}
+
+function handlePointerDragMove(event) {
+  const drag = activePointerDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  event.preventDefault();
+  drag.lastX = event.clientX;
+  drag.lastY = event.clientY;
+  const distance = Math.hypot(event.clientX - drag.origin.x, event.clientY - drag.origin.y);
+  if (!drag.moved && distance < 6) return;
+  if (!drag.moved) {
+    drag.moved = true;
+    const rect = drag.card.getBoundingClientRect();
+    const ghost = drag.card.cloneNode(true);
+    ghost.removeAttribute('tabindex');
+    ghost.classList.add('canvas-drag-ghost');
+    ghost.style.width = `${rect.width}px`;
+    ghost.style.height = `${rect.height}px`;
+    drag.host.appendChild(ghost);
+    drag.ghost = ghost;
+    drag.card.classList.add('dragging-source');
+  }
+  positionPointerGhost(drag, event.clientX, event.clientY);
+  const hit = document.elementFromPoint(event.clientX, event.clientY);
+  const nextStack = hit?.closest?.('[data-drop-section]') || null;
+  if (nextStack !== drag.targetStack) {
+    drag.targetStack?.classList.remove('drag-over');
+    drag.targetStack = nextStack;
+    drag.targetStack?.classList.add('drag-over');
+  }
+}
+
+function positionPointerGhost(drag, x, y) {
+  if (!drag.ghost) return;
+  drag.ghost.style.left = `${Math.min(window.innerWidth - 24, Math.max(12, x + 14))}px`;
+  drag.ghost.style.top = `${Math.min(window.innerHeight - 24, Math.max(12, y + 14))}px`;
+}
+
+async function handlePointerDragEnd(event) {
+  const drag = activePointerDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const targetStack = drag.targetStack;
+  const noteId = drag.noteId;
+  const context = drag.context;
+  const container = drag.container;
+  const currentView = drag.currentView;
+  const targetSectionId = targetStack?.dataset.dropSection || '';
+  const toIndex = targetStack ? pointerDropIndex(targetStack, drag.lastY, noteId) : 0;
+  const moved = drag.moved && Boolean(targetStack && targetSectionId);
+  cleanupPointerDrag();
+  dragJustEndedUntil = Date.now() + 650;
+  if (!moved) return;
+
+  beginCanvasMutation(container);
+  try {
+    const next = await CanvasService.moveNote({
+      canvasId: context.instance.id,
+      noteId,
+      toSectionId: targetSectionId,
+      toIndex,
+      session: context.session
+    });
+    refreshCanvasWorkspace(container, context, next, currentView);
+    showToast('Nota movida.');
+  } catch (error) {
+    showToast(error.message || 'No se pudo mover la nota.', { type: 'error' });
+  } finally {
+    endCanvasMutation(container);
+  }
+}
+
+function handlePointerDragCancel(event) {
+  if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) return;
+  cleanupPointerDrag();
+}
+
+function pointerDropIndex(stack, pointerY, movingNoteId) {
+  const cards = [...stack.querySelectorAll('.canvas-note')]
+    .filter(card => card.dataset.noteId !== movingNoteId);
+  const index = cards.findIndex(card => {
+    const rect = card.getBoundingClientRect();
+    return pointerY < rect.top + rect.height / 2;
+  });
+  return index < 0 ? cards.length : index;
+}
+
+function cleanupPointerDrag() {
+  const drag = activePointerDrag;
+  if (!drag) return;
+  try { drag.handle.releasePointerCapture?.(drag.pointerId); } catch { /* noop */ }
+  drag.handle.removeEventListener('pointermove', handlePointerDragMove);
+  drag.targetStack?.classList.remove('drag-over');
+  drag.card?.classList.remove('dragging-source');
+  drag.ghost?.remove();
+  activePointerDrag = null;
+  draggedNoteId = '';
 }
 
 function refreshCanvasWorkspace(container, context, next, currentView = null) {
@@ -397,25 +454,17 @@ function refreshCanvasWorkspace(container, context, next, currentView = null) {
 
 function beginCanvasMutation(container) {
   canvasMutationActive = true;
-  canvasExpectedHash = location.hash;
-  suppressNavigationUntil = Math.max(suppressNavigationUntil, Date.now() + 1200);
   container.dataset.canvasMutating = 'true';
 }
 
 function endCanvasMutation(container) {
-  suppressNavigationUntil = Math.max(suppressNavigationUntil, Date.now() + 500);
-  window.setTimeout(() => {
-    canvasMutationActive = false;
-    delete container.dataset.canvasMutating;
-  }, 260);
+  canvasMutationActive = false;
+  delete container.dataset.canvasMutating;
 }
 
 function navigateFromCanvas(hash) {
-  clearPostDragGuard(document.querySelector('#main-view'));
   canvasMutationActive = false;
   draggedNoteId = '';
-  suppressNavigationUntil = 0;
-  canvasNavigationAllowed = true;
   location.hash = hash;
 }
 
@@ -465,8 +514,8 @@ function openNoteForm({ instance, session, sectionId = '', container, onSaved })
         input: { text, colorId: data.get('canvas-note-color') || 'sky' },
         session
       });
+      modal.close({ restoreFocus: false });
       onSaved?.(next);
-      modal.close();
       showToast('Nota agregada correctamente.');
     } catch (error) {
       status.textContent = error.message || 'No se pudo guardar la nota.';
@@ -508,8 +557,8 @@ function openNoteDetail({ instance, noteId, session, container, onSaved }) {
     try {
       beginCanvasMutation(container);
       const next = await CanvasService.updateNote({ canvasId: instance.id, noteId, patch: { text, sectionId: modal.root.querySelector('#note-detail-section').value, colorId: modal.root.querySelector('#note-detail-color').value }, session });
+      modal.close({ restoreFocus: false });
       onSaved?.(next);
-      modal.close();
       showToast('Nota actualizada.');
     } catch (error) { showToast(error.message, { type: 'error' }); }
     finally { endCanvasMutation(container); }
@@ -520,8 +569,8 @@ function openNoteDetail({ instance, noteId, session, container, onSaved }) {
     try {
       beginCanvasMutation(container);
       const next = await CanvasService.addComment({ canvasId: instance.id, noteId, text: field.value, session });
+      modal.close({ restoreFocus: false });
       onSaved?.(next);
-      modal.close();
       showToast('Comentario agregado.');
     } catch (error) { showToast(error.message, { type: 'error' }); }
     finally { endCanvasMutation(container); }
@@ -532,8 +581,8 @@ function openNoteDetail({ instance, noteId, session, container, onSaved }) {
     try {
       beginCanvasMutation(container);
       const next = await CanvasService.deleteNote({ canvasId: instance.id, noteId, session });
+      closeModal({ restoreFocus: false });
       onSaved?.(next);
-      closeModal();
       showToast('Nota eliminada.');
     } catch (error) { showToast(error.message, { type: 'error' }); }
     finally { endCanvasMutation(container); }
@@ -843,29 +892,6 @@ function ensureEmptyCanvasStack(stack, canEdit) {
   }
 }
 
-function clearPostDragGuard(container) {
-  if (postDragGuardTimer) window.clearTimeout(postDragGuardTimer);
-  postDragGuardTimer = null;
-  if (postDragClickHandler) document.removeEventListener('click', postDragClickHandler, true);
-  postDragClickHandler = null;
-  container?.classList.remove('canvas-post-drag-guard');
-}
-
-function armPostDragGuard(container, expectedHash = location.hash) {
-  clearPostDragGuard(container);
-  canvasExpectedHash = expectedHash;
-  suppressNavigationUntil = Math.max(suppressNavigationUntil, Date.now() + 1000);
-  container.classList.add('canvas-post-drag-guard');
-  const expiresAt = performance.now() + 950;
-  postDragClickHandler = event => {
-    if (performance.now() > expiresAt) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  };
-  document.addEventListener('click', postDragClickHandler, true);
-  postDragGuardTimer = window.setTimeout(() => clearPostDragGuard(container), 980);
-}
-
 async function reloadCanvas(container, context) {
   const requestId = ++refreshSequence;
   const canvasId = context.instance.id;
@@ -1138,16 +1164,12 @@ function relativeTime(value) {
 }
 
 export function cleanupCanvasView() {
+  cleanupPointerDrag();
   refreshSequence += 1;
   cleanupEditor?.();
   cleanupEditor = null;
   stopTimerTicker();
-  clearPostDragGuard(document.querySelector('#main-view'));
   document.querySelector('#main-view')?.classList.remove('canvas-fullscreen-host');
-  canvasExpectedHash = '';
   canvasMutationActive = false;
-  canvasNavigationAllowed = false;
-  suppressNavigationUntil = 0;
-  if (globalThis.__wonkupCanvasNavigationGuard) delete globalThis.__wonkupCanvasNavigationGuard;
   document.body.classList.remove('canvas-focus-mode', 'canvas-printing', 'canvas-print-summary', 'canvas-print-detail');
 }

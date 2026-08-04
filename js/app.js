@@ -9,7 +9,7 @@ import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
 import { renderProject } from './views/project-view.js';
 import { renderToolkit } from './views/toolkit-view.js';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.4.0';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=5.5.0';
 import { renderKanban } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
@@ -86,8 +86,6 @@ async function bootstrap() {
 }
 
 function handleRoute(route) {
-  const canvasGuard = globalThis.__wonkupCanvasNavigationGuard;
-  if (typeof canvasGuard === 'function' && canvasGuard(route) === false) return;
   cleanupCanvasView();
   const state = getState();
   const session = state.session;

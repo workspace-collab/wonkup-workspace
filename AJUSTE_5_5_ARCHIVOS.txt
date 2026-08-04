@@ -1,0 +1,12 @@
+AJUSTE 5.5 - ARCHIVOS NUEVOS O MODIFICADOS
+
+- AJUSTE_5_5_DIAGNOSTICO.md
+- AJUSTE_5_5_GUIA.md
+- CHANGELOG.md
+- PROJECT_STATE.md
+- TEST_CHECKLIST.md
+- css/components.css
+- index.html
+- js/app.js
+- js/components/modal.js
+- js/views/canvas-view.js

@@ -2186,3 +2186,27 @@ body.canvas-focus-mode .app-header { grid-area: header; }
   }
   #main-view:fullscreen .canvas-title-row h1 { white-space: normal; }
 }
+
+
+/* Ajuste 5.5 - interacción estable del Canvas Engine */
+.canvas-note-handle[data-drag-note] {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.canvas-note-handle[data-drag-note]:active { cursor: grabbing; }
+[data-canvas-mutating="true"] .canvas-back-link { pointer-events: none; opacity: .55; }
+.canvas-note.dragging { opacity: .55; transform: scale(.98); }
+
+.canvas-drag-ghost {
+  position: fixed;
+  z-index: 2147483000;
+  margin: 0;
+  pointer-events: none;
+  opacity: .92;
+  transform: translateY(-50%) rotate(1deg);
+  box-shadow: 0 18px 45px rgba(6, 12, 29, .24);
+}
+.canvas-note.dragging-source {
+  opacity: .28;
+}
