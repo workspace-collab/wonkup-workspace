@@ -1,0 +1,26 @@
+WONKUP WORKSPACE - ENTREGA 4
+
+Archivos nuevos o modificados:
+- API_CONTRACTS.md
+- CHANGELOG.md
+- DATA_DICTIONARY.md
+- ENTREGA_4_GUIA.md
+- PROJECT_STATE.md
+- README.md
+- ROADMAP.md
+- TEST_CHECKLIST.md
+- css/components.css
+- css/responsive.css
+- data/demo-kanban.js
+- firebase/README.md
+- firebase/firestore.rules
+- firebase/realtime-database.rules.json
+- index.html
+- js/adapters/firebase-kanban-adapter.js
+- js/adapters/mock-kanban-adapter.js
+- js/config/api-config.js
+- js/config/app-config.js
+- js/config/runtime-config.js
+- js/services/kanban-service.js
+- js/utils/icons.js
+- js/views/kanban-view.js

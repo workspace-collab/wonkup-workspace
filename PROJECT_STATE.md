@@ -4,53 +4,47 @@
 WonkUp Workspace
 
 ## Fase actual
-Entrega 3 — Proyectos y Google Drive
+Entrega 4 — Kanban funcional y colaboración preparada para Firebase
 
 ## Estado
-Ajuste 3.1 completado técnicamente y pendiente de validación del usuario.
+Construcción técnica completada. Pendiente de validación del usuario en GitHub Pages.
 
 ## Entregas
 - Entrega 0 — Blueprint: APROBADA
 - Entrega 1 — Núcleo visual: APROBADA
 - Entrega 2 — Workspaces y acceso: APROBADA
-- Entrega 3 — Proyectos y Drive: EN REVISIÓN
+- Entrega 3 — Proyectos y Drive: APROBADA
+- Entrega 4 — Kanban: EN REVISIÓN
 
-## Implementado
-- CRUD lógico de proyectos: crear, consultar, editar, archivar y restaurar.
-- Códigos correlativos por workspace.
-- Persistencia local demostrativa.
-- Adaptador real para Apps Script.
-- Ficha de proyecto ampliada con portada horizontal configurable por URL y logo compacto.
-- Clientes por workspace.
-- Equipo por proyecto.
-- Recursos vinculados.
-- Hitos demostrativos.
-- Estructura estándar de Google Drive.
-- Creación real de carpetas mediante Apps Script.
-- Auditoría de acciones críticas en Apps Script.
-- Validación de roles en frontend y backend.
+## Implementado en Entrega 4
+- Tablero por proyecto con nueve columnas estándar.
+- Creación, edición, movimiento y archivo lógico de tarjetas.
+- Drag and drop entre columnas y reordenamiento interno.
+- Límites WIP por columna con validación.
+- Búsqueda y filtros por responsable, prioridad y etiqueta.
+- Responsable, participantes, fechas, horas, etiquetas, visibilidad y dependencias.
+- Checklist interactiva.
+- Comentarios por tarjeta.
+- Historial de cambios por tarjeta.
+- Indicadores de tarjetas, completadas, atrasadas y horas.
+- Persistencia en `localStorage` en modo demo.
+- Sincronización entre pestañas mediante `BroadcastChannel`.
+- Adaptador preparado para Firestore y reglas iniciales de seguridad.
+- Configuración pública separada en `js/config/runtime-config.js`.
 
 ## Decisiones
-- No se elimina físicamente un proyecto; se archiva y puede restaurarse al estado previo.
-- El modo `mock` permite validar la UX sin configurar servicios externos.
-- En modo real, Sheets es la fuente de verdad para proyectos, clientes, equipo y recursos.
-- Drive conserva permisos privados por defecto.
-- Solo superadministrador y administrador de workspace crean o archivan proyectos.
-- El líder de proyecto puede editar los proyectos que tiene autorizados.
-
-## Ajuste 3.1
-- Se corrigió el tamaño descontrolado del icono de regreso.
-- Se reemplazó la cabecera plana por un hero horizontal responsive.
-- Se añadieron `coverImage` y `brandColor`.
-- Se añadió restauración desde la lista y desde Configuración.
-- Se registran estado previo, fechas y usuarios de archivo/restauración.
+- El modo predeterminado sigue siendo `mock` hasta configurar Firebase Authentication mediante custom tokens.
+- Los clientes e invitados no acceden al Kanban en el MVP actual.
+- Las tarjetas se archivan; no se eliminan físicamente.
+- Los límites WIP se validan antes de aceptar un movimiento.
+- Los comentarios, checklist e historial se almacenan dentro de la tarjeta durante el MVP.
+- Firebase requiere documentos de membresía por workspace y proyecto.
 
 ## Pendientes conocidos
-- Los hitos todavía no tienen formulario CRUD.
-- El modo mock no comparte cambios entre dispositivos.
-- Kanban real corresponde a la Entrega 4.
-- Canvases colaborativos corresponden a la Entrega 5.
-- Portal del cliente y entregables corresponden a la Entrega 6.
+- Activar Firebase real requiere crear el proyecto, publicar reglas y completar el Access Broker en Apps Script.
+- La presencia de usuarios conectados se implementará junto con la colaboración avanzada.
+- Los adjuntos binarios seguirán en Google Drive; el Kanban solo almacenará referencias.
+- El portal del cliente y entregables corresponden a la Entrega 6.
 
 ## Próxima entrega
-Entrega 4 — Kanban colaborativo con Firebase.
+Entrega 5 — Innovation Toolkit y Canvas Engine.

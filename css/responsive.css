@@ -93,3 +93,31 @@
   .project-tabs { padding-inline: 10px; }
   .card-actions { justify-content: flex-start; }
 }
+
+/* Entrega 4: Kanban funcional */
+@media (max-width: 980px) {
+  .kanban-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kanban-command-bar { align-items: stretch; }
+  .kanban-mode { margin-left: 0; }
+}
+
+@media (max-width: 760px) {
+  .kanban-command-bar,
+  .kanban-project-selector,
+  .kanban-current-project { align-items: stretch; flex-direction: column; }
+  .kanban-project-selector .select { width: 100%; min-width: 0; }
+  .kanban-mode { flex-direction: row; align-items: center; }
+  .kanban-board-functional { grid-auto-columns: minmax(276px, 86vw); }
+  .kanban-detail-grid { grid-template-columns: 1fr; }
+  .form-field-wide { grid-column: auto; }
+  .kanban-participants > label { display: flex; margin-right: 0; }
+}
+
+@media (max-width: 480px) {
+  .kanban-metrics { grid-template-columns: 1fr; }
+  .kanban-metric { min-height: 68px; }
+  .kanban-toolbar .button { width: 100%; }
+  .kanban-inline-form { grid-template-columns: 1fr; }
+  .kanban-inline-form .button { width: 100%; }
+  .kanban-filter-empty { align-items: stretch; flex-direction: column; text-align: center; }
+}

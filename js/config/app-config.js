@@ -1,7 +1,7 @@
 export const APP_CONFIG = Object.freeze({
   name: 'WonkUp Workspace',
   tagline: 'Tu centro de innovación y gestión de proyectos',
-  version: '0.3.0-projects-drive',
+  version: '0.4.0-kanban',
   defaultWorkspaceId: 'all',
   defaultTheme: 'light',
   routes: {

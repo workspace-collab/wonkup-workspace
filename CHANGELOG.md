@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.0 — Entrega 4: Kanban
+
+### Añadido
+- Tablero funcional por proyecto con nueve columnas estándar.
+- CRUD lógico de tarjetas y archivo no destructivo.
+- Drag and drop y reordenamiento dentro de columnas.
+- Límites WIP con bloqueo de movimientos excedidos.
+- Filtros por texto, responsable, prioridad y etiqueta.
+- Checklist, comentarios, dependencias e historial.
+- Registro de horas estimadas y reales por tarjeta.
+- Indicadores de avance, retrasos y carga de horas.
+- Persistencia local y sincronización entre pestañas.
+- `KanbanService` con adaptadores mock y Firebase.
+- Configuración pública en `runtime-config.js`.
+- Reglas iniciales de Firestore y Realtime Database.
+
+### Seguridad
+- Validación de alcance por workspace y proyecto.
+- Edición limitada a roles internos.
+- Firebase preparado para custom tokens y documentos de membresía.
+- Tarjetas archivadas en vez de eliminadas físicamente.
+
+### Cambiado
+- El Kanban demostrativo fue reemplazado por un módulo operativo.
+- La versión de la aplicación cambia a `0.4.0-kanban`.
+
 ## 0.3.1 — Ajustes de Entrega 3
 
 ### Añadido

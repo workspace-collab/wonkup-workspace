@@ -1,92 +1,79 @@
-# Data Dictionary — Entrega 3.1
+# Data Dictionary — Entrega 4
 
-## Project
+Las entidades administrativas de la Entrega 3.1 se mantienen sin cambios. Esta entrega añade el modelo colaborativo del Kanban.
 
-| Campo frontend | Campo Sheets | Tipo | Obligatorio | Descripción |
-|---|---|---|---:|---|
-| id | id | UUID/string | Sí | Identificador técnico |
-| workspaceId | workspace_id | string | Sí | Workspace propietario |
-| clientId | client_id | string | No | Cliente vinculado |
-| code | code | string | Sí | Código correlativo humano |
-| name | name | string(120) | Sí | Nombre del proyecto |
-| tagline | tagline | string(180) | No | Frase breve |
-| description | description | string(2000) | No | Alcance y objetivo |
-| status | status | enum | Sí | Estado operativo |
-| stage | stage | enum | Sí | Etapa metodológica |
-| priority | priority | enum | Sí | Prioridad |
-| health | health | enum | Sí | green, amber o red |
-| progress | progress | number 0–100 | Sí | Avance |
-| ownerUserId | owner_user_id | string | Sí | Responsable |
-| startDate | start_date | date ISO | No | Inicio |
-| dueDate | due_date | date ISO | No | Entrega estimada |
-| budget | budget | number | No | Presupuesto demostrativo |
-| logo | logo_url | URL/ruta assets | No | Logotipo compacto del proyecto |
-| coverImage | cover_image_url | URL/ruta assets | No | Portada horizontal del hero |
-| brandColor | brand_color | HEX #RRGGBB | Sí | Color de fallback de la portada |
-| statusBeforeArchive | status_before_archive | enum | No | Estado conservado antes de archivar |
-| archivedAt | archived_at | datetime ISO | No | Fecha de archivo |
-| archivedBy | archived_by | string | No | Usuario que archivó |
-| restoredAt | restored_at | datetime ISO | No | Fecha de restauración |
-| restoredBy | restored_by | string | No | Usuario que restauró |
-| driveFolderId | drive_folder_id | string | No | ID de carpeta principal |
-| driveUrl | drive_folder_url | URL | No | URL de Drive |
-| githubUrl | github_url | URL | No | Repositorio |
-| figmaUrl | figma_url | URL | No | Prototipo |
-| hostingUrl | hosting_url | URL | No | Publicación |
-| domain | domain | string | No | Dominio asociado |
+## Kanban Board
 
-## Client
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| id | string | Sí | Identificador del tablero |
+| projectId | string | Sí | Proyecto propietario |
+| name | string | Sí | Nombre del tablero |
+| version | number | Sí | Versión incremental |
+| columns | array | Sí | Configuración de columnas |
+| createdAt | datetime ISO | Sí | Creación |
+| updatedAt | datetime ISO | Sí | Última modificación |
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id | UUID/string | Identificador |
-| workspaceId | string | Workspace propietario |
-| name | string | Nombre comercial o persona |
-| contactName | string | Contacto principal |
-| email | email | Correo |
-| phone | string | Teléfono |
-| status | enum | active o inactive |
+## Kanban Column
 
-## Project Member
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| id | string | Sí | Identificador estable |
+| name | string | Sí | Nombre visible |
+| order | number | Sí | Orden horizontal |
+| wipLimit | number | Sí | Límite de trabajo; 0 significa sin límite |
+| tone | enum | Sí | Tono visual de la columna |
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| id | UUID/string | Identificador de asignación |
-| projectId | string | Proyecto |
-| userId | string | Usuario |
-| role | enum | project_lead, collaborator o reviewer |
-| allocation | number 0–100 | Dedicación estimada |
-| status | enum | active o inactive |
+## Kanban Card
 
-## Resource
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| id | UUID/string | Sí | Identificador de tarjeta |
+| columnId | string | Sí | Columna actual |
+| position | number | Sí | Posición dentro de la columna |
+| title | string(120) | Sí | Título |
+| description | string(1500) | No | Detalle |
+| priority | enum | Sí | high, medium o low |
+| assigneeId | string | No | Responsable |
+| participantIds | array<string> | No | Participantes |
+| labels | array<object> | No | Etiquetas con nombre y color |
+| startDate | date ISO | No | Inicio |
+| dueDate | date ISO | No | Vencimiento |
+| estimatedHours | number | No | Horas estimadas |
+| actualHours | number | No | Horas reales |
+| visibility | enum | Sí | internal, client o restricted |
+| dependencies | array<string> | No | IDs de tarjetas relacionadas |
+| checklist | array<object> | No | Lista de verificación |
+| comments | array<object> | No | Comentarios |
+| history | array<object> | No | Historial reciente |
+| archived | boolean | Sí | Archivo lógico |
+| createdAt | datetime ISO | Sí | Creación |
+| updatedAt | datetime ISO | Sí | Actualización |
+
+## Checklist Item
 
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id | UUID/string | Identificador |
-| projectId | string | Proyecto |
-| type | enum | document, prototype, github, website, other |
-| name | string | Nombre visible |
-| url | URL HTTP/HTTPS | Enlace |
-| visibility | enum | internal, client, restricted |
-| status | enum | active o inactive |
+| text | string(160) | Contenido |
+| completed | boolean | Estado |
 
-## Milestone
+## Comment
 
 | Campo | Tipo | Descripción |
 |---|---|---|
 | id | UUID/string | Identificador |
-| projectId | string | Proyecto |
-| name | string | Nombre del hito |
-| dueDate | date | Fecha |
-| status | enum | planned, active, completed |
-| visibility | enum | internal o client |
+| authorId | string | Autor |
+| text | string(1000) | Comentario |
+| createdAt | datetime ISO | Fecha |
 
-## Drive Folder
+## History Event
 
 | Campo | Tipo | Descripción |
 |---|---|---|
-| drive_id | string | ID de Google Drive |
-| workspace_id | string | Workspace |
-| project_id | string | Proyecto |
-| folder_type | string | Tipo de carpeta |
-| url | URL | Enlace a Drive |
+| id | UUID/string | Identificador |
+| type | enum | created, updated, moved, reordered, commented, checklist o archived |
+| title | string | Descripción breve |
+| actorId | string | Usuario responsable |
+| createdAt | datetime ISO | Fecha |
+| meta | object | Datos adicionales no sensibles |

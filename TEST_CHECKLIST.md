@@ -1,54 +1,43 @@
-# Test Checklist — Entrega 3.1
+# Test Checklist — Entrega 4
 
-## Regresión de Entrega 2
-- [ ] Todos los códigos siguen funcionando.
-- [ ] Los alcances por workspace y proyecto se mantienen.
+## Regresión
+- [ ] Los códigos de acceso siguen funcionando.
+- [ ] Dashboard, proyectos, clientes y Drive mantienen el comportamiento aprobado.
+- [ ] Archivar y restaurar proyectos sigue funcionando.
 - [ ] Tema claro, oscuro y sistema funcionan.
-- [ ] Cerrar sesión funciona.
 
-## Proyectos en modo mock
-- [ ] `WONKUP-ADMIN` puede crear un proyecto en cualquier workspace.
-- [ ] `AGORA-ADMIN` solo puede crear dentro de Ágora.
-- [ ] El código se genera correlativamente.
-- [ ] El proyecto nuevo aparece en la lista y en el Dashboard.
-- [ ] El proyecto puede editarse.
-- [ ] Una fecha de entrega anterior al inicio muestra error.
-- [ ] Una URL inválida muestra error.
-- [ ] Archivar oculta el proyecto de la vista principal.
-- [ ] “Mostrar archivados” permite consultarlo.
-- [ ] Un administrador puede restaurar el proyecto desde la tarjeta.
-- [ ] Al restaurar, recupera el estado anterior y vuelve a la vista principal.
-- [ ] El líder y el cliente no ven acciones de archivar o restaurar.
+## Kanban
+- [ ] TaxiChurro muestra nueve columnas.
+- [ ] Se puede crear una tarjeta.
+- [ ] Se puede editar una tarjeta.
+- [ ] Se puede arrastrar una tarjeta a otra columna.
+- [ ] Se puede reordenar dentro de la misma columna.
+- [ ] Un límite WIP bloquea el movimiento excedido.
+- [ ] Búsqueda y filtros funcionan.
+- [ ] La fecha vencida muestra alerta visual.
+- [ ] Se pueden registrar responsable, participantes y etiquetas.
+- [ ] Se pueden registrar horas estimadas y reales.
+- [ ] Se pueden definir dependencias.
+- [ ] Se puede archivar una tarjeta.
 
-## Clientes
-- [ ] El módulo Clientes lista los registros autorizados.
-- [ ] Un administrador puede crear un cliente.
-- [ ] El cliente nuevo aparece en el formulario de proyectos.
-- [ ] Un correo inválido se rechaza.
-
-## Proyecto
-- [ ] Resumen carga correctamente.
-- [ ] Cronograma muestra hitos.
-- [ ] Documentos muestra recursos.
-- [ ] Se puede registrar y retirar un recurso.
-- [ ] Equipo muestra miembros.
-- [ ] Se puede asignar y retirar un miembro.
-- [ ] Configuración permite editar y archivar.
-- [ ] Configuración permite restaurar cuando el proyecto está archivado.
-- [ ] La portada usa la URL configurada y muestra fallback si está vacía.
-- [ ] El logo se mantiene compacto en escritorio y móvil.
-- [ ] El icono “Volver a proyectos” conserva tamaño normal.
-
-## Drive
-- [ ] En modo mock se muestra la estructura simulada.
-- [ ] En Apps Script se crea `WONKUP_WORKSPACE`.
-- [ ] Se crea la carpeta del workspace.
-- [ ] Se crea la carpeta del proyecto y las subcarpetas.
-- [ ] La carpeta permanece privada por defecto.
-- [ ] Repetir la acción no duplica la estructura.
+## Colaboración
+- [ ] Se puede agregar un elemento a la checklist.
+- [ ] Se puede completar y reabrir un elemento.
+- [ ] Se puede eliminar un elemento.
+- [ ] Se puede agregar un comentario.
+- [ ] El historial registra creación, edición, movimiento, checklist y comentario.
+- [ ] Dos pestañas del mismo navegador reciben los cambios.
+- [ ] Los cambios permanecen al recargar.
 
 ## Permisos
-- [ ] `TAXI-LIDER` puede editar TaxiChurro, pero no crear ni archivar proyectos.
-- [ ] `TAXI-CLIENTE` sigue viendo solo el resumen autorizado.
-- [ ] Un cliente no puede invocar endpoints de creación.
-- [ ] Apps Script rechaza un workspace fuera del alcance.
+- [ ] `WONKUP-ADMIN` puede modificar cualquier tablero autorizado.
+- [ ] `AGORA-ADMIN` solo accede a proyectos de Ágora.
+- [ ] `TAXI-LIDER` puede operar TaxiChurro.
+- [ ] `TAXI-CLIENTE` no accede al Kanban.
+- [ ] Cambiar manualmente la URL no permite abrir un proyecto no autorizado.
+
+## Firebase preparado
+- [ ] `runtime-config.js` permanece en `kanbanMode: 'mock'` durante la validación.
+- [ ] No existen claves privadas en GitHub.
+- [ ] Las reglas de Firestore están en la carpeta `firebase`.
+- [ ] El adaptador muestra un error seguro si Firebase no está configurado.

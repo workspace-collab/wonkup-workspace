@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function workspaceMember(workspaceId) {
+      return signedIn() && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    }
+
+    function workspaceRole(workspaceId) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function projectMember(workspaceId, projectId) {
+      return workspaceMember(workspaceId) && (
+        workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'] ||
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/projects/$(projectId)/members/$(request.auth.uid))
+      );
+    }
+
+    function internalRole(workspaceId) {
+      return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator'];
+    }
+
+    match /workspaces/{workspaceId}/members/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /workspaces/{workspaceId}/projects/{projectId}/members/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /workspaces/{workspaceId}/projects/{projectId}/boards/{boardId} {
+      allow read: if projectMember(workspaceId, projectId);
+      allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+      allow delete: if false;
+
+      match /cards/{cardId} {
+        allow read: if projectMember(workspaceId, projectId);
+        allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow delete: if false;
+      }
+    }
+  }
+}

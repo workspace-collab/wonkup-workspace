@@ -1,57 +1,60 @@
-# API Contracts — Entrega 3.1
+# API Contracts — Entrega 4
+
+## Datos administrativos mediante Apps Script
 
 La API recibe `POST` con `URLSearchParams`:
 
 - `action`: operación.
 - `payload`: JSON serializado.
+- `sessionToken`: sesión validada.
 
-Todas las operaciones protegidas reciben `sessionToken`.
+Se mantienen los contratos de proyectos, clientes, equipo, recursos, hitos y Google Drive definidos en la Entrega 3.1.
 
-## Proyectos
+## KanbanService
 
-- `projects.list`: `{ sessionToken, workspaceId, includeArchived }`
-- `projects.get`: `{ sessionToken, projectId }`
-- `projects.create`: `{ sessionToken, input }`
-- `projects.update`: `{ sessionToken, projectId, patch }`
-- `projects.archive`: `{ sessionToken, projectId }`
-- `projects.restore`: `{ sessionToken, projectId }`
+El frontend utiliza un contrato único para modo mock y Firebase:
 
-## Clientes
+- `getBoard({ projectId, workspaceId, session })`
+- `createCard({ projectId, workspaceId, input, session })`
+- `updateCard({ projectId, workspaceId, cardId, patch, session })`
+- `moveCard({ projectId, workspaceId, cardId, toColumnId, toIndex, session })`
+- `archiveCard({ projectId, workspaceId, cardId, session })`
+- `addComment({ projectId, workspaceId, cardId, text, session })`
+- `addChecklistItem({ projectId, workspaceId, cardId, text, session })`
+- `toggleChecklistItem({ projectId, workspaceId, cardId, itemId, completed, session })`
+- `deleteChecklistItem({ projectId, workspaceId, cardId, itemId, session })`
+- `resetBoard({ projectId, workspaceId, session })` — solo modo mock.
+- `subscribe(listener)`
+- `startRealtime({ projectId, workspaceId, session })`
 
-- `clients.list`: `{ sessionToken, workspaceId }`
-- `clients.create`: `{ sessionToken, input }`
+## Firebase Access Broker pendiente
 
-## Equipo
+Antes de activar `kanbanMode: 'firebase'`, Apps Script deberá devolver un `firebaseCustomToken` asociado al usuario validado. El frontend usará ese token con `signInWithCustomToken`.
 
-- `users.listForWorkspace`: `{ sessionToken, workspaceId }`
-- `projectMembers.list`: `{ sessionToken, projectId }`
-- `projectMembers.assign`: `{ sessionToken, projectId, input }`
-- `projectMembers.remove`: `{ sessionToken, projectId, memberId }`
-
-## Recursos e hitos
-
-- `resources.list`: `{ sessionToken, projectId }`
-- `resources.create`: `{ sessionToken, projectId, input }`
-- `resources.remove`: `{ sessionToken, projectId, resourceId }`
-- `milestones.list`: `{ sessionToken, projectId }`
-
-## Google Drive
-
-- `drive.createProjectStructure`: `{ sessionToken, projectId }`
-
-Salida:
+Ejemplo de sesión ampliada:
 
 ```json
 {
-  "mode": "apps-script",
-  "folderId": "...",
-  "folderName": "PROY-AGO-005_Nombre",
-  "folderUrl": "https://drive.google.com/...",
-  "folders": ["00_Resumen", "01_Investigación"]
+  "token": "session-token",
+  "firebaseCustomToken": "firebase-custom-token",
+  "role": "workspace_admin",
+  "scopes": {
+    "workspaceIds": ["w-agora"],
+    "projectIds": ["*"]
+  }
 }
 ```
 
-## Respuesta estándar
+## Rutas Firestore
+
+```text
+workspaces/{workspaceId}/members/{userId}
+workspaces/{workspaceId}/projects/{projectId}/members/{userId}
+workspaces/{workspaceId}/projects/{projectId}/boards/main
+workspaces/{workspaceId}/projects/{projectId}/boards/main/cards/{cardId}
+```
+
+## Respuesta estándar de Apps Script
 
 ```json
 { "ok": true, "data": {} }

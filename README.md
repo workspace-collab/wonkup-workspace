@@ -1,63 +1,52 @@
 # WonkUp Workspace
 
-**Entrega 3.1 — Proyectos, Google Drive y ajustes de experiencia visual.**
+**Entrega 4 — Kanban funcional y colaboración preparada para Firebase.**
 
 ## Estado
 
 - Entrega 0 — Blueprint: APROBADA.
 - Entrega 1 — Núcleo visual: APROBADA.
 - Entrega 2 — Workspaces y acceso: APROBADA.
-- Entrega 3 — Proyectos y Drive: EN REVISIÓN.
+- Entrega 3 — Proyectos y Drive: APROBADA.
+- Entrega 4 — Kanban: EN REVISIÓN.
 
 ## Incluye
 
-- Creación y edición de proyectos.
-- Código correlativo por workspace.
-- Archivo lógico y restauración de proyectos sin eliminación destructiva.
-- Persistencia demostrativa en `localStorage`.
-- Dashboard conectado al repositorio activo de proyectos.
-- Directorio y alta de clientes.
-- Ficha de proyecto con hero horizontal, logo compacto y portada configurable por URL.
-- Cronograma de hitos.
-- Equipo por proyecto con roles y dedicación.
-- Recursos y enlaces por proyecto.
-- Estructura documental de Google Drive.
-- Adaptadores `mock` y Google Apps Script.
-- API de Apps Script con validación de sesión y permisos.
-- Hojas nuevas: `Recursos`, `Hitos` y `Carpetas_Drive`.
+- Tablero Kanban por proyecto.
+- Nueve columnas estándar y límites WIP.
+- Crear, editar, mover, reordenar y archivar tarjetas.
+- Drag and drop.
+- Responsable, participantes, etiquetas, fechas, horas y dependencias.
+- Checklist interactiva.
+- Comentarios e historial.
+- Búsqueda y filtros.
+- Persistencia local demostrativa.
+- Sincronización entre pestañas del navegador.
+- Adaptador para Firestore y reglas iniciales de seguridad.
 
-## Prueba rápida en GitHub Pages
+## Prueba rápida
 
-1. Publica el contenido en la raíz del repositorio.
+1. Publica los cambios en GitHub Pages.
 2. Ingresa con `WONKUP-ADMIN` o `AGORA-ADMIN`.
-3. Abre **Mis proyectos**.
-4. Crea un proyecto.
-5. Edita su información, color de marca y portada horizontal.
-6. Abre las pestañas **Cronograma**, **Documentos**, **Equipo** y **Configuración**.
-7. Genera la estructura documental.
-8. Registra un recurso y asigna un miembro.
-9. Archiva el proyecto, activa **Mostrar archivados** y usa **Restaurar**.
-10. Comprueba que el proyecto aparezca nuevamente en el Dashboard.
+3. Abre TaxiChurro y entra a **Kanban**.
+4. Crea una tarjeta.
+5. Arrástrala entre columnas.
+6. Abre la tarjeta y registra checklist, comentario y horas.
+7. Abre la plataforma en otra pestaña y comprueba la actualización.
+8. Intenta superar un límite WIP.
+9. Archiva una tarjeta.
+10. Recarga y confirma que los cambios continúan.
 
-## Modo demostrativo
+## Configuración
 
-`js/config/api-config.js` mantiene `mode: "mock"` de forma predeterminada.
-
-En este modo:
-
-- los cambios se guardan en el navegador;
-- no se modifica Google Sheets;
-- la estructura de Drive es simulada;
-- al borrar los datos del sitio se recuperan los datos demo iniciales.
-
-## Modo Google Apps Script
-
-Sigue `apps-script/README.md`. Cuando la API esté publicada, configura:
+`js/config/runtime-config.js` mantiene por defecto:
 
 ```js
-mode: 'apps-script'
-appsScriptUrl: 'https://script.google.com/macros/s/....../exec'
+mode: 'mock'
+kanbanMode: 'mock'
 ```
+
+No actives Firebase hasta completar el Access Broker con custom tokens. Consulta `firebase/README.md`.
 
 ## Códigos de prueba
 
@@ -71,6 +60,4 @@ appsScriptUrl: 'https://script.google.com/macros/s/....../exec'
 
 ## Logotipo oficial
 
-Coloca el logotipo en:
-
-`assets/brand/logo-wonkup.png`
+Coloca el logotipo en `assets/brand/logo-wonkup.png`.
