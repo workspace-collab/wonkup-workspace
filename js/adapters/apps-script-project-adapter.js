@@ -20,6 +20,9 @@ export const AppsScriptProjectAdapter = {
   archiveProject({ projectId, session }) {
     return postAppsScript('projects.archive', withSession(session, { projectId }));
   },
+  restoreProject({ projectId, session }) {
+    return postAppsScript('projects.restore', withSession(session, { projectId }));
+  },
   listClients({ workspaceId = 'all', session }) {
     return postAppsScript('clients.list', withSession(session, { workspaceId }));
   },

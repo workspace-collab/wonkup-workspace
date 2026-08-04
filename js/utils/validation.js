@@ -23,6 +23,12 @@ export function normalizeAssetUrl(value) {
   return normalizeUrl(raw);
 }
 
+
+export function normalizeHexColor(value, fallback = '#50a8f3') {
+  const raw = normalizeText(value, 20);
+  return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw.toLowerCase() : fallback;
+}
+
 export function isValidEmail(value) {
   const email = normalizeText(value, 254);
   return !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -59,6 +65,8 @@ export function normalizeProjectInput(input = {}) {
     dueDate: normalizeText(input.dueDate, 20),
     budget: Math.max(0, Number(input.budget || 0)),
     logo: normalizeAssetUrl(input.logo),
+    coverImage: normalizeAssetUrl(input.coverImage),
+    brandColor: normalizeHexColor(input.brandColor),
     githubUrl: normalizeUrl(input.githubUrl),
     figmaUrl: normalizeUrl(input.figmaUrl),
     hostingUrl: normalizeUrl(input.hostingUrl),

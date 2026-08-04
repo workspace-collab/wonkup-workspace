@@ -31,7 +31,9 @@
   .dashboard-middle-grid, .dashboard-bottom-grid { grid-template-columns: 1fr; }
   .projects-grid { grid-template-columns: 1fr; }
   .project-tabs { overflow-x: auto; justify-content: flex-start; }
-  .project-hero-top { align-items: flex-start; flex-direction: column; }
+  .project-cover { min-height: 260px; padding: 21px; }
+  .project-cover-content { align-items: flex-start; flex-direction: column; }
+  .project-hero-identity { align-items: center; }
   .kanban-board { grid-auto-columns: minmax(260px, 84vw); }
 }
 
@@ -74,7 +76,7 @@
   .modal-header, .modal-body { padding-inline: 17px; }
   .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
   .form-span-2 { grid-column: auto; }
-  .project-hero-actions { width: 100%; justify-content: space-between; }
+  .project-hero-actions { width: 100%; justify-content: flex-start; }
   .card-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
   .client-grid { grid-template-columns: 1fr; }
   .settings-row { align-items: flex-start; flex-direction: column; }
@@ -84,5 +86,10 @@
   .modal-actions { align-items: stretch; flex-direction: column-reverse; }
   .modal-actions .button { width: 100%; }
   .project-card-footer { align-items: flex-start; flex-direction: column; }
+  .project-cover { min-height: 280px; padding: 18px; }
+  .project-hero-identity { align-items: flex-start; flex-direction: column; }
+  .project-hero-logo { width: 64px; height: 64px; border-radius: 17px; }
+  .project-hero-title h1 { font-size: 1.75rem; }
+  .project-tabs { padding-inline: 10px; }
   .card-actions { justify-content: flex-start; }
 }

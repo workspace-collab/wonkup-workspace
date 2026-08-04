@@ -34,6 +34,20 @@ const STATUS_LABELS = {
   on_hold: 'En pausa', blocked: 'Bloqueado', completed: 'Completado', archived: 'Archivado'
 };
 
+function safeBrandColor(value) {
+  return /^#[0-9a-fA-F]{6}$/.test(String(value || '')) ? String(value).toLowerCase() : '#50a8f3';
+}
+
+function applyProjectCover(element, project) {
+  if (!element) return;
+  element.style.setProperty('--project-brand', safeBrandColor(project.brandColor));
+  const coverImage = String(project.coverImage || '').trim();
+  if (!coverImage) return;
+  const safeUrl = coverImage.replace(/[\"'\\\r\n]/g, '');
+  element.classList.add('has-cover');
+  element.style.backgroundImage = `linear-gradient(90deg, rgba(6,12,29,.86), rgba(6,12,29,.42)), url("${safeUrl}")`;
+}
+
 export function renderProject(container, { projectId, tab = 'summary' }, session) {
   container.innerHTML = `<section class="page"><div class="loading-panel"><span class="spinner spinner-blue"></span><p>Cargando proyecto...</p></div></section>`;
   loadProject(container, projectId, tab, session);
@@ -55,6 +69,7 @@ async function loadProject(container, projectId, tab, session) {
 function renderProjectShell(container, project, tab, session) {
   const readOnly = isReadOnlyRole(session);
   const editable = canEditProject(session, project.id, project.workspaceId) && project.status !== 'archived';
+  const restorable = canArchiveProject(session, project.workspaceId) && project.status === 'archived';
   const tabs = readOnly
     ? [['summary', 'Resumen']]
     : baseTabs.filter(([key]) => key !== 'finance' || canViewFinancials(session));
@@ -62,10 +77,14 @@ function renderProjectShell(container, project, tab, session) {
 
   container.innerHTML = `<section class="page"><div class="content-grid-project"><div>
     <article class="project-hero">
-      <div class="project-hero-top">
-        <div class="project-hero-logo">${project.logo ? `<img src="${escapeHtml(project.logo)}" alt="">` : escapeHtml(project.name.slice(0, 2).toUpperCase())}</div>
-        <div class="project-hero-title">${!readOnly ? `<a class="panel-link" href="#/w/${project.workspaceId}/projects">${icon('arrowLeft')} Volver a proyectos</a>` : '<span class="page-kicker">VISTA COMPARTIDA</span>'}<h1>${escapeHtml(project.name)}</h1><p>${escapeHtml(project.tagline || project.description)}</p></div>
-        <div class="project-hero-actions"><span class="badge ${project.status === 'archived' ? 'badge-gray' : 'badge-blue'}">${readOnly ? escapeHtml(session.roleLabel) : `${Number(project.progress || 0)}% completado`}</span>${editable ? `<button class="button button-secondary" id="edit-project">${icon('edit')} Editar</button>` : ''}</div>
+      <div class="project-cover" id="project-cover">
+        <div class="project-cover-content">
+          <div class="project-hero-identity">
+            <div class="project-hero-logo">${project.logo ? `<img src="${escapeHtml(project.logo)}" alt="Logo de ${escapeHtml(project.name)}">` : escapeHtml(project.name.slice(0, 2).toUpperCase())}</div>
+            <div class="project-hero-title">${!readOnly ? `<a class="panel-link project-back-link" href="#/w/${project.workspaceId}/projects">${icon('arrowLeft')} Volver a proyectos</a>` : '<span class="project-shared-label">VISTA COMPARTIDA</span>'}<h1>${escapeHtml(project.name)}</h1><p>${escapeHtml(project.tagline || project.description)}</p></div>
+          </div>
+          <div class="project-hero-actions"><span class="project-cover-badge">${project.status === 'archived' ? 'Proyecto archivado' : readOnly ? escapeHtml(session.roleLabel) : `${Number(project.progress || 0)}% completado`}</span>${editable ? `<button class="button project-cover-button" id="edit-project">${icon('edit')} Editar</button>` : ''}${restorable ? `<button class="button button-gold" id="restore-project">${icon('refresh')} Restaurar</button>` : ''}</div>
+        </div>
       </div>
       <nav class="project-tabs">${tabs.map(([key, label]) => `<a class="project-tab ${safeTab === key ? 'active' : ''}" href="#/w/${project.workspaceId}/p/${project.id}/${key}">${label}</a>`).join('')}</nav>
     </article>
@@ -81,11 +100,14 @@ function renderProjectShell(container, project, tab, session) {
       <div class="info-row"><span>Prioridad</span><strong>${escapeHtml(project.priority || '-')}</strong></div>
       <div class="info-row"><span>Inicio</span><strong>${formatDate(project.startDate)}</strong></div>
       <div class="info-row"><span>Entrega</span><strong>${formatDate(project.dueDate)}</strong></div>
+      ${project.status === 'archived' && project.archivedAt ? `<div class="info-row"><span>Archivado</span><strong>${formatDate(project.archivedAt)}</strong></div>` : ''}
       ${canViewFinancials(session) ? `<div class="info-row"><span>Presupuesto</span><strong>${formatCurrency(project.budget)}</strong></div>` : ''}
     </div>
     ${project.driveUrl ? `<a class="button button-primary drive-button" href="${escapeHtml(project.driveUrl)}" target="_blank" rel="noopener">${icon('external')} Abrir en Drive</a>` : editable ? `<button class="button button-primary drive-button" id="create-drive">${icon('folder')} ${project.driveFolderId ? 'Ver estructura' : 'Crear estructura Drive'}</button>` : ''}
     ${readOnly ? '<p class="aside-note">Solo se muestran datos autorizados para el cliente o invitado.</p>' : `<p class="aside-note">Fuente activa: ${ProjectService.mode === 'mock' ? 'demo local' : 'Google Apps Script'}.</p>`}
   </aside></div></section>`;
+
+  applyProjectCover(container.querySelector('#project-cover'), project);
 
   const slot = container.querySelector('#project-tab-content');
   if (safeTab === 'kanban') renderKanban(slot, project.workspaceId, project.id, true, session);
@@ -98,6 +120,22 @@ function renderProjectShell(container, project, tab, session) {
     project,
     onSaved: () => loadProject(container, project.id, safeTab, session)
   }));
+
+  container.querySelector('#restore-project')?.addEventListener('click', async () => {
+    const confirmed = await confirmModal({
+      title: 'Restaurar proyecto',
+      message: `El proyecto <strong>${escapeHtml(project.name)}</strong> volverá a su estado anterior.`,
+      confirmLabel: 'Restaurar'
+    });
+    if (!confirmed) return;
+    try {
+      await ProjectService.restoreProject({ projectId: project.id, session });
+      showToast('Proyecto restaurado.');
+      await loadProject(container, project.id, 'summary', session);
+    } catch (error) {
+      showToast(error.message || 'No se pudo restaurar el proyecto.');
+    }
+  });
 
   container.querySelector('#create-drive')?.addEventListener('click', async event => {
     const button = event.currentTarget;
@@ -207,7 +245,13 @@ async function renderTeam(slot, project, session) {
 function renderSettings(slot, project, session) {
   const editable = canEditProject(session, project.id, project.workspaceId) && project.status !== 'archived';
   const archivable = canArchiveProject(session, project.workspaceId) && project.status !== 'archived';
-  slot.innerHTML = `<article class="panel tab-panel"><div class="panel-header"><div><h2>Configuración del proyecto</h2><p>Acciones de administración y control.</p></div></div><div class="panel-body settings-list"><div class="settings-row"><div><strong>Editar información</strong><small>Actualiza el cliente, responsable, fechas, estado y enlaces.</small></div>${editable ? `<button class="button button-secondary" id="settings-edit">${icon('edit')} Editar</button>` : '<span class="badge badge-gray">Solo lectura</span>'}</div><div class="settings-row settings-danger"><div><strong>Archivar proyecto</strong><small>Oculta el proyecto de la vista principal sin eliminar su historial.</small></div>${archivable ? `<button class="button button-danger" id="settings-archive">${icon('archive')} Archivar</button>` : '<span class="badge badge-gray">No disponible</span>'}</div></div></article>`;
+  const restorable = canArchiveProject(session, project.workspaceId) && project.status === 'archived';
+  const lifecycleAction = restorable
+    ? `<div class="settings-row settings-restore"><div><strong>Restaurar proyecto</strong><small>Devuelve el proyecto a su estado previo al archivo y lo muestra nuevamente en el portafolio.</small></div><button class="button button-gold" id="settings-restore">${icon('refresh')} Restaurar</button></div>`
+    : `<div class="settings-row settings-danger"><div><strong>Archivar proyecto</strong><small>Oculta el proyecto de la vista principal sin eliminar su historial.</small></div>${archivable ? `<button class="button button-danger" id="settings-archive">${icon('archive')} Archivar</button>` : '<span class="badge badge-gray">No disponible</span>'}</div>`;
+
+  slot.innerHTML = `<article class="panel tab-panel"><div class="panel-header"><div><h2>Configuración del proyecto</h2><p>Acciones de administración y control.</p></div></div><div class="panel-body settings-list"><div class="settings-row"><div><strong>Editar información</strong><small>Actualiza el cliente, responsable, portada, fechas, estado y enlaces.</small></div>${editable ? `<button class="button button-secondary" id="settings-edit">${icon('edit')} Editar</button>` : '<span class="badge badge-gray">Solo lectura</span>'}</div>${lifecycleAction}</div></article>`;
+
   slot.querySelector('#settings-edit')?.addEventListener('click', () => openProjectForm({ session, workspaceId: project.workspaceId, project, onSaved: saved => { location.hash = `#/w/${saved.workspaceId}/p/${saved.id}/summary`; } }));
   slot.querySelector('#settings-archive')?.addEventListener('click', async () => {
     const confirmed = await confirmModal({ title: 'Archivar proyecto', message: `Se archivará <strong>${escapeHtml(project.name)}</strong>.`, confirmLabel: 'Archivar', danger: true });
@@ -215,6 +259,13 @@ function renderSettings(slot, project, session) {
     await ProjectService.archiveProject({ projectId: project.id, session });
     showToast('Proyecto archivado.');
     location.hash = `#/w/${project.workspaceId}/projects`;
+  });
+  slot.querySelector('#settings-restore')?.addEventListener('click', async () => {
+    const confirmed = await confirmModal({ title: 'Restaurar proyecto', message: `Se restaurará <strong>${escapeHtml(project.name)}</strong> a su estado anterior.`, confirmLabel: 'Restaurar' });
+    if (!confirmed) return;
+    await ProjectService.restoreProject({ projectId: project.id, session });
+    showToast('Proyecto restaurado.');
+    location.hash = `#/w/${project.workspaceId}/p/${project.id}/summary`;
   });
 }
 

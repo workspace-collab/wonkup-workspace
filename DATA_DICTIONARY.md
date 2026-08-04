@@ -1,4 +1,4 @@
-# Data Dictionary — Entrega 3
+# Data Dictionary — Entrega 3.1
 
 ## Project
 
@@ -20,6 +20,14 @@
 | startDate | start_date | date ISO | No | Inicio |
 | dueDate | due_date | date ISO | No | Entrega estimada |
 | budget | budget | number | No | Presupuesto demostrativo |
+| logo | logo_url | URL/ruta assets | No | Logotipo compacto del proyecto |
+| coverImage | cover_image_url | URL/ruta assets | No | Portada horizontal del hero |
+| brandColor | brand_color | HEX #RRGGBB | Sí | Color de fallback de la portada |
+| statusBeforeArchive | status_before_archive | enum | No | Estado conservado antes de archivar |
+| archivedAt | archived_at | datetime ISO | No | Fecha de archivo |
+| archivedBy | archived_by | string | No | Usuario que archivó |
+| restoredAt | restored_at | datetime ISO | No | Fecha de restauración |
+| restoredBy | restored_by | string | No | Usuario que restauró |
 | driveFolderId | drive_folder_id | string | No | ID de carpeta principal |
 | driveUrl | drive_folder_url | URL | No | URL de Drive |
 | githubUrl | github_url | URL | No | Repositorio |

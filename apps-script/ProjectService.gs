@@ -57,6 +57,13 @@ function createProject_(payload) {
       hours: 0,
       pending_tasks: 0,
       logo_url: input.logo_url,
+      cover_image_url: input.cover_image_url,
+      brand_color: input.brand_color,
+      status_before_archive: '',
+      archived_at: '',
+      archived_by: '',
+      restored_at: '',
+      restored_by: '',
       drive_folder_id: '',
       drive_folder_url: '',
       github_url: input.github_url,
@@ -104,6 +111,8 @@ function updateProject_(payload) {
     due_date: input.due_date,
     budget: input.budget,
     logo_url: input.logo_url,
+    cover_image_url: input.cover_image_url,
+    brand_color: input.brand_color,
     github_url: input.github_url,
     figma_url: input.figma_url,
     hosting_url: input.hosting_url,
@@ -122,9 +131,43 @@ function archiveProject_(payload) {
   var project = findProjectById_(payload.projectId);
   if (!project) throw new Error('Proyecto no encontrado.');
   assertWorkspaceAccess_(session, project.workspace_id);
-  var patch = { status: 'archived', updated_by: session.user.id, updated_at: nowIso_() };
+  if (String(project.status) === 'archived') return projectToClient_(project);
+  var now = nowIso_();
+  var patch = {
+    status_before_archive: String(project.status || 'planned'),
+    status: 'archived',
+    archived_at: now,
+    archived_by: session.user.id,
+    restored_at: '',
+    restored_by: '',
+    updated_by: session.user.id,
+    updated_at: now
+  };
   updateObject_(WONKUP_CONFIG.sheets.projects, project.__row, patch);
-  audit_(session.user.id, 'project.archived', 'project', project.id, {});
+  audit_(session.user.id, 'project.archived', 'project', project.id, { previousStatus: patch.status_before_archive });
+  return projectToClient_(Object.assign({}, project, patch));
+}
+
+function restoreProject_(payload) {
+  var session = requireSession_(payload.sessionToken);
+  assertManagementRole_(session);
+  var project = findProjectById_(payload.projectId);
+  if (!project) throw new Error('Proyecto no encontrado.');
+  assertWorkspaceAccess_(session, project.workspace_id);
+  if (String(project.status) !== 'archived') throw new Error('El proyecto no está archivado.');
+  var now = nowIso_();
+  var restoredStatus = String(project.status_before_archive || 'planned');
+  if (PROJECT_STATUSES_.indexOf(restoredStatus) < 0 || restoredStatus === 'archived') restoredStatus = 'planned';
+  var patch = {
+    status: restoredStatus,
+    status_before_archive: '',
+    restored_at: now,
+    restored_by: session.user.id,
+    updated_by: session.user.id,
+    updated_at: now
+  };
+  updateObject_(WONKUP_CONFIG.sheets.projects, project.__row, patch);
+  audit_(session.user.id, 'project.restored', 'project', project.id, { restoredStatus: restoredStatus });
   return projectToClient_(Object.assign({}, project, patch));
 }
 
@@ -143,6 +186,12 @@ function sanitizeProjectInput_(input) {
     if (!/^https?:\/\//i.test(value)) throw new Error('Los enlaces deben comenzar con http:// o https://');
     return value;
   }
+  function assetUrl(value) {
+    value = text(value, 1000);
+    if (!value) return '';
+    if (/^(?:\.\/)?assets\/[a-zA-Z0-9_./-]+$/.test(value)) return value.indexOf('./') === 0 ? value : './' + value;
+    return url(value);
+  }
   return {
     workspace_id: text(input.workspaceId || input.workspace_id, 80),
     client_id: text(input.clientId || input.client_id, 80),
@@ -158,7 +207,9 @@ function sanitizeProjectInput_(input) {
     start_date: text(input.startDate || input.start_date, 20),
     due_date: text(input.dueDate || input.due_date, 20),
     budget: Math.max(0, Number(input.budget || 0)),
-    logo_url: url(input.logo || input.logo_url),
+    logo_url: assetUrl(input.logo || input.logo_url),
+    cover_image_url: assetUrl(input.coverImage || input.cover_image_url),
+    brand_color: /^#[0-9a-fA-F]{6}$/.test(text(input.brandColor || input.brand_color, 20)) ? text(input.brandColor || input.brand_color, 20).toLowerCase() : '#50a8f3',
     github_url: url(input.githubUrl || input.github_url),
     figma_url: url(input.figmaUrl || input.figma_url),
     hosting_url: url(input.hostingUrl || input.hosting_url),
@@ -205,6 +256,13 @@ function projectToClient_(project) {
     hours: Number(project.hours || 0),
     pendingTasks: Number(project.pending_tasks || 0),
     logo: String(project.logo_url || ''),
+    coverImage: String(project.cover_image_url || ''),
+    brandColor: String(project.brand_color || '#50a8f3'),
+    statusBeforeArchive: String(project.status_before_archive || ''),
+    archivedAt: String(project.archived_at || ''),
+    archivedBy: String(project.archived_by || ''),
+    restoredAt: String(project.restored_at || ''),
+    restoredBy: String(project.restored_by || ''),
     driveFolderId: String(project.drive_folder_id || ''),
     driveUrl: String(project.drive_folder_url || ''),
     githubUrl: String(project.github_url || ''),

@@ -7,7 +7,7 @@ WonkUp Workspace
 Entrega 3 — Proyectos y Google Drive
 
 ## Estado
-Completada técnicamente y pendiente de validación del usuario.
+Ajuste 3.1 completado técnicamente y pendiente de validación del usuario.
 
 ## Entregas
 - Entrega 0 — Blueprint: APROBADA
@@ -16,11 +16,11 @@ Completada técnicamente y pendiente de validación del usuario.
 - Entrega 3 — Proyectos y Drive: EN REVISIÓN
 
 ## Implementado
-- CRUD lógico de proyectos: crear, consultar, editar y archivar.
+- CRUD lógico de proyectos: crear, consultar, editar, archivar y restaurar.
 - Códigos correlativos por workspace.
 - Persistencia local demostrativa.
 - Adaptador real para Apps Script.
-- Ficha de proyecto ampliada.
+- Ficha de proyecto ampliada con portada horizontal configurable por URL y logo compacto.
 - Clientes por workspace.
 - Equipo por proyecto.
 - Recursos vinculados.
@@ -31,12 +31,19 @@ Completada técnicamente y pendiente de validación del usuario.
 - Validación de roles en frontend y backend.
 
 ## Decisiones
-- No se elimina físicamente un proyecto; se archiva.
+- No se elimina físicamente un proyecto; se archiva y puede restaurarse al estado previo.
 - El modo `mock` permite validar la UX sin configurar servicios externos.
 - En modo real, Sheets es la fuente de verdad para proyectos, clientes, equipo y recursos.
 - Drive conserva permisos privados por defecto.
 - Solo superadministrador y administrador de workspace crean o archivan proyectos.
 - El líder de proyecto puede editar los proyectos que tiene autorizados.
+
+## Ajuste 3.1
+- Se corrigió el tamaño descontrolado del icono de regreso.
+- Se reemplazó la cabecera plana por un hero horizontal responsive.
+- Se añadieron `coverImage` y `brandColor`.
+- Se añadió restauración desde la lista y desde Configuración.
+- Se registran estado previo, fechas y usuarios de archivo/restauración.
 
 ## Pendientes conocidos
 - Los hitos todavía no tienen formulario CRUD.

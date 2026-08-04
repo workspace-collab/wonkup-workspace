@@ -13,6 +13,7 @@ export const ProjectService = {
   createProject: options => adapter().createProject(options),
   updateProject: options => adapter().updateProject(options),
   archiveProject: options => adapter().archiveProject(options),
+  restoreProject: options => adapter().restoreProject(options),
   listClients: options => adapter().listClients(options),
   createClient: options => adapter().createClient(options),
   listUsers: options => adapter().listUsers(options),

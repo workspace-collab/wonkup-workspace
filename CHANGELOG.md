@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 — Ajustes de Entrega 3
+
+### Añadido
+- Portada horizontal opcional por URL o ruta `assets/...`.
+- Color de marca por proyecto y fallback visual sin imagen.
+- Logo compacto integrado en el hero del proyecto.
+- Acción **Restaurar** en proyectos archivados.
+- Registro de estado previo, archivo y restauración.
+- Endpoint `projects.restore` en Google Apps Script.
+
+### Corregido
+- Tamaño del icono “Volver a proyectos”, que podía ocupar gran parte de la cabecera.
+- Jerarquía visual y comportamiento responsive de la ficha del proyecto.
+
 ## 0.3.0 — Entrega 3
 
 ### Añadido

@@ -1,6 +1,6 @@
 # WonkUp Workspace
 
-**Entrega 3 — Proyectos, clientes, equipo, recursos y Google Drive.**
+**Entrega 3.1 — Proyectos, Google Drive y ajustes de experiencia visual.**
 
 ## Estado
 
@@ -13,11 +13,11 @@
 
 - Creación y edición de proyectos.
 - Código correlativo por workspace.
-- Archivo lógico de proyectos sin eliminación destructiva.
+- Archivo lógico y restauración de proyectos sin eliminación destructiva.
 - Persistencia demostrativa en `localStorage`.
 - Dashboard conectado al repositorio activo de proyectos.
 - Directorio y alta de clientes.
-- Ficha de proyecto ampliada.
+- Ficha de proyecto con hero horizontal, logo compacto y portada configurable por URL.
 - Cronograma de hitos.
 - Equipo por proyecto con roles y dedicación.
 - Recursos y enlaces por proyecto.
@@ -32,11 +32,12 @@
 2. Ingresa con `WONKUP-ADMIN` o `AGORA-ADMIN`.
 3. Abre **Mis proyectos**.
 4. Crea un proyecto.
-5. Edita su información.
+5. Edita su información, color de marca y portada horizontal.
 6. Abre las pestañas **Cronograma**, **Documentos**, **Equipo** y **Configuración**.
 7. Genera la estructura documental.
 8. Registra un recurso y asigna un miembro.
-9. Comprueba que el proyecto aparezca en el Dashboard.
+9. Archiva el proyecto, activa **Mostrar archivados** y usa **Restaurar**.
+10. Comprueba que el proyecto aparezca nuevamente en el Dashboard.
 
 ## Modo demostrativo
 

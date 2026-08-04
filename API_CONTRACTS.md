@@ -1,4 +1,4 @@
-# API Contracts — Entrega 3
+# API Contracts — Entrega 3.1
 
 La API recibe `POST` con `URLSearchParams`:
 
@@ -14,6 +14,7 @@ Todas las operaciones protegidas reciben `sessionToken`.
 - `projects.create`: `{ sessionToken, input }`
 - `projects.update`: `{ sessionToken, projectId, patch }`
 - `projects.archive`: `{ sessionToken, projectId }`
+- `projects.restore`: `{ sessionToken, projectId }`
 
 ## Clientes
 

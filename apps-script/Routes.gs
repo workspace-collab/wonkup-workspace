@@ -1,6 +1,6 @@
 function routeRequest_(action, payload) {
   switch (action) {
-    case 'health': return { status: 'ok', version: '0.3.0' };
+    case 'health': return { status: 'ok', version: '0.3.1' };
     case 'auth.exchangeCode': return exchangeAccessCode_(payload);
     case 'auth.validate':
       var session = validateSessionToken_(payload.sessionToken);
@@ -14,6 +14,7 @@ function routeRequest_(action, payload) {
     case 'projects.create': return createProject_(payload);
     case 'projects.update': return updateProject_(payload);
     case 'projects.archive': return archiveProject_(payload);
+    case 'projects.restore': return restoreProject_(payload);
 
     case 'clients.list': return listClients_(payload);
     case 'clients.create': return createClient_(payload);

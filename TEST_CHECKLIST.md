@@ -1,4 +1,4 @@
-# Test Checklist — Entrega 3
+# Test Checklist — Entrega 3.1
 
 ## Regresión de Entrega 2
 - [ ] Todos los códigos siguen funcionando.
@@ -16,6 +16,9 @@
 - [ ] Una URL inválida muestra error.
 - [ ] Archivar oculta el proyecto de la vista principal.
 - [ ] “Mostrar archivados” permite consultarlo.
+- [ ] Un administrador puede restaurar el proyecto desde la tarjeta.
+- [ ] Al restaurar, recupera el estado anterior y vuelve a la vista principal.
+- [ ] El líder y el cliente no ven acciones de archivar o restaurar.
 
 ## Clientes
 - [ ] El módulo Clientes lista los registros autorizados.
@@ -31,6 +34,10 @@
 - [ ] Equipo muestra miembros.
 - [ ] Se puede asignar y retirar un miembro.
 - [ ] Configuración permite editar y archivar.
+- [ ] Configuración permite restaurar cuando el proyecto está archivado.
+- [ ] La portada usa la URL configurada y muestra fallback si está vacía.
+- [ ] El logo se mantiene compacto en escritorio y móvil.
+- [ ] El icono “Volver a proyectos” conserva tamaño normal.
 
 ## Drive
 - [ ] En modo mock se muestra la estructura simulada.

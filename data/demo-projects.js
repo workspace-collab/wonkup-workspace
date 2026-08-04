@@ -11,7 +11,7 @@ export const demoProjects = [
     ownerUserId: 'usr-edinson', owner: 'Edinson G.', client: 'WonkUp',
     startDate: '2026-08-03', dueDate: '2026-10-30',
     budget: 18000, cost: 5200, hours: 142, pendingTasks: 12,
-    logo: '', driveFolderId: '', driveUrl: '', githubUrl: 'https://github.com/workspace-collab/wonkup-workspace',
+    logo: '', coverImage: '', brandColor: '#50a8f3', driveFolderId: '', driveUrl: '', githubUrl: 'https://github.com/workspace-collab/wonkup-workspace',
     figmaUrl: '', hostingUrl: 'https://workspace-collab.github.io/wonkup-workspace/', domain: '',
     createdAt: '2026-08-03T12:00:00-05:00', updatedAt: '2026-08-03T12:00:00-05:00'
   },
@@ -22,7 +22,7 @@ export const demoProjects = [
     status: 'active', stage: 'development', priority: 'high', health: 'green', progress: 62,
     ownerUserId: 'usr-rodrigo', owner: 'Rodrigo G.', client: 'TaxiChurro', startDate: '2026-07-10', dueDate: '2026-08-30',
     budget: 8500, cost: 4200, hours: 96, pendingTasks: 7,
-    logo: './assets/projects/logo-taxichurro.png', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
+    logo: './assets/projects/logo-taxichurro.png', coverImage: '', brandColor: '#2f8fe9', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
     createdAt: '2026-07-10T09:00:00-05:00', updatedAt: '2026-08-03T09:00:00-05:00'
   },
   {
@@ -32,7 +32,7 @@ export const demoProjects = [
     status: 'pending_client', stage: 'validation', priority: 'medium', health: 'amber', progress: 45,
     ownerUserId: 'usr-edinson', owner: 'Edinson G.', client: 'Ágora Education', startDate: '2026-06-18', dueDate: '2026-09-05',
     budget: 6200, cost: 3100, hours: 74, pendingTasks: 5,
-    logo: './assets/projects/logo-compraya.png', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
+    logo: './assets/projects/logo-compraya.png', coverImage: '', brandColor: '#f1c22d', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
     createdAt: '2026-06-18T09:00:00-05:00', updatedAt: '2026-08-02T09:00:00-05:00'
   },
   {
@@ -42,7 +42,7 @@ export const demoProjects = [
     status: 'planned', stage: 'definition', priority: 'medium', health: 'green', progress: 30,
     ownerUserId: 'usr-brenda', owner: 'Brenda G.', client: 'Ágora Education', startDate: '2026-07-22', dueDate: '2026-09-20',
     budget: 5600, cost: 1600, hours: 42, pendingTasks: 9,
-    logo: './assets/projects/logo-huellitas.png', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
+    logo: './assets/projects/logo-huellitas.png', coverImage: '', brandColor: '#7c69d8', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
     createdAt: '2026-07-22T09:00:00-05:00', updatedAt: '2026-08-01T09:00:00-05:00'
   },
   {
@@ -52,7 +52,7 @@ export const demoProjects = [
     status: 'active', stage: 'ux_ui', priority: 'medium', health: 'green', progress: 55,
     ownerUserId: 'usr-edinson', owner: 'Edinson G.', client: 'Ágora Education', startDate: '2026-06-30', dueDate: '2026-09-12',
     budget: 6900, cost: 3300, hours: 81, pendingTasks: 6,
-    logo: './assets/projects/logo-selvaviva.png', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
+    logo: './assets/projects/logo-selvaviva.png', coverImage: '', brandColor: '#36a269', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
     createdAt: '2026-06-30T09:00:00-05:00', updatedAt: '2026-08-01T09:00:00-05:00'
   },
   {
@@ -62,7 +62,7 @@ export const demoProjects = [
     status: 'active', stage: 'development', priority: 'high', health: 'amber', progress: 70,
     ownerUserId: 'usr-edinson', owner: 'Edinson G.', client: 'Personal Class', startDate: '2026-05-15', dueDate: '2026-09-30',
     budget: 15000, cost: 9800, hours: 236, pendingTasks: 15,
-    logo: '', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
+    logo: '', coverImage: '', brandColor: '#593079', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
     createdAt: '2026-05-15T09:00:00-05:00', updatedAt: '2026-08-01T09:00:00-05:00'
   },
   {
@@ -72,7 +72,7 @@ export const demoProjects = [
     status: 'active', stage: 'launch', priority: 'medium', health: 'green', progress: 40,
     ownerUserId: 'usr-rodrigo', owner: 'Rodrigo G.', client: 'NIJA', startDate: '2026-07-01', dueDate: '2026-11-15',
     budget: 9200, cost: 2800, hours: 65, pendingTasks: 8,
-    logo: '', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
+    logo: '', coverImage: '', brandColor: '#d18e36', driveFolderId: '', driveUrl: '', githubUrl: '', figmaUrl: '', hostingUrl: '', domain: '',
     createdAt: '2026-07-01T09:00:00-05:00', updatedAt: '2026-08-01T09:00:00-05:00'
   }
 ];

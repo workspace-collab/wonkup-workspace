@@ -77,9 +77,11 @@ function projectFormHtml({ project, workspaces, defaultWorkspaceId }) {
     </div>
 
     <div class="form-section">
-      <div class="form-section-title"><strong>Enlaces</strong><span>Todos son opcionales y deben usar http o https.</span></div>
+      <div class="form-section-title"><strong>Identidad visual y enlaces</strong><span>Logo y portada aceptan URL o ruta assets/...; los demás enlaces usan http o https.</span></div>
       <div class="form-grid form-grid-2">
-        <label class="form-field"><span>Logo</span><input class="input" type="url" name="logo" value="${value('logo')}" placeholder="https://..."><small data-error-for="logo"></small></label>
+        <label class="form-field"><span>Logo</span><input class="input" type="url" name="logo" value="${value('logo')}" placeholder="https://... o assets/projects/logo.png"><small data-error-for="logo"></small></label>
+        <label class="form-field"><span>Portada horizontal</span><input class="input" type="url" name="coverImage" value="${value('coverImage')}" placeholder="https://... o assets/projects/portada.webp"><small data-error-for="coverImage"></small></label>
+        <label class="form-field"><span>Color de marca</span><div class="color-input-row"><input class="color-input" type="color" name="brandColor" value="${value('brandColor', '#50a8f3')}"><code>${value('brandColor', '#50a8f3')}</code></div><small data-error-for="brandColor"></small></label>
         <label class="form-field"><span>GitHub</span><input class="input" type="url" name="githubUrl" value="${value('githubUrl')}" placeholder="https://github.com/..."><small data-error-for="githubUrl"></small></label>
         <label class="form-field"><span>Figma</span><input class="input" type="url" name="figmaUrl" value="${value('figmaUrl')}" placeholder="https://figma.com/..."><small data-error-for="figmaUrl"></small></label>
         <label class="form-field"><span>Hosting</span><input class="input" type="url" name="hostingUrl" value="${value('hostingUrl')}" placeholder="https://..."><small data-error-for="hostingUrl"></small></label>
@@ -110,6 +112,9 @@ export async function openProjectForm({ session = getState().session, workspaceI
   const ownerSelect = form.querySelector('#project-owner-select');
   const workspaceSelect = form.querySelector('[name="workspaceId"]');
   const submit = form.querySelector('#project-submit');
+  const brandColorInput = form.querySelector('[name="brandColor"]');
+  const brandColorCode = brandColorInput?.closest('.color-input-row')?.querySelector('code');
+  brandColorInput?.addEventListener('input', event => { if (brandColorCode) brandColorCode.textContent = event.target.value; });
 
   async function loadRelations(nextWorkspaceId) {
     clientSelect.disabled = true;
@@ -141,6 +146,7 @@ export async function openProjectForm({ session = getState().session, workspaceI
     const errors = validateProjectInput(input);
 
     if (raw.logo && !normalizeAssetUrl(raw.logo)) errors.logo = 'Usa una URL válida o una ruta assets/...';
+    if (raw.coverImage && !normalizeAssetUrl(raw.coverImage)) errors.coverImage = 'Usa una URL válida o una ruta assets/...';
     ['githubUrl', 'figmaUrl', 'hostingUrl'].forEach(name => {
       if (raw[name] && !normalizeUrl(raw[name])) errors[name] = 'Ingresa una URL válida con https://';
     });

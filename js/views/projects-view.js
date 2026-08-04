@@ -90,6 +90,27 @@ export function renderProjects(container, workspaceId, session) {
         }
       });
     });
+
+
+    content.querySelectorAll('[data-project-restore]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const project = state.projects.find(item => item.id === button.dataset.projectRestore);
+        if (!project) return;
+        const confirmed = await confirmModal({
+          title: 'Restaurar proyecto',
+          message: `El proyecto <strong>${escapeHtml(project.name)}</strong> volverá a su estado anterior y aparecerá nuevamente en la vista principal.`,
+          confirmLabel: 'Restaurar'
+        });
+        if (!confirmed) return;
+        try {
+          await ProjectService.restoreProject({ projectId: project.id, session });
+          showToast('Proyecto restaurado.');
+          await load();
+        } catch (error) {
+          showToast(error.message || 'No se pudo restaurar el proyecto.');
+        }
+      });
+    });
   };
 
   container.querySelector('#project-search').addEventListener('input', event => {
@@ -128,6 +149,7 @@ function projectCard(project, session) {
   const healthColor = { green: 'var(--success)', amber: 'var(--warning)', red: 'var(--danger)' }[project.health] || 'var(--text-muted)';
   const canEdit = canEditProject(session, project.id, project.workspaceId) && project.status !== 'archived';
   const canArchive = canArchiveProject(session, project.workspaceId) && project.status !== 'archived';
+  const canRestore = canArchiveProject(session, project.workspaceId) && project.status === 'archived';
 
   return `<article class="project-card ${project.status === 'archived' ? 'project-card-archived' : ''}">
     <div class="project-card-top">
@@ -146,6 +168,7 @@ function projectCard(project, session) {
       <div class="card-actions">
         ${canEdit ? `<button class="icon-button" data-project-edit="${project.id}" aria-label="Editar">${icon('edit')}</button>` : ''}
         ${canArchive ? `<button class="icon-button icon-button-danger" data-project-archive="${project.id}" aria-label="Archivar">${icon('archive')}</button>` : ''}
+        ${canRestore ? `<button class="button button-gold button-compact" data-project-restore="${project.id}">${icon('refresh')} Restaurar</button>` : ''}
         <a class="button button-secondary" href="#/w/${project.workspaceId}/p/${project.id}/summary">Abrir ${icon('arrowRight')}</a>
       </div>
     </div>

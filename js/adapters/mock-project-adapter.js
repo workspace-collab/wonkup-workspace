@@ -72,7 +72,15 @@ function enrichProject(input) {
   const clients = read(KEYS.clients, demoClients);
   const user = demoUsers.find(item => item.id === input.ownerUserId);
   const client = clients.find(item => item.id === input.clientId);
+  const seed = demoProjects.find(item => item.id === input.id) || {};
   return {
+    coverImage: seed.coverImage || '',
+    brandColor: seed.brandColor || '#50a8f3',
+    statusBeforeArchive: '',
+    archivedAt: '',
+    archivedBy: '',
+    restoredAt: '',
+    restoredBy: '',
     ...input,
     owner: user?.name || input.owner || 'Sin responsable',
     client: client?.name || input.client || 'Sin cliente'
@@ -152,9 +160,41 @@ export const MockProjectAdapter = {
     if (index < 0) throw new Error('Proyecto no encontrado.');
     const current = projects[index];
     if (!canArchiveProject(session, current.workspaceId)) throw new Error('Tu rol no permite archivar proyectos.');
-    projects[index] = { ...current, status: 'archived', updatedAt: new Date().toISOString() };
+    if (current.status === 'archived') return clone(enrichProject(current));
+    const now = new Date().toISOString();
+    projects[index] = {
+      ...current,
+      statusBeforeArchive: current.status || 'planned',
+      status: 'archived',
+      archivedAt: now,
+      archivedBy: session?.user?.id || '',
+      restoredAt: '',
+      restoredBy: '',
+      updatedAt: now
+    };
     write(KEYS.projects, projects);
-    return clone(projects[index]);
+    return clone(enrichProject(projects[index]));
+  },
+
+  async restoreProject({ projectId, session }) {
+    await wait(150);
+    const projects = read(KEYS.projects, demoProjects);
+    const index = projects.findIndex(item => item.id === projectId);
+    if (index < 0) throw new Error('Proyecto no encontrado.');
+    const current = projects[index];
+    if (!canArchiveProject(session, current.workspaceId)) throw new Error('Tu rol no permite restaurar proyectos.');
+    if (current.status !== 'archived') throw new Error('El proyecto no está archivado.');
+    const now = new Date().toISOString();
+    projects[index] = {
+      ...current,
+      status: current.statusBeforeArchive || 'planned',
+      statusBeforeArchive: '',
+      restoredAt: now,
+      restoredBy: session?.user?.id || '',
+      updatedAt: now
+    };
+    write(KEYS.projects, projects);
+    return clone(enrichProject(projects[index]));
   },
 
   async listClients({ workspaceId = 'all', session }) {

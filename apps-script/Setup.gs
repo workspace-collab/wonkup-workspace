@@ -5,7 +5,7 @@ WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.accessGrants] = ['id','code_hash','user_id',
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.sessions] = ['id','session_hash','user_id','role','workspace_ids_json','project_ids_json','expires_at','status','created_at','last_seen_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.workspaceMembers] = ['id','workspace_id','user_id','role','status','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.clients] = ['id','workspace_id','name','contact_name','email','phone','status','created_at','updated_at'];
-WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.projects] = ['id','workspace_id','client_id','code','name','tagline','description','status','stage','priority','health','progress','owner_user_id','start_date','due_date','budget','cost','hours','pending_tasks','logo_url','drive_folder_id','drive_folder_url','github_url','figma_url','hosting_url','domain','created_by','updated_by','created_at','updated_at'];
+WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.projects] = ['id','workspace_id','client_id','code','name','tagline','description','status','stage','priority','health','progress','owner_user_id','start_date','due_date','budget','cost','hours','pending_tasks','logo_url','cover_image_url','brand_color','status_before_archive','archived_at','archived_by','restored_at','restored_by','drive_folder_id','drive_folder_url','github_url','figma_url','hosting_url','domain','created_by','updated_by','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.projectMembers] = ['id','project_id','user_id','role','allocation','status','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.resources] = ['id','project_id','type','name','url','visibility','status','created_by','created_at','updated_at'];
 WONKUP_SCHEMAS[WONKUP_CONFIG.sheets.milestones] = ['id','project_id','name','due_date','status','visibility','created_at','updated_at'];
@@ -86,7 +86,7 @@ function seedWonkUpDemoData_() {
     ['p-nija-growth','w-nija','client-nija','PROY-NIJ-001','Crecimiento comercial NIJA','Café de especialidad que conecta origen y oportunidad.','launch','usr-rodrigo','2026-07-01','2026-11-15',9200,40]
   ];
   projects.forEach(function(item) {
-    upsertDefaults_(WONKUP_CONFIG.sheets.projects, item[0], {id:item[0],workspace_id:item[1],client_id:item[2],code:item[3],name:item[4],tagline:item[5],description:'Proyecto demostrativo de WonkUp Workspace.',status:'active',stage:item[6],priority:'medium',health:'green',progress:item[11],owner_user_id:item[7],start_date:item[8],due_date:item[9],budget:item[10],cost:0,hours:0,pending_tasks:0,logo_url:'',drive_folder_id:'',drive_folder_url:'',github_url:'',figma_url:'',hosting_url:'',domain:'',created_by:'usr-rodrigo',updated_by:'usr-rodrigo',created_at:now,updated_at:now});
+    upsertDefaults_(WONKUP_CONFIG.sheets.projects, item[0], {id:item[0],workspace_id:item[1],client_id:item[2],code:item[3],name:item[4],tagline:item[5],description:'Proyecto demostrativo de WonkUp Workspace.',status:'active',stage:item[6],priority:'medium',health:'green',progress:item[11],owner_user_id:item[7],start_date:item[8],due_date:item[9],budget:item[10],cost:0,hours:0,pending_tasks:0,logo_url:'',cover_image_url:'',brand_color:'#50a8f3',status_before_archive:'',archived_at:'',archived_by:'',restored_at:'',restored_by:'',drive_folder_id:'',drive_folder_url:'',github_url:'',figma_url:'',hosting_url:'',domain:'',created_by:'usr-rodrigo',updated_by:'usr-rodrigo',created_at:now,updated_at:now});
   });
 
   [
