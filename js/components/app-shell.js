@@ -1,14 +1,14 @@
-import { icon } from '../utils/icons.js?v=9.0.4';
-import { DemoService } from '../services/demo-service.js?v=9.0.4';
-import { AccessService } from '../services/access-service.js?v=9.0.4';
-import { NotificationService } from '../services/notification-service.js?v=9.0.4';
-import { GlobalSearchService } from '../services/global-search-service.js?v=9.0.4';
-import { getState, setState, clearSession } from '../state/store.js?v=9.0.4';
-import { showToast } from './toast.js?v=9.0.4';
-import { confirmModal } from './modal.js?v=9.0.4';
-import { escapeHtml } from '../utils/format.js?v=9.0.4';
-import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=9.0.4';
-import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.5';
+import { DemoService } from '../services/demo-service.js?v=9.0.5';
+import { AccessService } from '../services/access-service.js?v=9.0.5';
+import { NotificationService } from '../services/notification-service.js?v=9.0.5';
+import { GlobalSearchService } from '../services/global-search-service.js?v=9.0.5';
+import { getState, setState, clearSession } from '../state/store.js?v=9.0.5';
+import { showToast } from './toast.js?v=9.0.5';
+import { confirmModal } from './modal.js?v=9.0.5';
+import { escapeHtml } from '../utils/format.js?v=9.0.5';
+import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=9.0.5';
+import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=9.0.5';
 
 const internalNavItems = [
   ['dashboard', 'Dashboard', 'home', null, true],

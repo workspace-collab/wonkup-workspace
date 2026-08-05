@@ -1,7 +1,7 @@
-import { ReportService } from '../services/report-service.js?v=9.0.4';
-import { canViewFinancials } from '../utils/permissions.js?v=9.0.4';
-import { icon } from '../utils/icons.js?v=9.0.4';
-import { escapeHtml, formatCurrency, formatDate } from '../utils/format.js?v=9.0.4';
+import { ReportService } from '../services/report-service.js?v=9.0.5';
+import { canViewFinancials } from '../utils/permissions.js?v=9.0.5';
+import { icon } from '../utils/icons.js?v=9.0.5';
+import { escapeHtml, formatCurrency, formatDate } from '../utils/format.js?v=9.0.5';
 
 const STATUS_LABELS = {
   active: ['En desarrollo', 'badge-blue'],

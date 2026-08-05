@@ -1,5 +1,5 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.4';
-import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=9.0.4';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.5';
+import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=9.0.5';
 
 const CLIENT_PROMISE_KEY = '__WONKUP_FIREBASE_CLIENT_PROMISE__';
 

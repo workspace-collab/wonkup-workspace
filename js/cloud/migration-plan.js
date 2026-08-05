@@ -1,8 +1,8 @@
-import { demoWorkspaces } from '../../data/demo-workspaces.js?v=9.0.4';
-import { demoProjects } from '../../data/demo-projects.js?v=9.0.4';
-import { demoClients } from '../../data/demo-clients.js?v=9.0.4';
-import { demoUsers } from '../../data/demo-users.js?v=9.0.4';
-import { demoProjectMembers } from '../../data/demo-project-members.js?v=9.0.4';
+import { demoWorkspaces } from '../../data/demo-workspaces.js?v=9.0.5';
+import { demoProjects } from '../../data/demo-projects.js?v=9.0.5';
+import { demoClients } from '../../data/demo-clients.js?v=9.0.5';
+import { demoUsers } from '../../data/demo-users.js?v=9.0.5';
+import { demoProjectMembers } from '../../data/demo-project-members.js?v=9.0.5';
 
 const STORAGE_KEYS = Object.freeze({
   projects: 'wonkup.e3.projects',
@@ -12,6 +12,55 @@ const STORAGE_KEYS = Object.freeze({
 });
 
 const clone = value => JSON.parse(JSON.stringify(value));
+
+const VALID_WORKSPACE_STATUSES = new Set(['active', 'inactive', 'archived']);
+const VALID_PROJECT_STATUSES = new Set(['draft', 'planned', 'active', 'pending_client', 'on_hold', 'blocked', 'completed', 'archived']);
+const VALID_PROJECT_ROLES = new Set(['project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
+const VALID_MEMBER_STATUSES = new Set(['active', 'inactive', 'pending']);
+
+function normalizeWorkspaceStatus(value) {
+  const status = String(value || '').trim().toLowerCase();
+  if (VALID_WORKSPACE_STATUSES.has(status)) return status;
+  if (['disabled', 'paused'].includes(status)) return 'inactive';
+  return 'active';
+}
+
+function normalizeProjectStatus(value) {
+  const status = String(value || '').trim().toLowerCase();
+  if (VALID_PROJECT_STATUSES.has(status)) return status;
+  const aliases = {
+    planning: 'planned',
+    in_progress: 'active',
+    development: 'active',
+    review: 'pending_client',
+    pending: 'pending_client',
+    paused: 'on_hold',
+    hold: 'on_hold',
+    done: 'completed',
+    closed: 'completed'
+  };
+  return aliases[status] || 'planned';
+}
+
+function normalizeProjectRole(value) {
+  const role = String(value || '').trim().toLowerCase();
+  if (VALID_PROJECT_ROLES.has(role)) return role;
+  const aliases = {
+    lead: 'project_lead',
+    leader: 'project_lead',
+    lider: 'project_lead',
+    member: 'collaborator',
+    contributor: 'collaborator',
+    revisor: 'reviewer',
+    viewer: 'guest'
+  };
+  return aliases[role] || 'collaborator';
+}
+
+function normalizeMemberStatus(value) {
+  const status = String(value || '').trim().toLowerCase();
+  return VALID_MEMBER_STATUSES.has(status) ? status : 'active';
+}
 
 function readLocal(key, fallback) {
   try {
@@ -55,7 +104,7 @@ function workspaceDoc(workspace) {
     description: workspace.description || '',
     color: workspace.color || '#50a8f3',
     logo: workspace.logo || '',
-    status: workspace.status || 'active',
+    status: normalizeWorkspaceStatus(workspace.status),
     schemaVersion: 9,
     createdAt: workspace.createdAt || timestamp,
     updatedAt: timestamp
@@ -68,6 +117,8 @@ function projectDoc(project) {
     ...project,
     id: project.id,
     workspaceId: project.workspaceId,
+    name: String(project.name || 'Proyecto').trim() || 'Proyecto',
+    status: normalizeProjectStatus(project.status),
     schemaVersion: 9,
     createdAt: project.createdAt || timestamp,
     updatedAt: project.updatedAt || timestamp
@@ -110,9 +161,9 @@ function memberDoc(member, project) {
     workspaceId: project.workspaceId,
     userId: member.userId,
     authUid: member.authUid || '',
-    role: member.role || 'collaborator',
+    role: normalizeProjectRole(member.role),
     allocation: Number(member.allocation || 0),
-    status: member.status || 'active',
+    status: normalizeMemberStatus(member.status),
     schemaVersion: 9,
     createdAt: member.createdAt || timestamp,
     updatedAt: timestamp

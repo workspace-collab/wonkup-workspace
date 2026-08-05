@@ -3,6 +3,7 @@ export const ROLE_LABELS = Object.freeze({
   workspace_admin: 'Administrador de workspace',
   project_lead: 'Líder de proyecto',
   collaborator: 'Colaborador',
+  reviewer: 'Revisor',
   client: 'Cliente',
   guest: 'Invitado'
 });

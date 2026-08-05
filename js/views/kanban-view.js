@@ -1,11 +1,11 @@
-import { KanbanService } from '../services/kanban-service.js?v=9.0.4';
-import { ProjectService } from '../services/project-service.js?v=9.0.4';
-import { canConfigureKanban, canDeleteKanbanCard, canEditKanban } from '../utils/permissions.js?v=9.0.4';
-import { KANBAN_TONES, kanbanTemplates } from '../../data/kanban-templates.js?v=9.0.4';
-import { icon } from '../utils/icons.js?v=9.0.4';
-import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.4';
-import { openModal, closeModal, confirmModal } from '../components/modal.js?v=9.0.4';
-import { showToast } from '../components/toast.js?v=9.0.4';
+import { KanbanService } from '../services/kanban-service.js?v=9.0.5';
+import { ProjectService } from '../services/project-service.js?v=9.0.5';
+import { canConfigureKanban, canDeleteKanbanCard, canEditKanban } from '../utils/permissions.js?v=9.0.5';
+import { KANBAN_TONES, kanbanTemplates } from '../../data/kanban-templates.js?v=9.0.5';
+import { icon } from '../utils/icons.js?v=9.0.5';
+import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.5';
+import { openModal, closeModal, confirmModal } from '../components/modal.js?v=9.0.5';
+import { showToast } from '../components/toast.js?v=9.0.5';
 
 let activeContext = null;
 let unsubscribeEvents = null;

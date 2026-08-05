@@ -1,9 +1,9 @@
-import { ProjectService } from './project-service.js?v=9.0.4';
-import { KanbanService } from './kanban-service.js?v=9.0.4';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=9.0.4';
-import { CanvasService } from './canvas-service.js?v=9.0.4';
-import { DeliverableService } from './deliverable-service.js?v=9.0.4';
-import { isReadOnlyRole } from '../utils/permissions.js?v=9.0.4';
+import { ProjectService } from './project-service.js?v=9.0.5';
+import { KanbanService } from './kanban-service.js?v=9.0.5';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=9.0.5';
+import { CanvasService } from './canvas-service.js?v=9.0.5';
+import { DeliverableService } from './deliverable-service.js?v=9.0.5';
+import { isReadOnlyRole } from '../utils/permissions.js?v=9.0.5';
 
 function includesQuery(values, query) {
   return values.filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query);

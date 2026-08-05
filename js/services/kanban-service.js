@@ -1,6 +1,6 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.4';
-import { MockKanbanAdapter } from '../adapters/mock-kanban-adapter.js?v=9.0.4';
-import { FirebaseKanbanAdapter } from '../adapters/firebase-kanban-adapter.js?v=9.0.4';
+import { API_CONFIG } from '../config/api-config.js?v=9.0.5';
+import { MockKanbanAdapter } from '../adapters/mock-kanban-adapter.js?v=9.0.5';
+import { FirebaseKanbanAdapter } from '../adapters/firebase-kanban-adapter.js?v=9.0.5';
 
 function adapter() {
   return API_CONFIG.kanbanMode === 'firebase' ? FirebaseKanbanAdapter : MockKanbanAdapter;

@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.4';
-import { escapeHtml } from '../utils/format.js?v=9.0.4';
-import { icon } from '../utils/icons.js?v=9.0.4';
-import { showToast } from '../components/toast.js?v=9.0.4';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.5';
+import { escapeHtml } from '../utils/format.js?v=9.0.5';
+import { icon } from '../utils/icons.js?v=9.0.5';
+import { showToast } from '../components/toast.js?v=9.0.5';
 
 let active = true;
 
@@ -378,14 +378,22 @@ function bindCloudEvents(container) {
       return;
     }
 
-    // El diálogo propio podía quedar bloqueado por caché o por el estado inert del DOM.
-    // La confirmación nativa se ejecuta directamente desde el clic y es más resiliente
-    // para esta operación crítica de una sola vez.
-    const confirmed = typeof globalThis.confirm === 'function'
-      ? globalThis.confirm(`Migrar ${plan.counts.total} documentos a Cloud Firestore?\n\nLa operación usa merge y no elimina información existente.`)
-      : true;
-    if (!confirmed) return;
+    // Confirmación visible de dos pasos. Evita depender de diálogos nativos que algunos
+    // navegadores ocultan o presentan fuera del área capturada por el usuario.
+    if (button.dataset.confirmMigration !== 'true') {
+      button.dataset.confirmMigration = 'true';
+      button.innerHTML = `${icon('alert')} Confirmar migración`;
+      showOperationConfirmation(container, `Pulsa nuevamente “Confirmar migración” para escribir ${plan.counts.total} documentos. La operación usa merge y no elimina información existente.`);
+      globalThis.clearTimeout(button._confirmationTimer);
+      button._confirmationTimer = globalThis.setTimeout(() => {
+        delete button.dataset.confirmMigration;
+        button.innerHTML = `${icon('upload')} Migrar a Firestore`;
+      }, 20000);
+      return;
+    }
 
+    globalThis.clearTimeout(button._confirmationTimer);
+    delete button.dataset.confirmMigration;
     button.disabled = true;
     button.innerHTML = '<span class="spinner"></span> Migrando...';
     showOperationPending(container, `Iniciando la escritura de ${plan.counts.total} documentos. No cierres ni recargues esta pestaña.`);
@@ -424,6 +432,12 @@ function bindCloudEvents(container) {
   });
 }
 
+
+function showOperationConfirmation(container, message) {
+  const result = container.querySelector('#cloud-operation-result');
+  result.classList.remove('hidden', 'is-error', 'is-success');
+  result.innerHTML = `<strong>Confirmación requerida</strong><span>${escapeHtml(message)}</span>`;
+}
 
 function showOperationPending(container, message) {
   const result = container.querySelector('#cloud-operation-result');

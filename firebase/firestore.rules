@@ -165,7 +165,7 @@ service cloud.firestore {
           allow create, update: if canLeadProject(workspaceId, projectId)
             && request.resource.data.workspaceId == workspaceId
             && request.resource.data.projectId == projectId
-            && request.resource.data.role in ['project_lead', 'collaborator', 'client', 'guest']
+            && request.resource.data.role in ['project_lead', 'collaborator', 'reviewer', 'client', 'guest']
             && request.resource.data.status in ['active', 'inactive', 'pending'];
           allow delete: if false;
         }

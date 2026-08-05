@@ -1,12 +1,14 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.4';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.4';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=9.0.4';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=9.0.4';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=9.0.4';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.5';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.5';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=9.0.5';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=9.0.5';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=9.0.5';
 
 const clone = value => JSON.parse(JSON.stringify(value));
+const FIRESTORE_RULE_SAFE_BATCH_SIZE = 4;
 
 function messageFromFirebaseError(error) {
+  if (error?.wonkupMessage) return error.wonkupMessage;
   const code = String(error?.code || '');
   const messages = {
     'auth/invalid-credential': 'Correo o contraseña incorrectos.',
@@ -32,8 +34,7 @@ async function readCurrentProfile() {
   };
 }
 
-async function commitInChunks(client, operations, metadata = {}) {
-  const chunkSize = 400;
+async function commitInChunks(client, operations, metadata = {}, { stage = 'Datos', chunkSize = FIRESTORE_RULE_SAFE_BATCH_SIZE } = {}) {
   let committed = 0;
   for (let index = 0; index < operations.length; index += chunkSize) {
     const chunk = operations.slice(index, index + chunkSize);
@@ -45,8 +46,18 @@ async function commitInChunks(client, operations, metadata = {}) {
         { merge: true }
       );
     });
-    await batch.commit();
-    committed += chunk.length;
+    try {
+      await batch.commit();
+      committed += chunk.length;
+    } catch (error) {
+      const paths = chunk.map(operation => operation.path).join(', ');
+      const code = String(error?.code || 'unknown');
+      const wrapped = new Error(`Firestore rechazó la etapa ${stage}. Código: ${code}. Rutas: ${paths}.`);
+      wrapped.code = code;
+      wrapped.wonkupMessage = wrapped.message;
+      wrapped.cause = error;
+      throw wrapped;
+    }
   }
   return committed;
 }
@@ -273,7 +284,13 @@ export const CloudFoundationService = {
         migratedBy: account.uid,
         migrationId
       };
-      const committed = await commitInChunks(client, plan.operations, commonMetadata);
+      const operationsByGroup = plan.operations.reduce((groups, operation) => {
+        (groups[operation.group] ||= []).push(operation);
+        return groups;
+      }, {});
+      let committed = 0;
+
+      committed += await commitInChunks(client, operationsByGroup.workspaces || [], commonMetadata, { stage: 'Workspaces' });
 
       const membershipOperations = plan.selectedWorkspaceIds.map(workspaceId => ({
         path: `workspaces/${workspaceId}/members/${account.uid}`,
@@ -289,7 +306,11 @@ export const CloudFoundationService = {
           updatedAt: new Date().toISOString()
         }
       }));
-      await commitInChunks(client, membershipOperations, commonMetadata);
+      committed += await commitInChunks(client, membershipOperations, commonMetadata, { stage: 'Membresías del superadministrador' });
+      committed += await commitInChunks(client, operationsByGroup.clients || [], commonMetadata, { stage: 'Clientes' });
+      committed += await commitInChunks(client, operationsByGroup.people || [], commonMetadata, { stage: 'Personas' });
+      committed += await commitInChunks(client, operationsByGroup.projects || [], commonMetadata, { stage: 'Proyectos' });
+      committed += await commitInChunks(client, operationsByGroup.projectMembers || [], commonMetadata, { stage: 'Miembros de proyecto' });
 
       const batch = client.sdk.firestore.writeBatch(client.db);
       batch.set(client.sdk.firestore.doc(client.db, 'system', 'schema'), {
@@ -314,7 +335,7 @@ export const CloudFoundationService = {
       return {
         ok: true,
         migrationId,
-        committed: committed + membershipOperations.length + 2,
+        committed: committed + 2,
         plan: clone(plan)
       };
     } catch (error) {

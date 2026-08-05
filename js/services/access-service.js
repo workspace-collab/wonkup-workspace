@@ -1,8 +1,8 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.4';
-import { MockAccessAdapter } from '../adapters/mock-access-adapter.js?v=9.0.4';
-import { AppsScriptAdapter } from '../adapters/apps-script-adapter.js?v=9.0.4';
-import { FirebaseAccessAdapter } from '../adapters/firebase-access-adapter.js?v=9.0.4';
-import { demoAccessGrants } from '../../data/demo-access.js?v=9.0.4';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.5';
+import { MockAccessAdapter } from '../adapters/mock-access-adapter.js?v=9.0.5';
+import { AppsScriptAdapter } from '../adapters/apps-script-adapter.js?v=9.0.5';
+import { FirebaseAccessAdapter } from '../adapters/firebase-access-adapter.js?v=9.0.5';
+import { demoAccessGrants } from '../../data/demo-access.js?v=9.0.5';
 
 function codeAdapter() {
   return API_CONFIG.mode === 'apps-script' ? AppsScriptAdapter : MockAccessAdapter;
