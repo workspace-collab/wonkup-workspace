@@ -62,6 +62,10 @@ export function canManageProjectResources(session, projectId, workspaceId) {
   return canEditProject(session, projectId, workspaceId) || session?.role === 'collaborator';
 }
 
+export function canViewReports(session) {
+  return Boolean(session && INTERNAL_ROLES.has(session.role));
+}
+
 export function canViewFinancials(session) {
   return Boolean(session && MANAGEMENT_ROLES.has(session.role));
 }
@@ -164,7 +168,7 @@ export function canAccessRoute(route, session) {
   if (route.params?.workspaceId === 'all') return canViewMaster(session);
   if (route.hash?.startsWith('#/master/')) return canViewMaster(session);
 
-  if (['dashboard', 'projects', 'toolkit', 'kanban', 'clients', 'placeholder'].includes(route.view)) {
+  if (['dashboard', 'projects', 'toolkit', 'kanban', 'clients', 'reports', 'placeholder'].includes(route.view)) {
     if (!isInternalUser(session)) return false;
     return canAccessWorkspace(session, route.params?.workspaceId);
   }

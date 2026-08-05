@@ -1,97 +1,110 @@
-import { DemoService } from '../services/demo-service.js';
-import { ProjectService } from '../services/project-service.js';
-import { canViewFinancials } from '../utils/permissions.js';
+import { ReportService } from '../services/report-service.js';
+import { canViewFinancials } from '../utils/permissions.js?v=8.0.0';
 import { icon } from '../utils/icons.js';
 import { escapeHtml, formatCurrency, formatDate } from '../utils/format.js';
 
-function statusBadge(status) {
-  const map = {
-    active: ['En desarrollo', 'badge-blue'],
-    pending_client: ['En revisión', 'badge-orange'],
-    planned: ['Planeamiento', 'badge-violet'],
-    completed: ['Completado', 'badge-green'],
-    blocked: ['Bloqueado', 'badge-red'],
-    archived: ['Archivado', 'badge-gray']
-  };
-  const value = map[status] || ['Borrador', 'badge-gray'];
-  return `<span class="badge ${value[1]}">${value[0]}</span>`;
-}
+const STATUS_LABELS = {
+  active: ['En desarrollo', 'badge-blue'],
+  pending_client: ['En revisión', 'badge-orange'],
+  planned: ['Planeamiento', 'badge-violet'],
+  completed: ['Completado', 'badge-green'],
+  blocked: ['Bloqueado', 'badge-red'],
+  archived: ['Archivado', 'badge-gray']
+};
 
-function projectLogo(project) {
-  return project.logo
-    ? `<img src="${escapeHtml(project.logo)}" alt="">`
-    : escapeHtml(project.name.slice(0, 2).toUpperCase());
-}
+const RISK_LABELS = {
+  critical: ['Crítico', 'badge-red'],
+  warning: ['En riesgo', 'badge-orange'],
+  watch: ['Observar', 'badge-gold'],
+  stable: ['Estable', 'badge-green']
+};
 
 export function renderDashboard(container, workspaceId, session) {
-  container.innerHTML = `<section class="page"><div class="loading-panel"><span class="spinner spinner-blue"></span><p>Cargando dashboard...</p></div></section>`;
+  container.innerHTML = loading('Cargando dashboard ejecutivo...');
   loadDashboard(container, workspaceId, session);
 }
 
 async function loadDashboard(container, workspaceId, session) {
   try {
-    const projects = await ProjectService.listProjects({ workspaceId, session, includeArchived: false });
-    const activities = DemoService.getActivities(workspaceId, session).slice(0, 4);
-    const tasks = DemoService.getTasks(workspaceId, session).slice(0, 4);
-    const active = projects.filter(project => project.status === 'active').length;
-    const attention = projects.filter(project => ['pending_client', 'blocked'].includes(project.status) || project.health === 'amber').length;
-    const completed = projects.filter(project => project.status === 'completed').length;
-    const avgProgress = projects.length
-      ? Math.round(projects.reduce((total, project) => total + Number(project.progress || 0), 0) / projects.length)
-      : 0;
-    const budget = projects.reduce((total, project) => total + Number(project.budget || 0), 0);
-    const cost = projects.reduce((total, project) => total + Number(project.cost || 0), 0);
-    const hours = projects.reduce((total, project) => total + Number(project.hours || 0), 0);
-    const margin = budget ? Math.round(((budget - cost) / budget) * 100) : 0;
-    const projectsHref = workspaceId === 'all' ? '#/master/projects' : `#/w/${workspaceId}/projects`;
-
-    container.innerHTML = `<section class="page">
-      <div class="page-header">
-        <div><span class="page-kicker">${escapeHtml(session.roleLabel)}</span><h1>Dashboard</h1><p>Resumen del portafolio autorizado para tu sesión actual.</p></div>
-        <div class="page-header-actions"><a class="button button-primary" href="${projectsHref}">${icon('folder')} Ver proyectos</a></div>
-      </div>
-
-      <div class="session-banner"><span>${icon('shield')}</span><div><strong>Acceso controlado por rol</strong><small>Sesión temporal activa hasta ${new Date(session.expiresAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}.</small></div></div>
-
-      <div class="metrics-grid">
-        ${metric('blue', 'briefcase', projects.length, 'Proyectos visibles', 'Según tu alcance')}
-        ${metric('blue', 'activity', active, 'En ejecución', 'Trabajo activo')}
-        ${metric('red', 'alert', attention, 'Requieren atención', 'Revisión o riesgo')}
-        ${metric('green', 'check', completed, 'Completados', 'Cierre confirmado')}
-      </div>
-
-      <div class="dashboard-middle-grid">
-        <article class="panel"><div class="panel-header"><div><h2>Proyectos recientes</h2><p>Estado actual de las iniciativas autorizadas.</p></div><a class="panel-link" href="${projectsHref}">Ver todos</a></div><div class="panel-body project-list">${projects.slice(0, 5).map(project => `<a class="project-list-row" href="#/w/${project.workspaceId}/p/${project.id}/summary"><span class="project-logo-sm">${projectLogo(project)}</span><span class="list-copy"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.owner || 'Sin responsable')} · ${Number(project.progress || 0)}%</small></span>${statusBadge(project.status)}</a>`).join('') || emptyInline('No hay proyectos asignados')}</div></article>
-        <article class="panel"><div class="panel-header"><div><h2>Progreso del portafolio</h2><p>Promedio de los proyectos visibles.</p></div></div><div class="panel-body donut-layout"><div class="donut-wrap"><div class="donut"><div class="donut-center"><strong>${avgProgress}%</strong><span>Avance general</span></div></div></div><div class="legend"><div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span>Completados</span><strong>${completed}</strong></div><div class="legend-row"><span class="legend-dot" style="background:var(--wonkup-sky)"></span><span>En desarrollo</span><strong>${active}</strong></div><div class="legend-row"><span class="legend-dot" style="background:var(--warning)"></span><span>Con atención</span><strong>${attention}</strong></div><div class="legend-row"><span class="legend-dot" style="background:var(--violet)"></span><span>Total visible</span><strong>${projects.length}</strong></div></div></div></article>
-      </div>
-
-      <div class="dashboard-bottom-grid">
-        <article class="panel"><div class="panel-header"><div><h2>Actividad reciente</h2><p>Actualizaciones de proyectos visibles.</p></div></div><div class="panel-body activity-list">${activities.map(activity => `<div class="activity-row"><span class="activity-avatar">${activity.initials}</span><span class="list-copy"><strong>${escapeHtml(activity.action)}</strong><small>${escapeHtml(activity.time)}</small></span></div>`).join('') || emptyInline('Sin actividad')}</div></article>
-        <article class="panel"><div class="panel-header"><div><h2>Tareas pendientes</h2><p>Próximos vencimientos autorizados.</p></div></div><div class="panel-body task-list">${tasks.map(task => `<div class="task-row"><span class="task-check"></span><span class="list-copy"><strong>${escapeHtml(task.title)}</strong><small>${priorityBadge(task.priority)}</small></span><span class="task-date">${formatDate(task.dueDate, { year: false })}</span></div>`).join('') || emptyInline('Sin tareas')}</div></article>
-      </div>
-
-      ${canViewFinancials(session) ? `<div class="metrics-grid" style="margin-top:18px">
-        ${metric('blue', 'wallet', formatCurrency(budget), 'Presupuesto demo', 'Consolidado autorizado')}
-        ${metric('gold', 'chart', formatCurrency(cost), 'Costos demo', 'Datos ficticios')}
-        ${metric('blue', 'clock', hours, 'Horas registradas', 'Acumulado demo')}
-        ${metric('green', 'activity', `${margin}%`, 'Margen estimado', 'Solo administradores')}
-      </div>` : ''}
-    </section>`;
+    const report = await ReportService.getPortfolioReport({ workspaceId, session, period: '90d', status: 'all' });
+    if (!container.isConnected) return;
+    renderDashboardContent(container, workspaceId, session, report);
   } catch (error) {
-    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudo cargar el dashboard</h2><p>${escapeHtml(error.message)}</p></div></section>`;
+    if (!container.isConnected) return;
+    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h1>No se pudo cargar el dashboard</h1><p>${escapeHtml(error.message)}</p></div></section>`;
   }
 }
 
-function metric(color, iconName, value, label, note) {
-  return `<article class="metric-card metric-${color}"><div class="metric-top"><span class="metric-icon">${icon(iconName)}</span></div><div class="metric-value">${value}</div><div class="metric-label">${label}</div><div class="metric-note">${note}</div></article>`;
+function renderDashboardContent(container, workspaceId, session, report) {
+  const metrics = report.metrics;
+  const financial = canViewFinancials(session);
+  const projectsHref = workspaceId === 'all' ? '#/master/projects' : `#/w/${workspaceId}/projects`;
+  const reportsHref = workspaceId === 'all' ? '#/master/reports' : `#/w/${workspaceId}/reports`;
+  const workspaceLabel = workspaceId === 'all' ? 'Portafolio maestro WonkUp' : 'Workspace seleccionado';
+
+  container.innerHTML = `<section class="page executive-dashboard">
+    <div class="page-header dashboard-hero-header">
+      <div><span class="page-kicker">${escapeHtml(session.roleLabel)} · ${workspaceLabel}</span><h1>Dashboard ejecutivo</h1><p>Panorama integrado de proyectos, riesgos, entregables${financial ? ', finanzas' : ''} y horas.</p></div>
+      <div class="page-header-actions"><a class="button button-secondary" href="${projectsHref}">${icon('folder')} Proyectos</a><a class="button button-primary" href="${reportsHref}">${icon('chart')} Ver reportes</a></div>
+    </div>
+
+    <div class="executive-kpi-grid">
+      ${executiveMetric('briefcase', metrics.projectCount, 'Proyectos visibles', `${metrics.active} en ejecución`, 'blue')}
+      ${executiveMetric('activity', `${metrics.avgProgress}%`, 'Avance promedio', `${metrics.completed} completados`, 'green')}
+      ${executiveMetric('alert', metrics.atRisk, 'Requieren atención', `${metrics.overdueTasks} tareas vencidas`, metrics.atRisk ? 'danger' : 'green')}
+      ${executiveMetric('eye', metrics.inReviewDeliverables, 'Entregables en revisión', `${metrics.approvedDeliverables} aprobados`, 'gold')}
+      ${financial ? executiveMetric('wallet', formatCurrency(metrics.received), 'Ingresos cobrados', `${formatCurrency(metrics.outstanding)} pendientes`, 'blue') : executiveMetric('clock', `${metrics.actualHours} h`, 'Horas registradas', `${metrics.hoursUsedPercent}% consumido`, 'blue')}
+      ${financial ? executiveMetric('chart', `${metrics.expectedMargin}%`, 'Margen proyectado', `${formatCurrency(metrics.expectedProfit)} utilidad`, metrics.expectedMargin >= 25 ? 'green' : 'danger') : executiveMetric('calendar', metrics.dueSoonTasks, 'Vencen esta semana', 'Tareas próximas', 'gold')}
+    </div>
+
+    <div class="dashboard-middle-grid executive-dashboard-grid">
+      <article class="panel dashboard-portfolio-panel"><div class="panel-header"><div><h2>Portafolio prioritario</h2><p>Ordenado por nivel de riesgo y vencimiento.</p></div><a class="panel-link" href="${reportsHref}">Comparar todos</a></div><div class="panel-body dashboard-project-table">${report.projectRows.slice(0, 6).map(renderProjectRow).join('') || empty('No hay proyectos visibles.')}</div></article>
+      <article class="panel"><div class="panel-header"><div><h2>Salud del portafolio</h2><p>Avance y distribución actual.</p></div></div><div class="panel-body dashboard-health-body">
+        <div class="dashboard-gauge" style="--gauge:${Math.min(100, metrics.avgProgress)}"><div><strong>${metrics.avgProgress}%</strong><span>avance general</span></div></div>
+        <div class="dashboard-status-list">${report.statusBreakdown.map(item => `<div><span><i class="dashboard-status-dot dashboard-status-${item.key}"></i>${escapeHtml(item.label)}</span><strong>${item.value}</strong></div>`).join('')}</div>
+      </div></article>
+    </div>
+
+    <div class="dashboard-bottom-grid executive-dashboard-grid">
+      <article class="panel"><div class="panel-header"><div><h2>Alertas y riesgos</h2><p>Situaciones que requieren una decisión.</p></div><span class="badge ${metrics.atRisk ? 'badge-red' : 'badge-green'}">${metrics.atRisk}</span></div><div class="panel-body dashboard-risk-list">${report.riskProjects.slice(0, 5).map(renderRiskRow).join('') || `<div class="dashboard-all-clear">${icon('check')}<div><strong>Portafolio estable</strong><span>No se detectaron riesgos relevantes.</span></div></div>`}</div></article>
+      <article class="panel"><div class="panel-header"><div><h2>Próximos vencimientos</h2><p>Tareas y entregables más cercanos.</p></div></div><div class="panel-body dashboard-deadlines">${report.upcoming.slice(0, 6).map(item => renderDeadline(item, report.projects)).join('') || empty('No hay fechas próximas.')}</div></article>
+    </div>
+
+    ${financial ? `<article class="panel dashboard-finance-panel"><div class="panel-header"><div><h2>Desempeño financiero — 90 días</h2><p>Ingresos cobrados, costos y horas registradas.</p></div><a class="panel-link" href="${reportsHref}">Reporte financiero</a></div><div class="panel-body dashboard-finance-layout"><div class="dashboard-finance-summary"><div><span>Total facturable</span><strong>${formatCurrency(metrics.totalBillable)}</strong></div><div><span>Costo real</span><strong>${formatCurrency(metrics.realCost)}</strong></div><div><span>Saldo por cobrar</span><strong>${formatCurrency(metrics.outstanding)}</strong></div><div><span>Horas</span><strong>${metrics.actualHours} h</strong></div></div>${renderMiniTrend(report.trend)}</div></article>` : ''}
+
+    <div class="session-banner"><span>${icon('shield')}</span><div><strong>Información según permisos</strong><small>La vista consolida únicamente los workspaces y proyectos autorizados para ${escapeHtml(session.roleLabel)}.</small></div></div>
+  </section>`;
 }
 
-function priorityBadge(priority) {
-  const map = { high: ['Alta', 'badge-red'], medium: ['Media', 'badge-gold'], low: ['Baja', 'badge-green'] };
-  const value = map[priority] || ['Normal', 'badge-gray'];
-  return `<span class="badge ${value[1]}">${value[0]}</span>`;
+function renderProjectRow(row) {
+  const status = STATUS_LABELS[row.status] || [row.status, 'badge-gray'];
+  const risk = RISK_LABELS[row.risk.level] || RISK_LABELS.stable;
+  return `<a class="dashboard-project-row" href="#/w/${row.workspaceId}/p/${row.id}/summary"><div class="dashboard-project-main"><strong>${escapeHtml(row.name)}</strong><small>${escapeHtml(row.owner)} · entrega ${formatDate(row.dueDate, { year: false })}</small></div><div class="dashboard-project-progress"><span><i style="width:${Math.min(100, row.progress)}%"></i></span><strong>${row.progress}%</strong></div><span class="badge ${status[1]}">${status[0]}</span><span class="badge ${risk[1]}">${risk[0]}</span>${icon('arrowRight')}</a>`;
 }
 
-function emptyInline(text) {
-  return `<div style="padding:16px;color:var(--text-muted)">${text}</div>`;
+function renderRiskRow(row) {
+  const risk = RISK_LABELS[row.risk.level] || RISK_LABELS.stable;
+  return `<a class="dashboard-risk-row" href="#/w/${row.workspaceId}/p/${row.id}/summary"><span class="dashboard-risk-icon dashboard-risk-${row.risk.level}">${icon(row.risk.level === 'critical' ? 'alert' : 'activity')}</span><span><strong>${escapeHtml(row.name)}</strong><small>${escapeHtml(row.risk.reasons.join(' · ') || 'Seguimiento preventivo')}</small></span><span class="badge ${risk[1]}">${risk[0]}</span></a>`;
+}
+
+function renderDeadline(item, projects) {
+  const project = projects.find(projectItem => projectItem.id === item.projectId);
+  return `<div class="dashboard-deadline-row"><span>${icon(item.type === 'deliverable' ? 'file' : 'checkSquare')}</span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(project?.name || 'Proyecto')} · ${item.type === 'deliverable' ? 'Entregable' : 'Tarea'}</small></div><time>${formatDate(item.dueDate, { year: false })}</time></div>`;
+}
+
+function renderMiniTrend(trend) {
+  const maxValue = Math.max(1, ...trend.flatMap(item => [item.income, item.costs]));
+  return `<div class="dashboard-mini-trend">${trend.map(item => `<div><span class="dashboard-mini-bars"><i class="income" style="height:${Math.max(5, item.income / maxValue * 100)}%"></i><i class="cost" style="height:${Math.max(5, item.costs / maxValue * 100)}%"></i></span><strong>${escapeHtml(item.label)}</strong></div>`).join('')}</div>`;
+}
+
+function executiveMetric(iconName, value, label, note, tone) {
+  return `<article class="executive-kpi executive-kpi-${tone}"><span>${icon(iconName)}</span><div><strong>${escapeHtml(value)}</strong><p>${escapeHtml(label)}</p><small>${escapeHtml(note)}</small></div></article>`;
+}
+
+function loading(text) {
+  return `<section class="page"><div class="loading-panel"><span class="spinner spinner-blue"></span><p>${escapeHtml(text)}</p></div></section>`;
+}
+
+function empty(text) {
+  return `<div class="dashboard-empty">${escapeHtml(text)}</div>`;
 }

@@ -5,6 +5,7 @@ globalThis.WONKUP_API_CONFIG = {
   canvasMode: 'mock',
   deliverableMode: 'mock',
   financeMode: 'mock',
+  reportMode: 'aggregate',
   appsScriptUrl: '',
   demoCodesVisible: true,
   firebase: {

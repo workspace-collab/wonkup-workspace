@@ -196,3 +196,19 @@ resetDemo()
 - MockFinanceAdapter: activo.
 - AppsScriptFinanceAdapter: contrato preparado.
 - FirebaseFinanceAdapter: contrato preparado.
+
+## ReportService
+
+```text
+getPortfolioReport({ workspaceId, session, period, status })
+subscribe(listener)
+```
+
+### Comportamiento
+
+- No persiste una base de datos separada.
+- Agrega información de ProjectService, FinanceService, DeliverableService y DemoService.
+- Respeta el alcance de workspace y proyecto de la sesión.
+- Los datos de rentabilidad solo se muestran a roles administrativos.
+- `period` acepta: `month`, `30d`, `90d`, `180d`, `year` y `all`.
+- `status` acepta los estados de proyecto o `all`.

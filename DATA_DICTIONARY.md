@@ -236,3 +236,29 @@ En modo mock se conservan como máximo 20 snapshots por canvas.
 ## Fuente de verdad
 
 Durante la Entrega 7 se utiliza `localStorage` mediante `MockFinanceAdapter`.
+
+## PortfolioReport
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| generatedAt | ISO 8601 | Momento de generación |
+| period | ReportPeriod | Periodo aplicado |
+| status | string | Estado de proyecto filtrado |
+| projects | Project[] | Proyectos visibles |
+| projectRows | ProjectReportRow[] | Comparativo por proyecto |
+| deliverables | Deliverable[] | Entregables visibles |
+| tasks | Task[] | Tareas visibles |
+| trend | ReportTrendPoint[] | Serie mensual de ingresos, costos y horas |
+| riskProjects | ProjectReportRow[] | Proyectos priorizados por riesgo |
+| upcoming | ReportDeadline[] | Próximos vencimientos |
+| statusBreakdown | BreakdownItem[] | Distribución de proyectos |
+| deliveryBreakdown | BreakdownItem[] | Distribución de entregables |
+| metrics | PortfolioMetrics | Indicadores consolidados |
+
+## ProjectReportRow
+
+Incluye identificación del proyecto, estado, salud, avance, vencimientos, entregables, horas y —solo cuando el rol está autorizado— indicadores financieros y de rentabilidad.
+
+## Fuente de verdad
+
+PortfolioReport es una proyección generada en tiempo real. No reemplaza las colecciones fuente de Proyectos, Entregables o Finanzas.

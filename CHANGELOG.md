@@ -250,3 +250,16 @@
 - Se aplicaron permisos diferenciados por rol.
 - El módulo se carga dinámicamente para aislar fallos del núcleo.
 - Se prepararon adaptadores para Apps Script y Firebase.
+
+## Entrega 8 - Dashboard ejecutivo y reportes
+
+- Se convirtió el Dashboard en una vista ejecutiva consolidada.
+- Se habilitó el módulo Reportes en el menú lateral.
+- Se agregaron filtros por periodo y estado.
+- Se incorporó comparación de proyectos, riesgos y vencimientos.
+- Se agregó reporte de entregables.
+- Se agregó reporte financiero restringido a administradores.
+- Se incorporaron tendencias de ingresos, costos y horas.
+- Se habilitó exportación CSV e impresión/PDF A4 horizontal.
+- Se añadió actualización automática frente a cambios de Finanzas y Entregables.
+- Se agregó `reportMode: aggregate` a la configuración pública.

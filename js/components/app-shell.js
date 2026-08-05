@@ -8,7 +8,7 @@ import { showToast } from './toast.js';
 import { confirmModal } from './modal.js';
 import { escapeHtml } from '../utils/format.js';
 import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js';
-import { canCreateProject, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js';
+import { canCreateProject, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=8.0.0';
 
 const internalNavItems = [
   ['dashboard', 'Dashboard', 'home', null, true],
@@ -19,7 +19,7 @@ const internalNavItems = [
   ['team', 'Equipo', 'users', null, false],
   ['clients', 'Clientes', 'user', null, true],
   ['documents', 'Documentos', 'file', null, false],
-  ['reports', 'Reportes', 'chart', null, false],
+  ['reports', 'Reportes', 'chart', null, true],
   ['settings', 'Configuración', 'settings', null, false]
 ];
 

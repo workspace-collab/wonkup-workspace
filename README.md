@@ -1,30 +1,25 @@
 # WonkUp Workspace
 
-Centro operativo de WonkUp para proyectos, innovación, colaboración, entregables y control financiero.
+Centro operativo de WonkUp para la gestión de proyectos, innovación, entregables, finanzas y reportes.
 
 ## Estado actual
 
-- Entrega 0: Blueprint aprobado.
-- Entrega 1: Núcleo visual aprobado.
-- Entrega 2: Workspaces y accesos aprobados.
-- Entrega 3: Proyectos y Google Drive aprobado.
-- Entrega 4: Kanban aprobado.
-- Entrega 5: Innovation Toolkit y Canvas Engine aprobado.
-- Entrega 6: Portal del cliente y entregables aprobado.
-- Entrega 7: Finanzas, horas y rentabilidad en revisión.
+- Entregas 0 a 7: aprobadas.
+- Entrega 8: Dashboard ejecutivo y reportes en revisión.
 
 ## Módulos funcionales
 
 - Panel Maestro y workspaces.
-- Accesos por código y roles.
-- Proyectos y clientes.
+- Acceso mediante códigos y roles.
+- Proyectos, clientes, equipo y recursos.
+- Google Drive simulado y Apps Script preparado.
 - Kanban configurable.
-- Innovation Toolkit.
-- Portal del cliente.
-- Gestión de entregables y aprobaciones.
-- Finanzas por proyecto.
-- Registro manual de horas y temporizador.
-- Rentabilidad y alertas.
+- Innovation Toolkit y Canvas Engine.
+- Portal del cliente y entregables.
+- Finanzas, ingresos, costos, horas y rentabilidad.
+- Dashboard ejecutivo.
+- Reportes comparativos y exportación CSV/PDF.
+- Temas claro, oscuro y sistema.
 
 ## Configuración del MVP
 
@@ -33,7 +28,8 @@ mode: 'mock',
 kanbanMode: 'mock',
 canvasMode: 'mock',
 deliverableMode: 'mock',
-financeMode: 'mock'
+financeMode: 'mock',
+reportMode: 'aggregate'
 ```
 
-No coloques secretos ni claves privadas en el frontend.
+Los datos se mantienen en el navegador hasta conectar Google Sheets, Apps Script o Firebase. No coloques secretos ni claves privadas en el frontend.

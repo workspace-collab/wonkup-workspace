@@ -425,3 +425,37 @@ Validar:
 - [ ] Utilidad correcta.
 - [ ] Margen correcto.
 - [ ] Alertas correctas.
+
+## Entrega 8 - Dashboard y reportes
+
+### Dashboard ejecutivo
+
+- [ ] Carga para Panel Maestro.
+- [ ] Carga para un workspace.
+- [ ] Muestra proyectos, avance, riesgos y entregables.
+- [ ] Muestra finanzas solo a administradores.
+- [ ] Abre proyectos desde la tabla prioritaria.
+- [ ] Abre el módulo Reportes.
+
+### Reportes
+
+- [ ] Filtro de periodo actualiza la información.
+- [ ] Filtro de estado actualiza la información.
+- [ ] Pestaña Ejecutivo funciona.
+- [ ] Pestaña Proyectos funciona.
+- [ ] Pestaña Entregables funciona.
+- [ ] Pestaña Finanzas solo aparece a administradores.
+- [ ] Exportación CSV descarga datos visibles.
+- [ ] CSV de líder no incluye rentabilidad privada.
+- [ ] Imprimir / PDF usa A4 horizontal.
+- [ ] Los enlaces de proyecto funcionan.
+- [ ] Los cambios financieros actualizan el reporte.
+- [ ] Los cambios de entregables actualizan el reporte.
+
+### Permisos
+
+- [ ] Superadministrador ve reportes maestros.
+- [ ] Administrador ve reportes de su workspace.
+- [ ] Líder ve reportes operativos sin rentabilidad.
+- [ ] Colaborador ve únicamente su alcance autorizado.
+- [ ] Cliente e invitado no acceden a Reportes.
