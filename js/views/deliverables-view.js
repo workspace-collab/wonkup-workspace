@@ -156,7 +156,7 @@ function openDeliverableForm({ context, session, project, deliverable = null, on
         <label class="form-field form-span-2"><span>Checklist de aceptación</span><textarea class="textarea" name="checklist" rows="4" placeholder="Una condición por línea">${escapeHtml((deliverable?.checklist || []).map(item => item.label).join('\n'))}</textarea><small>Ejemplo: Versión móvil revisada.</small></label>
       </div>
       <div class="form-global-error hidden" id="deliverable-form-error"></div>
-      <div class="modal-actions"><button type="button" class="button button-secondary" data-modal-close>Cancelar</button><button class="button button-primary">${deliverable ? 'Guardar cambios' : 'Crear entregable'}</button></div>
+      <div class="modal-actions"><button type="button" class="button button-secondary" data-modal-close>Cancelar</button><button type="submit" class="button button-primary" data-deliverable-submit>${deliverable ? 'Guardar cambios' : 'Crear entregable'}</button></div>
     </form>`, size: 'lg', closeOnBackdrop: false
   });
   const form = modal.root.querySelector('#deliverable-form');
@@ -171,8 +171,17 @@ function openDeliverableForm({ context, session, project, deliverable = null, on
     };
     form.querySelector('[data-error-for="title"]').textContent = input.title.length >= 3 ? '' : 'Escribe un nombre de al menos 3 caracteres.';
     if (input.title.length < 3) return;
-    const submit = form.querySelector('button[type="submit"]');
+    const submit = form.querySelector('[data-deliverable-submit]');
+    if (!submit) {
+      const slot = form.querySelector('#deliverable-form-error');
+      slot.textContent = 'No se pudo inicializar el botón de guardado. Recarga la página e inténtalo nuevamente.';
+      slot.classList.remove('hidden');
+      return;
+    }
+    const originalLabel = submit.innerHTML;
     submit.disabled = true;
+    submit.setAttribute('aria-busy', 'true');
+    submit.textContent = deliverable ? 'Guardando...' : 'Creando...';
     try {
       if (deliverable) await DeliverableService.updateDeliverable({ deliverableId: deliverable.id, patch: input, session });
       else await DeliverableService.createDeliverable({ workspaceId: context.workspaceId, projectId: context.projectId, input, session });
@@ -183,6 +192,8 @@ function openDeliverableForm({ context, session, project, deliverable = null, on
       const slot = form.querySelector('#deliverable-form-error');
       slot.textContent = error.message; slot.classList.remove('hidden');
       submit.disabled = false;
+      submit.removeAttribute('aria-busy');
+      submit.innerHTML = originalLabel;
     }
   });
 }
