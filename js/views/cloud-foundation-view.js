@@ -1,8 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.0';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.3';
 import { escapeHtml } from '../utils/format.js?v=9.0.0';
 import { icon } from '../utils/icons.js?v=9.0.0';
 import { showToast } from '../components/toast.js?v=9.0.0';
-import { confirmModal } from '../components/modal.js?v=9.0.0';
 
 let active = true;
 
@@ -323,11 +322,9 @@ function bindCloudEvents(container) {
       showActivationError(container, error.message);
       return;
     }
-    const confirmed = await confirmModal({
-      title: 'Activar usuario en WonkUp',
-      message: `Se crearán o actualizarán ${plan.counts.total} documentos para ${plan.input.email}. La cuenta debe existir previamente en Authentication.`,
-      confirmLabel: 'Activar usuario'
-    });
+    const confirmed = typeof globalThis.confirm === 'function'
+      ? globalThis.confirm(`Activar a ${plan.input.email} en WonkUp?\n\nSe crearán o actualizarán ${plan.counts.total} documentos. La cuenta debe existir previamente en Firebase Authentication.`)
+      : true;
     if (!confirmed) return;
     const button = event.currentTarget;
     button.disabled = true;
@@ -370,27 +367,38 @@ function bindCloudEvents(container) {
   container.querySelector('#preview-cloud-migration')?.addEventListener('click', refreshPreview);
 
   container.querySelector('#execute-cloud-migration')?.addEventListener('click', async event => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
     const options = migrationOptions(container);
     const plan = CloudFoundationService.getMigrationPreview(options);
     if (!plan.counts.total) {
       showOperationError(container, 'Selecciona al menos un conjunto de datos y un workspace.');
       return;
     }
-    const confirmed = await confirmModal({
-      title: 'Migrar a Cloud Firestore',
-      message: `Se escribirán ${plan.counts.total} documentos. La operación usa merge y no elimina información existente.`,
-      confirmLabel: 'Migrar ahora'
-    });
+
+    // El diálogo propio podía quedar bloqueado por caché o por el estado inert del DOM.
+    // La confirmación nativa se ejecuta directamente desde el clic y es más resiliente
+    // para esta operación crítica de una sola vez.
+    const confirmed = typeof globalThis.confirm === 'function'
+      ? globalThis.confirm(`Migrar ${plan.counts.total} documentos a Cloud Firestore?\n\nLa operación usa merge y no elimina información existente.`)
+      : true;
     if (!confirmed) return;
-    const button = event.currentTarget;
+
     button.disabled = true;
     button.innerHTML = '<span class="spinner"></span> Migrando...';
+    showOperationPending(container, `Iniciando la escritura de ${plan.counts.total} documentos. No cierres ni recargues esta pestaña.`);
+
     try {
+      // Permite que el navegador pinte el estado "Migrando" antes de iniciar Firestore.
+      await new Promise(resolve => requestAnimationFrame(resolve));
       const result = await CloudFoundationService.migrate(options);
       showOperationSuccess(container, `Migración ${result.migrationId} completada. ${result.committed} escrituras confirmadas.`);
       showToast('Migración inicial completada.');
     } catch (error) {
-      showOperationError(container, error.message);
+      console.error('Cloud Foundation migration error', error);
+      showOperationError(container, error?.message || 'No se pudo completar la migración.');
     } finally {
       button.disabled = false;
       button.innerHTML = `${icon('upload')} Migrar a Firestore`;
@@ -414,6 +422,13 @@ function bindCloudEvents(container) {
       button.innerHTML = `${icon('check')} Verificar datos`;
     }
   });
+}
+
+
+function showOperationPending(container, message) {
+  const result = container.querySelector('#cloud-operation-result');
+  result.classList.remove('hidden', 'is-error', 'is-success');
+  result.innerHTML = `<strong>Migración en curso</strong><span>${escapeHtml(message)}</span>`;
 }
 
 function showOperationError(container, message) {

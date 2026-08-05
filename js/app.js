@@ -15,7 +15,7 @@ import { renderPlaceholder } from './views/placeholder-view.js?v=9.0.0';
 import { renderClients } from './views/clients-view.js?v=9.0.0';
 import { renderClientPortal } from './views/client-portal-view.js?v=9.0.0';
 import { renderReports, cleanupReportsView } from './views/reports-view.js?v=9.0.0';
-import { renderCloudFoundation, cleanupCloudFoundationView } from './views/cloud-foundation-view.js?v=9.0.0';
+import { renderCloudFoundation, cleanupCloudFoundationView } from './views/cloud-foundation-view.js?v=9.0.3';
 import { icon } from './utils/icons.js?v=9.0.0';
 
 const shell = createAppShell();

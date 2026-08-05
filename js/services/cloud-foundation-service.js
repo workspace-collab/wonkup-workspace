@@ -1,8 +1,8 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.0';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.1';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=9.0.0';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=9.0.0';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=9.0.0';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.3';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.3';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=9.0.3';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=9.0.3';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=9.0.3';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 
