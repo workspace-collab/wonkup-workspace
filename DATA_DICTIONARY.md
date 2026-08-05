@@ -197,3 +197,42 @@ En modo mock se conservan como máximo 20 snapshots por canvas.
 | notes | string | Notas de versión |
 | createdAt | ISO 8601 | Fecha de publicación |
 | createdBy | string | Autor |
+
+## FinanceRecord
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | string | Identificador del registro financiero |
+| workspaceId | string | Workspace propietario |
+| projectId | string | Proyecto asociado |
+| settings | FinanceSettings | Configuración comercial |
+| memberRates | MemberRate[] | Tarifas privadas del equipo |
+| incomes | IncomeEntry[] | Cobros e ingresos |
+| costs | CostEntry[] | Costos directos |
+| timeEntries | TimeEntry[] | Horas registradas |
+| createdAt | ISO 8601 | Fecha de creación |
+| updatedAt | ISO 8601 | Última actualización |
+
+## FinanceSettings
+
+`currency`, `contractedAmount`, `internalBudget`, `taxRate`, `discount`, `plannedHours`, `targetMargin`, `paymentTerms`, `billingNotes`.
+
+## IncomeEntry
+
+`id`, `type`, `status`, `concept`, `amount`, `dueDate`, `paidDate`, `reference`, `evidenceUrl`, `notes`.
+
+## CostEntry
+
+`id`, `category`, `vendor`, `amount`, `date`, `responsible`, `paymentStatus`, `receiptUrl`, `notes`.
+
+## TimeEntry
+
+`id`, `userId`, `userName`, `date`, `hours`, `workType`, `reference`, `description`, `source`, `billable`.
+
+## MemberRate
+
+`userId`, `userName`, `costRate`, `billableRate`, `weeklyCapacity`.
+
+## Fuente de verdad
+
+Durante la Entrega 7 se utiliza `localStorage` mediante `MockFinanceAdapter`.

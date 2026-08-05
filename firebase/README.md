@@ -41,3 +41,24 @@ workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId}
 ```
 
 La versión publicada continúa en `canvasMode: 'mock'`. No actives las reglas de Canvas hasta configurar Firebase Authentication y el broker de tokens de Apps Script. Los enlaces públicos de consulta del modo demo no representan todavía un mecanismo de seguridad productivo.
+
+## Entrega 7 - Finanzas
+
+Estructura prevista:
+
+```text
+workspaces/{workspaceId}/projects/{projectId}/finance/summary
+  incomes/{incomeId}
+  costs/{costId}
+  timeEntries/{entryId}
+  rates/{userId}
+```
+
+Las reglas incluidas separan:
+
+- administración financiera;
+- registro de horas;
+- tarifas privadas;
+- acceso de líderes y colaboradores.
+
+La versión publicada continúa en `financeMode: 'mock'`.

@@ -167,3 +167,32 @@ resetDemo()
 ```
 
 El adaptador activo es `MockDeliverableAdapter`. El contrato queda preparado para Apps Script o Firebase.
+
+## FinanceService
+
+```text
+getProjectFinance({ projectId, workspaceId, session })
+updateSettings({ projectId, workspaceId, input, session })
+
+createIncome({ projectId, workspaceId, input, session })
+updateIncome({ projectId, incomeId, input, session })
+voidIncome({ projectId, incomeId, session })
+
+createCost({ projectId, workspaceId, input, session })
+updateCost({ projectId, costId, input, session })
+deleteCost({ projectId, costId, session })
+
+createTimeEntry({ projectId, workspaceId, input, session })
+updateTimeEntry({ projectId, timeEntryId, input, session })
+deleteTimeEntry({ projectId, timeEntryId, session })
+
+updateMemberRate({ projectId, workspaceId, input, session })
+subscribe(listener)
+resetDemo()
+```
+
+### Adaptadores
+
+- MockFinanceAdapter: activo.
+- AppsScriptFinanceAdapter: contrato preparado.
+- FirebaseFinanceAdapter: contrato preparado.

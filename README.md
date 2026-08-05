@@ -1,6 +1,6 @@
 # WonkUp Workspace
 
-Centro operativo para gestionar proyectos, innovación, trabajo y relación con clientes.
+Centro operativo de WonkUp para proyectos, innovación, colaboración, entregables y control financiero.
 
 ## Estado actual
 
@@ -9,20 +9,22 @@ Centro operativo para gestionar proyectos, innovación, trabajo y relación con 
 - Entrega 2: Workspaces y accesos aprobados.
 - Entrega 3: Proyectos y Google Drive aprobado.
 - Entrega 4: Kanban aprobado.
-- Entrega 5: Innovation Toolkit y Canvas Engine aprobado con Ajuste 5.9.
-- Entrega 6: Portal del Cliente y Gestión de Entregables en revisión.
+- Entrega 5: Innovation Toolkit y Canvas Engine aprobado.
+- Entrega 6: Portal del cliente y entregables aprobado.
+- Entrega 7: Finanzas, horas y rentabilidad en revisión.
 
 ## Módulos funcionales
 
 - Panel Maestro y workspaces.
-- Acceso por códigos y roles.
-- Proyectos, clientes, equipo y recursos.
-- Google Drive simulado y Apps Script preparado.
+- Accesos por código y roles.
+- Proyectos y clientes.
 - Kanban configurable.
-- Innovation Toolkit y seis canvases metodológicos.
+- Innovation Toolkit.
 - Portal del cliente.
-- Entregables, versiones, feedback y aprobaciones.
-- Temas claro, oscuro y sistema.
+- Gestión de entregables y aprobaciones.
+- Finanzas por proyecto.
+- Registro manual de horas y temporizador.
+- Rentabilidad y alertas.
 
 ## Configuración del MVP
 
@@ -30,14 +32,8 @@ Centro operativo para gestionar proyectos, innovación, trabajo y relación con 
 mode: 'mock',
 kanbanMode: 'mock',
 canvasMode: 'mock',
-deliverableMode: 'mock'
+deliverableMode: 'mock',
+financeMode: 'mock'
 ```
 
-Los datos demostrativos se almacenan en el navegador. No coloques secretos ni claves privadas en el frontend.
-
-## Publicación
-
-1. Sube el contenido a `wonkup-workspace` conservando la estructura.
-2. En **Settings > Pages**, selecciona **Deploy from a branch**.
-3. Elige `main` y la carpeta raíz.
-4. Abre la URL generada por GitHub Pages.
+No coloques secretos ni claves privadas en el frontend.

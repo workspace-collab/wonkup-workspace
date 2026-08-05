@@ -26,3 +26,17 @@ Vuelve a ejecutar `setupWonkUpMaster()`. La función agrega las columnas y hojas
 - Cada acción valida nuevamente la sesión y el alcance.
 - Drive conserva permisos privados por defecto.
 - No guardes la URL de implementación dentro de repositorios privados si contiene parámetros adicionales.
+
+## Entrega 7 - Preparación financiera
+
+Cuando se conecte `financeMode: 'apps-script'`, el Google Sheets maestro deberá incorporar:
+
+```text
+Finanzas_Proyecto
+Ingresos
+Costos
+Horas
+Tarifas_Equipo
+```
+
+El contrato esperado está documentado en `API_CONTRACTS.md`. El adaptador de frontend permanece desactivado hasta implementar validación de sesión, permisos y bloqueo de concurrencia en Apps Script.

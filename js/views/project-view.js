@@ -5,8 +5,9 @@ import {
   canManageProjectResources,
   canManageProjectTeam,
   canViewFinancials,
+  canAccessProjectFinance,
   isReadOnlyRole
-} from '../utils/permissions.js';
+} from '../utils/permissions.js?v=7.0.0';
 import { icon } from '../utils/icons.js';
 import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js';
 import { normalizeText, normalizeUrl } from '../utils/validation.js';
@@ -25,6 +26,7 @@ const baseTabs = [
   ['documents', 'Documentos'],
   ['deliverables', 'Entregables'],
   ['team', 'Equipo'],
+  ['finance', 'Finanzas'],
   ['settings', 'Configuración']
 ];
 
@@ -81,7 +83,7 @@ function renderProjectShell(container, project, tab, session) {
   const restorable = canArchiveProject(session, project.workspaceId) && project.status === 'archived';
   const tabs = readOnly
     ? [['summary', 'Resumen']]
-    : baseTabs.filter(([key]) => key !== 'finance' || canViewFinancials(session));
+    : baseTabs.filter(([key]) => key !== 'finance' || canAccessProjectFinance(session, project.id, project.workspaceId));
   const safeTab = tabs.some(([key]) => key === tab) ? tab : 'summary';
 
   container.innerHTML = `<section class="page"><div class="content-grid-project"><div>
@@ -170,6 +172,17 @@ function renderTab(slot, project, tab, session) {
     documents: () => renderDocuments(slot, project, session),
     deliverables: () => renderDeliverables(slot, { workspaceId: project.workspaceId, projectId: project.id, embedded: true }, session),
     team: () => renderTeam(slot, project, session),
+    finance: async () => {
+      slot.innerHTML = loadingTab('Cargando módulo financiero...');
+      try {
+        const module = await import('./finance-view.js?v=7.0.0');
+        if (!slot.isConnected) return;
+        module.renderFinance(slot, project, session);
+      } catch (error) {
+        if (!slot.isConnected) return;
+        slot.innerHTML = tabError(`No se pudo cargar Finanzas: ${error.message || 'Error desconocido.'}`);
+      }
+    },
     settings: () => renderSettings(slot, project, session)
   };
   if (renderers[tab]) {

@@ -6,7 +6,7 @@ WonkUp Workspace
 
 ## Fase actual
 
-Entrega 6 - Portal del Cliente y Gestión de Entregables
+Entrega 7 - Finanzas, horas y rentabilidad
 
 ## Estado
 
@@ -14,30 +14,34 @@ EN REVISIÓN
 
 ## Fases cerradas
 
-- Entregas 0 a 4.
-- Entrega 5 y Ajustes 5.1 a 5.9.
+- Entrega 0 - Blueprint.
+- Entrega 1 - Núcleo visual.
+- Entrega 2 - Workspaces y acceso.
+- Entrega 3 - Proyectos y Drive.
+- Entrega 4 - Kanban.
+- Entrega 5 - Innovation Toolkit y Canvas Engine.
+- Entrega 6 - Portal del cliente y entregables.
+- Hotfix 6.0.3 - Creación de entregables.
 
 ## Construido en esta entrega
 
-- Portal personalizado por proyecto.
-- Acceso directo para clientes e invitados.
-- Resumen visible sin información interna.
-- Entregables con estados y prioridades.
-- Checklist de aceptación.
-- Versiones registradas por URL.
-- Comentarios y feedback.
-- Flujo de revisión, aprobación y solicitud de cambios.
-- Archivo y restauración.
-- Vista cliente para el equipo interno.
-- Búsqueda global de entregables.
+- Configuración financiera por proyecto.
+- Ingresos y pagos.
+- Costos directos.
+- Horas manuales y temporizador.
+- Tarifas por integrante.
+- Costo laboral.
+- Rentabilidad y margen.
+- Alertas financieras.
+- Permisos por rol.
+- Persistencia local y sincronización entre pestañas.
+- Contratos para Apps Script y Firebase.
 
 ## Fuente de datos vigente
 
-- Proyectos: mock local.
-- Kanban: mock local.
-- Canvases: mock local.
-- Entregables: mock local.
+- Finanzas: mock local.
+- Backend productivo: pendiente.
 
 ## Próxima fase
 
-Entrega 7 - Finanzas, horas y rentabilidad.
+Entrega 8 - Dashboard ejecutivo y reportes.

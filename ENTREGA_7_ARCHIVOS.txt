@@ -1,0 +1,42 @@
+ENTREGA 7 - ARCHIVOS NUEVOS O MODIFICADOS
+
+El paquete de cambios contiene 29 archivos, incluido este manifiesto.
+
+- API_CONTRACTS.md
+- CHANGELOG.md
+- DATA_DICTIONARY.md
+- ENTREGA_7_ARCHIVOS.txt
+- ENTREGA_7_GUIA.md
+- PROJECT_STATE.md
+- README.md
+- ROADMAP.md
+- TEST_CHECKLIST.md
+- TEST_RESULTS_7.md
+- apps-script/README.md
+- css/components.css
+- css/responsive.css
+- data/demo-finance.js
+- firebase/README.md
+- firebase/firestore.rules
+- index.html
+- js/adapters/apps-script-finance-adapter.js
+- js/adapters/firebase-finance-adapter.js
+- js/adapters/mock-finance-adapter.js
+- js/app.js
+- js/config/api-config.js
+- js/config/app-config.js
+- js/config/runtime-config.js
+- js/services/finance-service.js
+- js/utils/finance-calculations.js
+- js/utils/permissions.js
+- js/views/finance-view.js
+- js/views/project-view.js
+
+LIMPIEZA MANUAL RECOMENDADA EN GITHUB
+
+Si todavía existe una carpeta accidental llamada wonkup-workspace/ dentro de la raíz del propio repositorio, elimina estos archivos antiguos o elimina toda esa carpeta duplicada:
+
+- wonkup-workspace/HOTFIX_6_0_1_GUIA.md
+- wonkup-workspace/index.html
+- wonkup-workspace/js/app.js
+- wonkup-workspace/js/views/client-portal-view.js

@@ -24,6 +24,19 @@ service cloud.firestore {
       return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator'];
     }
 
+    function projectRole(workspaceId, projectId) {
+      return get(/databases/$(database)/documents/workspaces/$(workspaceId)/projects/$(projectId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function financeManager(workspaceId, projectId) {
+      return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'] ||
+        projectRole(workspaceId, projectId) == 'project_lead';
+    }
+
+    function financeAdmin(workspaceId) {
+      return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'];
+    }
+
     match /workspaces/{workspaceId}/members/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow write: if false;
@@ -81,5 +94,38 @@ service cloud.firestore {
         allow read, write: if false;
       }
     }
+
+    match /workspaces/{workspaceId}/projects/{projectId}/finance/{financeId} {
+      allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+      allow create, update: if projectMember(workspaceId, projectId) && financeManager(workspaceId, projectId);
+      allow delete: if false;
+
+      match /incomes/{incomeId} {
+        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow create, update: if projectMember(workspaceId, projectId) && financeManager(workspaceId, projectId);
+        allow delete: if false;
+      }
+
+      match /costs/{costId} {
+        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow create, update: if projectMember(workspaceId, projectId) && financeManager(workspaceId, projectId);
+        allow delete: if false;
+      }
+
+      match /timeEntries/{entryId} {
+        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow create: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        allow update, delete: if projectMember(workspaceId, projectId) && (
+          financeManager(workspaceId, projectId) ||
+          resource.data.userId == request.auth.uid
+        );
+      }
+
+      match /rates/{rateId} {
+        allow read, create, update: if projectMember(workspaceId, projectId) && financeAdmin(workspaceId);
+        allow delete: if false;
+      }
+    }
+
   }
 }

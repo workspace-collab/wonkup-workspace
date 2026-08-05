@@ -372,3 +372,56 @@ Validar:
 - [ ] Modales navegables con teclado.
 - [ ] Estados no dependen solo del color.
 - [ ] Tema oscuro conserva contraste.
+
+## Entrega 7 - Finanzas
+
+### Acceso y permisos
+
+- [ ] Finanzas aparece para superadministrador.
+- [ ] Finanzas aparece para administrador de workspace.
+- [ ] Finanzas aparece para líder del proyecto.
+- [ ] Colaborador solo ve sus horas.
+- [ ] Cliente no ve Finanzas.
+- [ ] Invitado no ve Finanzas.
+- [ ] Líder no ve Rentabilidad ni Configuración.
+
+### Configuración
+
+- [ ] Cambiar moneda.
+- [ ] Cambiar monto contratado.
+- [ ] Cambiar presupuesto interno.
+- [ ] Cambiar descuento e impuesto.
+- [ ] Cambiar horas planificadas.
+- [ ] Cambiar margen objetivo.
+- [ ] Editar tarifas del equipo.
+
+### Ingresos y costos
+
+- [ ] Crear ingreso.
+- [ ] Editar ingreso.
+- [ ] Marcar ingreso pagado.
+- [ ] Anular ingreso.
+- [ ] Registrar costo.
+- [ ] Editar costo.
+- [ ] Eliminar costo.
+- [ ] Abrir comprobante.
+
+### Horas
+
+- [ ] Registrar horas manualmente.
+- [ ] Editar horas.
+- [ ] Eliminar horas.
+- [ ] Iniciar temporizador.
+- [ ] Pausar temporizador.
+- [ ] Registrar tiempo del temporizador.
+- [ ] Mantener timer al recargar.
+
+### Métricas
+
+- [ ] Total facturable correcto.
+- [ ] Saldo por cobrar correcto.
+- [ ] Costo laboral correcto.
+- [ ] Costo real correcto.
+- [ ] Utilidad correcta.
+- [ ] Margen correcto.
+- [ ] Alertas correctas.

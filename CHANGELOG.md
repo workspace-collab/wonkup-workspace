@@ -235,3 +235,18 @@
 - Se incorporó una vista cliente para usuarios internos.
 - Se amplió la búsqueda global para incluir entregables.
 - Se añadió sincronización local entre pestañas.
+
+## Entrega 7 - Finanzas, horas y rentabilidad
+
+- Se agregó la pestaña Finanzas dentro de los proyectos.
+- Se implementó configuración comercial y presupuesto interno.
+- Se incorporaron ingresos, pagos y saldos.
+- Se incorporaron costos directos y comprobantes.
+- Se agregó registro manual de horas.
+- Se agregó temporizador persistente.
+- Se incorporaron tarifas internas y facturables.
+- Se calcularon costo real, utilidad y margen.
+- Se agregaron alertas financieras.
+- Se aplicaron permisos diferenciados por rol.
+- El módulo se carga dinámicamente para aislar fallos del núcleo.
+- Se prepararon adaptadores para Apps Script y Firebase.

@@ -229,3 +229,37 @@
   .deliverable-actions { flex-direction: column; }
   .deliverable-actions .button { width: 100%; justify-content: center; }
 }
+
+
+/* Entrega 7 */
+@media (max-width: 1180px) {
+  .finance-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .finance-summary-layout { grid-template-columns: 1fr; }
+  .finance-work-timer { grid-template-columns: 52px minmax(0, 1fr); }
+  .finance-timer-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+@media (max-width: 760px) {
+  .finance-header, .finance-toolbar { align-items: flex-start; flex-direction: column; }
+  .finance-header-meta, .finance-toolbar-actions { justify-content: flex-start; }
+  .finance-toolbar-actions, .finance-toolbar-actions .button { width: 100%; }
+  .finance-toolbar-actions .button { justify-content: center; }
+  .finance-alert-grid, .finance-kpi-grid, .finance-kpi-grid-compact { grid-template-columns: 1fr; }
+  .finance-work-timer { grid-template-columns: 46px minmax(0, 1fr); }
+  .finance-timer-actions { width: 100%; }
+  .finance-timer-actions .button { flex: 1 1 150px; justify-content: center; }
+  .form-grid.two-cols { grid-template-columns: 1fr; }
+  .form-grid .span-2 { grid-column: auto; }
+  .finance-footer { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+  .finance-header { padding: 16px; }
+  .finance-kpi { grid-template-columns: 40px minmax(0, 1fr); padding: 14px; }
+  .finance-kpi-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .finance-kpi strong { font-size: var(--text-xl); }
+  .finance-work-timer { padding: 13px; }
+  .finance-timer-copy strong { font-size: var(--text-2xl); }
+  .finance-timer-actions { flex-direction: column; }
+  .finance-timer-actions .button { width: 100%; }
+}

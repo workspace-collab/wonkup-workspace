@@ -5,6 +5,7 @@ export const API_CONFIG = Object.freeze({
   kanbanMode: runtimeConfig.kanbanMode || 'mock',
   canvasMode: runtimeConfig.canvasMode || 'mock',
   deliverableMode: runtimeConfig.deliverableMode || 'mock',
+  financeMode: runtimeConfig.financeMode || 'mock',
   appsScriptUrl: runtimeConfig.appsScriptUrl || '',
   requestTimeoutMs: Number(runtimeConfig.requestTimeoutMs || 15000),
   demoCodesVisible: runtimeConfig.demoCodesVisible ?? true,

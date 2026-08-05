@@ -66,6 +66,34 @@ export function canViewFinancials(session) {
   return Boolean(session && MANAGEMENT_ROLES.has(session.role));
 }
 
+export function canAccessProjectFinance(session, projectId, workspaceId) {
+  if (!session || !isInternalUser(session)) return false;
+  return canAccessProject(session, projectId, workspaceId);
+}
+
+export function canManageProjectFinance(session, projectId, workspaceId) {
+  if (!canAccessProjectFinance(session, projectId, workspaceId)) return false;
+  return MANAGEMENT_ROLES.has(session.role) || session.role === 'project_lead';
+}
+
+export function canConfigureProjectFinance(session, projectId, workspaceId) {
+  if (!canAccessProjectFinance(session, projectId, workspaceId)) return false;
+  return MANAGEMENT_ROLES.has(session.role);
+}
+
+export function canViewProjectProfitability(session, projectId, workspaceId) {
+  return canConfigureProjectFinance(session, projectId, workspaceId);
+}
+
+export function canLogProjectTime(session, projectId, workspaceId) {
+  return canAccessProjectFinance(session, projectId, workspaceId);
+}
+
+export function canViewAllProjectTime(session, projectId, workspaceId) {
+  if (!canAccessProjectFinance(session, projectId, workspaceId)) return false;
+  return MANAGEMENT_ROLES.has(session.role) || session.role === 'project_lead';
+}
+
 export function canEditKanban(session) {
   return Boolean(session && INTERNAL_ROLES.has(session.role));
 }
@@ -158,7 +186,7 @@ export function canAccessRoute(route, session) {
       return route.params?.tab === 'summary';
     }
 
-    if (route.params?.tab === 'finance' && !canViewFinancials(session)) return false;
+    if (route.params?.tab === 'finance' && !canAccessProjectFinance(session, route.params?.projectId, route.params?.workspaceId)) return false;
     return true;
   }
 

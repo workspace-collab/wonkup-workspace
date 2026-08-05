@@ -2,12 +2,12 @@ import { createAppShell, renderShell } from './components/app-shell.js?v=6.0.0';
 import { startRouter } from './router.js?v=6.0.0';
 import { getState, subscribe, setState, setSession, clearSession } from './state/store.js';
 import { AccessService } from './services/access-service.js';
-import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=6.0.0';
+import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=7.0.0';
 import { renderAccess } from './views/access-view.js';
 import { renderForbidden } from './views/forbidden-view.js';
 import { renderDashboard } from './views/dashboard-view.js';
 import { renderProjects } from './views/projects-view.js';
-import { renderProject } from './views/project-view.js?v=6.0.0';
+import { renderProject } from './views/project-view.js?v=7.0.0';
 import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
 import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=6.0.0';
 import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
@@ -107,6 +107,7 @@ function cleanupActiveViews() {
   cleanupCanvasView();
   cleanupToolkitView();
   cleanupKanbanView();
+  globalThis.__wonkupCleanupFinance?.();
 }
 
 function handleRoute(route) {
