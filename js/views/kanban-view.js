@@ -1,11 +1,11 @@
-import { KanbanService } from '../services/kanban-service.js?v=9.0.5';
-import { ProjectService } from '../services/project-service.js?v=9.0.5';
-import { canConfigureKanban, canDeleteKanbanCard, canEditKanban } from '../utils/permissions.js?v=9.0.5';
-import { KANBAN_TONES, kanbanTemplates } from '../../data/kanban-templates.js?v=9.0.5';
-import { icon } from '../utils/icons.js?v=9.0.5';
-import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.5';
-import { openModal, closeModal, confirmModal } from '../components/modal.js?v=9.0.5';
-import { showToast } from '../components/toast.js?v=9.0.5';
+import { KanbanService } from '../services/kanban-service.js?v=10.0.0';
+import { ProjectService } from '../services/project-service.js?v=10.0.0';
+import { canCommentKanban, canConfigureKanban, canDeleteKanbanCard, canEditKanban } from '../utils/permissions.js?v=10.0.0';
+import { KANBAN_TONES, kanbanTemplates } from '../../data/kanban-templates.js?v=10.0.0';
+import { icon } from '../utils/icons.js?v=10.0.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=10.0.0';
+import { openModal, closeModal, confirmModal } from '../components/modal.js?v=10.0.0';
+import { showToast } from '../components/toast.js?v=10.0.0';
 
 let activeContext = null;
 let unsubscribeEvents = null;
@@ -70,8 +70,10 @@ async function initializeKanban({ container, workspaceId, projectId, embedded, s
       embedded,
       session,
       filters: { search: '', assigneeId: '', priority: '', label: '' },
-      editable: canEditKanban(session) && selectedProject.status !== 'archived',
-      configurable: canConfigureKanban(session) && selectedProject.status !== 'archived',
+      source: KanbanService.dataSource({ session }),
+      editable: canEditKanban(session, selectedProject.id, selectedProject.workspaceId) && selectedProject.status !== 'archived',
+      commentable: canCommentKanban(session, selectedProject.id, selectedProject.workspaceId) && selectedProject.status !== 'archived',
+      configurable: canConfigureKanban(session, selectedProject.id, selectedProject.workspaceId) && selectedProject.status !== 'archived',
       busy: false,
       viewMode: matchMedia('(max-width: 760px)').matches ? 'list' : (localStorage.getItem('wonkup.kanban.view') || 'board')
     };
@@ -161,12 +163,12 @@ function renderBoard() {
     ${context.embedded ? '' : `<div class="page-header"><div><h1>Kanban</h1><p>Planifica, prioriza y da seguimiento al trabajo del equipo.</p></div><div class="page-header-actions">${context.editable ? `<button class="button button-primary" id="new-kanban-card">${icon('plus')} Nueva tarjeta</button>` : ''}</div></div>`}
     <div class="kanban-command-bar">
       ${projectSelector}
-      <div class="kanban-mode"><span class="status-dot ${KanbanService.mode === 'firebase' ? 'online' : 'demo'}"></span><strong>${KanbanService.mode === 'firebase' ? 'Firebase en tiempo real' : 'Demo local sincronizada'}</strong></div>
+      <div class="kanban-mode"><span class="status-dot ${context.source === 'firebase' ? 'online' : 'demo'}"></span><strong>${context.source === 'firebase' ? 'Firestore en tiempo real' : 'Demo local sincronizada'}</strong></div>
       <div class="kanban-command-actions">
         ${context.embedded && context.editable ? `<button class="button button-primary" id="new-kanban-card">${icon('plus')} Nueva tarjeta</button>` : ''}
         ${context.editable ? `<button class="button button-secondary" id="archived-kanban-cards">${icon('archive')} Archivadas <span class="button-count">${context.board.archivedCards?.length || 0}</span></button>` : ''}
         ${context.configurable ? `<button class="button button-secondary" id="configure-kanban">${icon('columns')} Configurar tablero</button>` : ''}
-        ${context.configurable && KanbanService.mode === 'mock' ? `<button class="button button-ghost" id="reset-kanban">${icon('refresh')} Restablecer demo</button>` : ''}
+        ${context.configurable && context.source === 'mock' ? `<button class="button button-ghost" id="reset-kanban">${icon('refresh')} Restablecer demo</button>` : ''}
         <div class="kanban-view-switch" aria-label="Cambiar vista del Kanban"><button class="icon-button ${context.viewMode === 'board' ? 'active' : ''}" type="button" data-kanban-view="board" aria-label="Vista de tablero" aria-pressed="${context.viewMode === 'board'}">${icon('columns')}</button><button class="icon-button ${context.viewMode === 'list' ? 'active' : ''}" type="button" data-kanban-view="list" aria-label="Vista de lista" aria-pressed="${context.viewMode === 'list'}">${icon('list')}</button></div>
       </div>
     </div>
@@ -443,7 +445,7 @@ function openCardEditor(cardId = null, defaultColumnId = '') {
     </div>
     ${editable ? `<div class="modal-actions">${editing ? `<button class="button button-danger button-left" type="button" id="archive-kanban-card">${icon('archive')} Archivar</button>` : ''}<button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${editing ? 'Guardar cambios' : 'Crear tarjeta'}</button></div>` : ''}
   </form>
-  ${editing ? renderCardCollaboration(card, editable) : ''}`;
+  ${editing ? renderCardCollaboration(card, editable, context.commentable) : ''}`;
 
   const modal = openModal({
     title: editing ? escapeHtml(card.title) : 'Nueva tarjeta',
@@ -509,7 +511,7 @@ function cardInput(formData) {
   };
 }
 
-function renderCardCollaboration(card, editable) {
+function renderCardCollaboration(card, editable, commentable = editable) {
   const checklist = card.checklist || [];
   const comments = [...(card.comments || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const history = [...(card.history || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -519,7 +521,7 @@ function renderCardCollaboration(card, editable) {
       ${editable ? `<form class="kanban-inline-form" id="add-checklist-form"><input class="input" name="text" maxlength="160" placeholder="Agregar elemento..."><button class="button button-secondary" type="submit">${icon('plus')} Agregar</button></form>` : ''}
     </section>
     <section class="kanban-detail-section"><div class="kanban-detail-title"><div><h3>${icon('message')} Comentarios</h3><p>${comments.length} comentarios</p></div></div>
-      ${editable ? `<form class="kanban-comment-form" id="add-comment-form"><textarea class="textarea" name="text" rows="3" maxlength="1000" placeholder="Escribe un comentario..."></textarea><button class="button button-primary" type="submit">Comentar</button></form>` : ''}
+      ${commentable ? `<form class="kanban-comment-form" id="add-comment-form"><textarea class="textarea" name="text" rows="3" maxlength="1000" placeholder="Escribe un comentario..."></textarea><button class="button button-primary" type="submit">Comentar</button></form>` : ''}
       <div class="kanban-comments">${comments.map(comment => `<article><span class="kanban-avatar">${escapeHtml(comment.author?.initials || 'US')}</span><div><strong>${escapeHtml(comment.author?.name || 'Usuario')}</strong><small>${formatDateTime(comment.createdAt)}</small><p>${escapeHtml(comment.text)}</p></div></article>`).join('') || '<p class="muted-copy">No hay comentarios todavía.</p>'}</div>
     </section>
     <section class="kanban-detail-section kanban-history-section"><div class="kanban-detail-title"><div><h3>${icon('history')} Historial</h3><p>Trazabilidad de cambios recientes</p></div></div>
@@ -602,7 +604,7 @@ function openArchivedCards() {
     body: archived.length ? `<div class="archived-card-list">${archived.map(card => `<article class="archived-card-row">
       <div class="archived-card-copy"><span class="badge badge-gray">Archivada</span><h3>${escapeHtml(card.title)}</h3><p>Antes estaba en <strong>${escapeHtml(columnName(card.columnBeforeArchive))}</strong>${card.archivedAt ? ` · ${formatDateTime(card.archivedAt)}` : ''}</p></div>
       <label><span>Restaurar en</span><select class="select" data-restore-column="${escapeHtml(card.id)}">${context.board.columns.map(column => `<option value="${escapeHtml(column.id)}" ${column.id === card.columnBeforeArchive ? 'selected' : ''}>${escapeHtml(column.name)}</option>`).join('')}</select></label>
-      <div class="archived-card-actions"><button class="button button-secondary" data-restore-card="${escapeHtml(card.id)}">${icon('restore')} Restaurar</button>${canDeleteKanbanCard(context.session) ? `<button class="button button-danger" data-delete-card="${escapeHtml(card.id)}">${icon('trash')} Eliminar</button>` : ''}</div>
+      <div class="archived-card-actions"><button class="button button-secondary" data-restore-card="${escapeHtml(card.id)}">${icon('restore')} Restaurar</button>${canDeleteKanbanCard(context.session, context.projectId, context.project.workspaceId) ? `<button class="button button-danger" data-delete-card="${escapeHtml(card.id)}">${icon('trash')} Eliminar</button>` : ''}</div>
     </article>`).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('archive')}</div><h3>No hay tarjetas archivadas</h3><p>Las tarjetas que archives aparecerán aquí para poder restaurarlas.</p></div>`,
     size: 'lg'
   });

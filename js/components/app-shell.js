@@ -1,14 +1,14 @@
-import { icon } from '../utils/icons.js?v=9.0.5';
-import { DemoService } from '../services/demo-service.js?v=9.0.5';
-import { AccessService } from '../services/access-service.js?v=9.0.5';
-import { NotificationService } from '../services/notification-service.js?v=9.0.5';
-import { GlobalSearchService } from '../services/global-search-service.js?v=9.0.5';
-import { getState, setState, clearSession } from '../state/store.js?v=9.0.5';
-import { showToast } from './toast.js?v=9.0.5';
-import { confirmModal } from './modal.js?v=9.0.5';
-import { escapeHtml } from '../utils/format.js?v=9.0.5';
-import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=9.0.5';
-import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=9.0.5';
+import { icon } from '../utils/icons.js?v=10.0.0';
+import { DemoService } from '../services/demo-service.js?v=10.0.0';
+import { AccessService } from '../services/access-service.js?v=10.0.0';
+import { NotificationService } from '../services/notification-service.js?v=10.0.0';
+import { GlobalSearchService } from '../services/global-search-service.js?v=10.0.0';
+import { getState, setState, clearSession } from '../state/store.js?v=10.0.0';
+import { showToast } from './toast.js?v=10.0.0';
+import { confirmModal } from './modal.js?v=10.0.0';
+import { escapeHtml } from '../utils/format.js?v=10.0.0';
+import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=10.0.0';
+import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=10.0.0';
 
 const internalNavItems = [
   ['dashboard', 'Dashboard', 'home', null, true],
@@ -26,6 +26,8 @@ const internalNavItems = [
 
 let keyboardShortcutsBound = false;
 let searchTimer = null;
+let notificationSyncKey = '';
+let stopNotificationSubscription = null;
 const SIDEBAR_COLLAPSED_KEY = 'wonkup.sidebar.collapsed';
 
 function workspaceBase(id) {
@@ -45,6 +47,11 @@ function createReadOnlyNav(session) {
     'briefcase',
     `#/portal/w/${workspaceId}/p/${projectId}/overview`
   ]];
+}
+
+
+function createReviewerNav() {
+  return internalNavItems.filter(item => ['dashboard', 'projects', 'kanban'].includes(item[0]));
 }
 
 function popover({ id, triggerId, className = '', body = '' }) {
@@ -74,6 +81,10 @@ export function renderShell(route = null) {
   shell?.classList.toggle('sidebar-collapsed', sidebarCollapsed && !accessMode);
 
   if (accessMode || !session) {
+    NotificationService.stopRealtime?.();
+    notificationSyncKey = '';
+    stopNotificationSubscription?.();
+    stopNotificationSubscription = null;
     document.querySelector('#sidebar').innerHTML = '';
     document.querySelector('#header').innerHTML = '';
     return;
@@ -92,7 +103,9 @@ export function renderShell(route = null) {
   const readOnly = isReadOnlyRole(session);
   const navItems = readOnly
     ? createReadOnlyNav(session)
-    : internalNavItems.filter(item => item[0] !== 'cloud' || canManageCloudFoundation(session));
+    : (session.role === 'reviewer'
+      ? createReviewerNav()
+      : internalNavItems.filter(item => item[0] !== 'cloud' || canManageCloudFoundation(session)));
   const notifications = NotificationService.list(session);
   const unreadCount = notifications.filter(item => !item.read).length;
 
@@ -171,6 +184,7 @@ export function renderShell(route = null) {
 
   bindShellEvents(session, selected);
   updateThemeChecks(state.themePreference);
+  startNotificationSync(session);
 }
 
 function renderNotifications(notifications) {
@@ -179,10 +193,10 @@ function renderNotifications(notifications) {
 }
 
 function notificationIcon(type) {
-  if (type === 'assignment') return 'userPlus';
-  if (type === 'comment') return 'message';
-  if (type === 'wip') return 'alert';
-  if (type === 'review') return 'eye';
+  if (['assignment', 'task_assigned'].includes(type)) return 'userPlus';
+  if (['comment', 'task_comment'].includes(type)) return 'message';
+  if (['wip', 'due_date_changed'].includes(type)) return 'alert';
+  if (['review', 'task_moved'].includes(type)) return 'eye';
   return 'bell';
 }
 
@@ -194,6 +208,58 @@ function relativeTime(value) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `Hace ${hours} h`;
   return `Hace ${Math.floor(hours / 24)} d`;
+}
+
+
+function updateNotificationUi(session) {
+  const notifications = NotificationService.list(session);
+  const unreadCount = notifications.filter(item => !item.read).length;
+  const button = document.querySelector('#notification-button');
+  const panel = document.querySelector('#notification-menu');
+  if (button) {
+    button.innerHTML = `${icon('bell')}${unreadCount ? `<span class="notification-dot" aria-hidden="true">${unreadCount > 9 ? '9+' : unreadCount}</span>` : ''}`;
+    button.setAttribute('aria-label', `Notificaciones${unreadCount ? `, ${unreadCount} sin leer` : ''}`);
+  }
+  if (panel) {
+    panel.innerHTML = renderNotifications(notifications);
+    bindNotificationPanelEvents(session);
+  }
+}
+
+function bindNotificationPanelEvents(session) {
+  document.querySelectorAll('#notification-menu [data-notification-id]').forEach(item => {
+    if (item.dataset.notificationBound === '1') return;
+    item.dataset.notificationBound = '1';
+    item.addEventListener('click', async () => {
+      await NotificationService.markRead(item.dataset.notificationId, session).catch(() => {});
+      closePopovers();
+    });
+  });
+
+  const markAll = document.querySelector('#mark-all-read');
+  if (markAll && markAll.dataset.notificationBound !== '1') {
+    markAll.dataset.notificationBound = '1';
+    markAll.addEventListener('click', async event => {
+      event.stopPropagation();
+      await NotificationService.markAllRead(session).catch(() => {});
+      updateNotificationUi(session);
+      closePopovers();
+      showToast('Notificaciones marcadas como leídas.');
+    });
+  }
+}
+
+async function startNotificationSync(session) {
+  if (session?.source !== 'firebase') return;
+  const key = `${session.firebaseUid || ''}:${session.token || ''}`;
+  if (notificationSyncKey !== key) {
+    stopNotificationSubscription?.();
+    stopNotificationSubscription = NotificationService.subscribe(() => updateNotificationUi(session));
+    notificationSyncKey = key;
+  }
+  await NotificationService.hydrate(session).catch(() => []);
+  await NotificationService.startRealtime(session).catch(() => () => {});
+  updateNotificationUi(session);
 }
 
 function bindShellEvents(session, selectedWorkspaceId) {
@@ -263,22 +329,7 @@ function bindShellEvents(session, selectedWorkspaceId) {
     });
   });
 
-  document.querySelectorAll('[data-notification-id]').forEach(item => {
-    item.addEventListener('click', () => {
-      NotificationService.markRead(item.dataset.notificationId, session);
-      closePopovers();
-    });
-  });
-
-  document.querySelector('#mark-all-read')?.addEventListener('click', event => {
-    event.stopPropagation();
-    NotificationService.markAllRead(session);
-    document.querySelector('#notification-button .notification-dot')?.remove();
-    const panel = document.querySelector('#notification-menu');
-    if (panel) panel.innerHTML = renderNotifications(NotificationService.list(session));
-    closePopovers();
-    showToast('Notificaciones marcadas como leídas.');
-  });
+  bindNotificationPanelEvents(session);
 
   document.querySelector('[data-profile-action="preferences"]')?.addEventListener('click', () => {
     closePopovers();

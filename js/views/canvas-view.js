@@ -1,14 +1,14 @@
-import { CanvasService } from '../services/canvas-service.js?v=9.0.5';
-import { ProjectService } from '../services/project-service.js?v=9.0.5';
-import { KanbanService } from '../services/kanban-service.js?v=9.0.5';
-import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=9.0.5';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=9.0.5';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=9.0.5';
-import { icon } from '../utils/icons.js?v=9.0.5';
-import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.5';
-import { openModal, confirmModal, closeModal } from '../components/modal.js?v=9.0.5';
-import { showToast } from '../components/toast.js?v=9.0.5';
-import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=9.0.5';
+import { CanvasService } from '../services/canvas-service.js?v=10.0.0';
+import { ProjectService } from '../services/project-service.js?v=10.0.0';
+import { KanbanService } from '../services/kanban-service.js?v=10.0.0';
+import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=10.0.0';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=10.0.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=10.0.0';
+import { icon } from '../utils/icons.js?v=10.0.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=10.0.0';
+import { openModal, confirmModal, closeModal } from '../components/modal.js?v=10.0.0';
+import { showToast } from '../components/toast.js?v=10.0.0';
+import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=10.0.0';
 
 let cleanupEditor = null;
 let workspaceController = null;

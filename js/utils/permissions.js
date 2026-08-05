@@ -140,17 +140,35 @@ export function canViewAllProjectTime(session, projectId, workspaceId) {
   return MANAGEMENT_ROLES.has(role) || role === 'project_lead';
 }
 
-export function canEditKanban(session) {
-  return Boolean(session && INTERNAL_ROLES.has(session.role));
+export function canViewKanban(session, projectId = null, workspaceId = null) {
+  if (!session) return false;
+  if (projectId && !canAccessProject(session, projectId, workspaceId)) return false;
+  const role = getProjectRole(session, projectId, workspaceId);
+  return INTERNAL_ROLES.has(role) || role === 'reviewer';
 }
 
-
-export function canConfigureKanban(session) {
-  return Boolean(session && ['superadmin', 'workspace_admin', 'project_lead'].includes(session.role));
+export function canEditKanban(session, projectId = null, workspaceId = null) {
+  if (!canViewKanban(session, projectId, workspaceId)) return false;
+  return INTERNAL_ROLES.has(getProjectRole(session, projectId, workspaceId));
 }
 
-export function canDeleteKanbanCard(session) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+export function canCommentKanban(session, projectId = null, workspaceId = null) {
+  if (!canViewKanban(session, projectId, workspaceId)) return false;
+  return ['superadmin', 'workspace_admin', 'project_lead', 'collaborator', 'reviewer'].includes(
+    getProjectRole(session, projectId, workspaceId)
+  );
+}
+
+export function canConfigureKanban(session, projectId = null, workspaceId = null) {
+  if (!canViewKanban(session, projectId, workspaceId)) return false;
+  return ['superadmin', 'workspace_admin', 'project_lead'].includes(
+    getProjectRole(session, projectId, workspaceId)
+  );
+}
+
+export function canDeleteKanbanCard(session, projectId = null, workspaceId = null) {
+  if (!canViewKanban(session, projectId, workspaceId)) return false;
+  return MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId));
 }
 
 export function canEditCanvas(session) {
@@ -211,7 +229,17 @@ export function canAccessRoute(route, session) {
   if (route.view === 'cloud') return canManageCloudFoundation(session);
   if (route.hash?.startsWith('#/master/')) return canViewMaster(session);
 
-  if (['dashboard', 'projects', 'toolkit', 'kanban', 'clients', 'reports', 'placeholder'].includes(route.view)) {
+  if (route.view === 'kanban') {
+    if (!canAccessWorkspace(session, route.params?.workspaceId)) return false;
+    if (route.params?.projectId) return canViewKanban(session, route.params.projectId, route.params.workspaceId);
+    return isInternalUser(session) || session.role === 'reviewer';
+  }
+
+  if (['dashboard', 'projects'].includes(route.view) && session.role === 'reviewer') {
+    return canAccessWorkspace(session, route.params?.workspaceId);
+  }
+
+  if (['dashboard', 'projects', 'toolkit', 'clients', 'reports', 'placeholder'].includes(route.view)) {
     if (!isInternalUser(session)) return false;
     return canAccessWorkspace(session, route.params?.workspaceId);
   }

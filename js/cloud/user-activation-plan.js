@@ -1,5 +1,5 @@
-const ALLOWED_ROLES = Object.freeze(['workspace_admin', 'project_lead', 'collaborator', 'client', 'guest']);
-const PROJECT_SCOPED_ROLES = new Set(['project_lead', 'collaborator', 'client', 'guest']);
+const ALLOWED_ROLES = Object.freeze(['workspace_admin', 'project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
+const PROJECT_SCOPED_ROLES = new Set(['project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 
 const clone = value => JSON.parse(JSON.stringify(value));
 
@@ -84,6 +84,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
         workspace_admin: 'Administrador de workspace',
         project_lead: 'Líder de proyecto',
         collaborator: 'Colaborador',
+        reviewer: 'Revisor',
         client: 'Cliente',
         guest: 'Invitado'
       }[input.role],
@@ -92,7 +93,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
       projectIds: clone(input.projectIds),
       workspaceRoles,
       projectRoles,
-      schemaVersion: 9,
+      schemaVersion: 10,
       createdAt: timestamp,
       updatedAt: timestamp
     }
@@ -109,7 +110,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
         workspaceId,
         role: input.role,
         status: 'active',
-        schemaVersion: 9,
+        schemaVersion: 10,
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -142,7 +143,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
         role: input.role,
         allocation: Number(rawInput.allocation || 0),
         status: 'active',
-        schemaVersion: 9,
+        schemaVersion: 10,
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -163,7 +164,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
   }, { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, peopleLinks: 0, total: 0 });
 
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     generatedAt: timestamp,
     input,
     counts,

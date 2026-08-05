@@ -292,3 +292,26 @@
 - Se añadió el contrato `users.create` para Google Apps Script.
 - Se corrigió el fallback sintáctico del Portal del Cliente para evitar pantallas en blanco en paquetes completos.
 - Se actualizó el versionado de caché a `8.1.0`.
+
+## Entrega 9 - Cloud Foundation
+
+- Se conectó Firebase Authentication mediante cuentas reales.
+- Se publicó el modelo de reglas por UID, workspace, proyecto y rol.
+- Se migraron workspaces, clientes, personas, proyectos y membresías.
+- Se habilitó el modo híbrido para conservar los códigos demo.
+- Se añadió respaldo, simulación, migración y verificación sin terminal.
+- Se validó persistencia entre navegadores y usuarios con alcance limitado.
+
+## Entrega 10 - Kanban colaborativo en Firestore
+
+- Se activó `kanbanMode: hybrid`.
+- Se reemplazó el adaptador Firebase heredado por un adaptador sobre el singleton validado.
+- Se incorporaron tableros y tarjetas por proyecto en Cloud Firestore.
+- Se habilitaron creación, edición, movimiento, checklist, comentarios, archivo, restauración y eliminación autorizada.
+- Se añadieron columnas configurables, límites WIP y plantillas.
+- Se agregó sincronización en tiempo real mediante listeners de Firestore.
+- Se añadió actividad por proyecto y notificaciones por usuario.
+- Se incorporó el rol revisor para lectura y comentarios sin edición operativa.
+- Se añadió una migración Kanban controlada, idempotente y verificable en Cloud Foundation.
+- Se dividieron movimientos y migraciones en lotes pequeños compatibles con las reglas.
+- Se actualizó el esquema y el versionado de caché a `10.0.0`.

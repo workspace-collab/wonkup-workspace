@@ -1,6 +1,6 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.5';
-import { MockCanvasAdapter } from '../adapters/mock-canvas-adapter.js?v=9.0.5';
-import { FirebaseCanvasAdapter } from '../adapters/firebase-canvas-adapter.js?v=9.0.5';
+import { API_CONFIG } from '../config/api-config.js?v=10.0.0';
+import { MockCanvasAdapter } from '../adapters/mock-canvas-adapter.js?v=10.0.0';
+import { FirebaseCanvasAdapter } from '../adapters/firebase-canvas-adapter.js?v=10.0.0';
 
 function adapter() {
   return API_CONFIG.canvasMode === 'firebase' ? FirebaseCanvasAdapter : MockCanvasAdapter;

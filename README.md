@@ -4,46 +4,57 @@ Centro operativo de WonkUp para la gestión de proyectos, innovación, entregabl
 
 ## Estado actual
 
-- Entregas 0 a 8: aprobadas.
+- Entregas 0 a 9: aprobadas.
 - Ajuste 8.1: aprobado.
-- Entrega 9 — Cloud Foundation: código listo; conexión real a Firebase en configuración y revisión.
+- Entrega 10 — Kanban colaborativo en Firestore: código listo para despliegue y validación real.
 
 ## Módulos funcionales
 
 - Panel Maestro y workspaces.
-- Acceso por códigos demo y preparación para cuentas Firebase.
-- Proyectos, clientes, equipo, recursos e hitos.
+- Acceso híbrido: códigos demo y cuentas Firebase.
+- Proyectos, clientes, personas, recursos e hitos en Firestore para cuentas reales.
 - Altas rápidas de clientes y personas.
-- Kanban configurable.
+- Kanban híbrido, configurable y colaborativo en tiempo real.
+- Actividad y notificaciones del Kanban.
 - Innovation Toolkit y Canvas Engine.
 - Portal del cliente y entregables.
 - Finanzas, ingresos, costos, horas y rentabilidad.
 - Dashboard ejecutivo y reportes CSV/PDF.
-- Cloud Foundation: diagnóstico, respaldo, migración, verificación y activación de usuarios.
+- Cloud Foundation: diagnóstico, respaldos, migración, verificación y activación de usuarios.
 - Temas claro, oscuro y sistema.
 
-## Configuración segura al instalar
+## Configuración activa
 
 ```javascript
 mode: 'mock',
-authMode: 'mock',
-projectMode: 'mock',
-kanbanMode: 'mock',
+authMode: 'hybrid',
+projectMode: 'hybrid',
+kanbanMode: 'hybrid',
 canvasMode: 'mock',
 deliverableMode: 'mock',
 financeMode: 'mock',
 reportMode: 'aggregate',
-foundationMode: 'diagnostic'
+foundationMode: 'connected'
 ```
 
-La Entrega 9 no activa Firebase automáticamente. Consulta `FIREBASE_SIN_TERMINAL.md` para conectar Authentication y Firestore desde el navegador.
+Las cuentas Firebase usan Firestore en Proyectos y Kanban. Los códigos de demostración conservan `localStorage`.
 
 ## Arquitectura de datos
 
-- Cloud Firestore: base operativa de los módulos migrados.
+- Cloud Firestore: fuente de verdad de usuarios, workspaces, proyectos y Kanban migrado.
 - Firebase Authentication: identidad real por UID.
 - Google Sheets: reportes y exportaciones, no base transaccional.
 - Apps Script: integraciones futuras con Drive, Gmail y Calendar.
-- `localStorage`: continuidad temporal de módulos aún no migrados.
+- `localStorage`: continuidad de sesiones demo y módulos aún no migrados.
 
-No coloques claves privadas, cuentas de servicio, contraseñas ni claves de Gemini en el frontend.
+## Instalación de Entrega 10
+
+Consulta:
+
+- `ENTREGA_10_GUIA.md`
+- `CLOUD_KANBAN_ARCHITECTURE_10.md`
+- `TEST_RESULTS_10.md`
+
+Después de subir el código, publica manualmente `firebase/firestore.rules` desde Firebase Console.
+
+No coloques cuentas de servicio, contraseñas, tokens, claves privadas ni claves de Gemini en el frontend.

@@ -6,11 +6,11 @@ WonkUp Workspace
 
 ## Fase actual
 
-Entrega 9 — Cloud Foundation
+Entrega 10 — Kanban colaborativo en Firestore
 
 ## Estado
 
-CÓDIGO LISTO / CONEXIÓN FIREBASE EN CONFIGURACIÓN
+CÓDIGO LISTO / VALIDACIÓN EN FIREBASE REAL PENDIENTE
 
 ## Fases cerradas
 
@@ -24,41 +24,41 @@ CÓDIGO LISTO / CONEXIÓN FIREBASE EN CONFIGURACIÓN
 - Entrega 7 — Finanzas, horas y rentabilidad.
 - Entrega 8 — Dashboard ejecutivo y reportes.
 - Ajuste 8.1 — Altas rápidas de clientes y personas.
+- Entrega 9 — Cloud Foundation, Authentication, Firestore, migración del núcleo y permisos reales.
 
-## Construido en Entrega 9
+## Construido en Entrega 10
 
-- Firebase Web SDK mediante módulos ESM sin build tool.
-- Acceso híbrido con códigos demo y Firebase Authentication.
-- Adaptador Firestore para workspaces, clientes, personas y proyectos.
-- Reglas por UID, workspace, proyecto y rol.
-- Cloud Foundation para diagnóstico técnico.
-- Respaldo JSON antes de migrar.
-- Simulación, migración idempotente y verificación.
-- Auditoría de migraciones.
-- Activación de usuarios reales con mínimo privilegio.
-- Protección de los códigos demo mediante `projectMode: 'hybrid'`.
-- Inicio resiliente que reemplaza pantallas en blanco por diagnóstico visible.
-- App Check y persistencia en disco preparados, pero desactivados.
+- `kanbanMode: 'hybrid'`.
+- Adaptador Kanban Firestore sobre el singleton Firebase validado.
+- Tableros y tarjetas bajo cada proyecto.
+- Creación, edición, movimiento, checklist, comentarios, archivo y restauración.
+- Configuración de columnas, WIP y plantillas.
+- Sincronización en tiempo real entre navegadores.
+- Actividad inmutable por proyecto.
+- Notificaciones Firestore por usuario.
+- Rol revisor con lectura y comentarios sin edición operativa.
+- Migración Kanban idempotente desde Cloud Foundation.
+- Respaldo, simulación, confirmación visible y verificación.
+- Lotes pequeños compatibles con reglas Firestore.
 
-## Fuente de datos al instalar
+## Fuente de datos
 
-- Acceso: mock.
-- Proyectos: mock.
-- Kanban: mock.
-- Canvases: mock.
-- Entregables: mock.
-- Finanzas: mock.
-- Reportes: agregación local.
-- Cloud Foundation: diagnóstico.
-
-## Fuente de datos después de validar Firebase
-
-- Acceso: híbrido.
-- Proyectos: híbrido.
-- Sesiones Firebase: Firestore.
-- Sesiones por código: mock local.
-- Kanban, Canvas, Entregables y Finanzas: mock hasta su migración específica.
+| Dominio | Cuenta Firebase | Código demo |
+|---|---|---|
+| Acceso | Firebase Authentication | Adaptador mock |
+| Proyectos | Cloud Firestore | localStorage |
+| Kanban | Cloud Firestore | localStorage |
+| Canvas | localStorage | localStorage |
+| Entregables | localStorage | localStorage |
+| Finanzas | localStorage | localStorage |
 
 ## Condición de cierre
 
-La fase se cierra después de configurar el proyecto Firebase, publicar reglas, migrar los datos seleccionados, activar al menos dos cuentas y validar el mismo proyecto desde dos dispositivos.
+La Entrega 10 se cierra después de:
+
+1. publicar las reglas Firestore 10;
+2. migrar y verificar el Kanban;
+3. validar crear, mover, comentar, checklist, archivo y restauración;
+4. confirmar sincronización entre dos navegadores;
+5. confirmar notificaciones;
+6. validar un usuario revisor.

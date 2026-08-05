@@ -1,8 +1,9 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.5';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.5';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=9.0.5';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=9.0.5';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=9.0.5';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=10.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=10.0.0';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=10.0.0';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=10.0.0';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=10.0.0';
+import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=10.0.0';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const FIRESTORE_RULE_SAFE_BATCH_SIZE = 4;
@@ -80,6 +81,7 @@ export const CloudFoundationService = {
       ...firebaseConfigStatus(),
       authMode: API_CONFIG.authMode,
       projectMode: API_CONFIG.projectMode,
+      kanbanMode: API_CONFIG.kanbanMode,
       foundationMode: API_CONFIG.foundationMode,
       sdkVersion: API_CONFIG.firebaseSdkVersion,
       appCheckEnabled: API_CONFIG.firebase.enableAppCheck,
@@ -103,7 +105,7 @@ export const CloudFoundationService = {
         projectIds: ['*'],
         workspaceRoles: {},
         projectRoles: {},
-        schemaVersion: 9,
+        schemaVersion: 10,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -111,11 +113,16 @@ export const CloudFoundationService = {
   },
 
   getRuntimeSnippet() {
-    return `authMode: 'hybrid',\nprojectMode: 'hybrid',\nfoundationMode: 'connected',\nfirebase: {\n  apiKey: '...',\n  authDomain: 'TU_PROYECTO.firebaseapp.com',\n  projectId: 'TU_PROYECTO',\n  storageBucket: 'TU_PROYECTO.firebasestorage.app',\n  messagingSenderId: '...',\n  appId: '...',\n  databaseURL: '',\n  appCheckSiteKey: '',\n  enableAppCheck: false,\n  enablePersistentCache: false\n}`;
+    return `authMode: 'hybrid',\nprojectMode: 'hybrid',\nkanbanMode: 'hybrid',\nfoundationMode: 'connected',\nfirebase: {\n  apiKey: '...',\n  authDomain: 'TU_PROYECTO.firebaseapp.com',\n  projectId: 'TU_PROYECTO',\n  storageBucket: 'TU_PROYECTO.firebasestorage.app',\n  messagingSenderId: '...',\n  appId: '...',\n  databaseURL: '',\n  appCheckSiteKey: '',\n  enableAppCheck: false,\n  enablePersistentCache: false\n}`;
   },
 
   getMigrationPreview(options = {}) {
     return buildFoundationMigrationPlan(getLocalFoundationSnapshot(), options);
+  },
+
+
+  getKanbanMigrationPreview(options = {}) {
+    return buildKanbanMigrationPlan(getLocalKanbanSnapshot(), options);
   },
 
   getActivationDirectory() {
@@ -172,6 +179,13 @@ export const CloudFoundationService = {
   exportLocalBackup() {
     const snapshot = getLocalFoundationSnapshot();
     downloadJson(`wonkup-backup-cloud-foundation-${new Date().toISOString().slice(0, 10)}.json`, snapshot);
+    return snapshot;
+  },
+
+
+  exportKanbanBackup() {
+    const snapshot = getLocalKanbanSnapshot();
+    downloadJson(`wonkup-backup-kanban-${new Date().toISOString().slice(0, 10)}.json`, snapshot);
     return snapshot;
   },
 
@@ -338,6 +352,97 @@ export const CloudFoundationService = {
         committed: committed + 2,
         plan: clone(plan)
       };
+    } catch (error) {
+      throw new Error(messageFromFirebaseError(error));
+    }
+  },
+
+  async migrateKanban(options = {}) {
+    try {
+      const client = await getFirebaseClient();
+      const account = await this.getAccount();
+      if (!account?.profile) throw new Error('Inicia sesión con el superadministrador de Firebase.');
+      if (account.profile.status !== 'active' || account.profile.role !== 'superadmin') {
+        throw new Error('La migración del Kanban requiere un perfil superadmin activo.');
+      }
+      const plan = this.getKanbanMigrationPreview(options);
+      if (plan.duplicates.length) throw new Error('El plan Kanban contiene rutas duplicadas.');
+      if (!plan.operations.length) throw new Error('No se encontraron tableros locales para migrar.');
+
+      const migrationId = `kanban-migration-${Date.now()}`;
+      const metadata = {
+        migratedAt: new Date().toISOString(),
+        migratedBy: account.uid,
+        migrationId
+      };
+      const boards = plan.operations.filter(operation => operation.group === 'boards');
+      const cards = plan.operations.filter(operation => operation.group === 'cards');
+      let committed = 0;
+      committed += await commitInChunks(client, boards, metadata, { stage: 'Tableros Kanban' });
+      committed += await commitInChunks(client, cards, metadata, { stage: 'Tarjetas Kanban' });
+
+      const batch = client.sdk.firestore.writeBatch(client.db);
+      batch.set(client.sdk.firestore.doc(client.db, 'system', 'schema'), {
+        version: 10,
+        kanbanSchemaVersion: 10,
+        kanbanMode: 'hybrid',
+        kanbanMigratedAt: client.sdk.firestore.serverTimestamp(),
+        kanbanMigratedBy: account.uid,
+        lastKanbanMigrationId: migrationId
+      }, { merge: true });
+      batch.set(client.sdk.firestore.doc(client.db, 'system', 'schema', 'migrations', migrationId), {
+        id: migrationId,
+        module: 'kanban',
+        schemaVersion: 10,
+        counts: plan.counts,
+        workspaceIds: plan.selectedWorkspaceIds,
+        projectIds: plan.selectedProjectIds,
+        executedAt: client.sdk.firestore.serverTimestamp(),
+        executedBy: account.uid,
+        source: 'github-pages-browser'
+      });
+      await batch.commit();
+      return { ok: true, migrationId, committed: committed + 2, plan: clone(plan) };
+    } catch (error) {
+      throw new Error(messageFromFirebaseError(error));
+    }
+  },
+
+  async verifyKanbanMigration(workspaceIds = []) {
+    try {
+      const client = await getFirebaseClient();
+      const account = await this.getAccount();
+      if (!account?.profile) throw new Error('Inicia sesión y verifica el perfil de acceso.');
+      let ids = workspaceIds.filter(Boolean);
+      if (!ids.length && account.profile.role === 'superadmin') {
+        const snapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(client.db, 'workspaces'));
+        ids = snapshot.docs.map(item => item.id);
+      }
+      const report = [];
+      for (const workspaceId of ids) {
+        const workspaceSnapshot = await client.sdk.firestore.getDoc(client.sdk.firestore.doc(client.db, 'workspaces', workspaceId));
+        const projectsSnapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(client.db, 'workspaces', workspaceId, 'projects'));
+        let boards = 0;
+        let cards = 0;
+        const projects = [];
+        for (const projectDoc of projectsSnapshot.docs) {
+          const boardRef = client.sdk.firestore.doc(client.db, 'workspaces', workspaceId, 'projects', projectDoc.id, 'boards', 'main');
+          const boardSnapshot = await client.sdk.firestore.getDoc(boardRef);
+          if (!boardSnapshot.exists()) continue;
+          const cardsSnapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(boardRef, 'cards'));
+          boards += 1;
+          cards += cardsSnapshot.size;
+          projects.push({ projectId: projectDoc.id, projectName: projectDoc.data().name || projectDoc.id, cards: cardsSnapshot.size });
+        }
+        report.push({
+          workspaceId,
+          workspaceName: workspaceSnapshot.exists() ? workspaceSnapshot.data().name : workspaceId,
+          boards,
+          cards,
+          projects
+        });
+      }
+      return report;
     } catch (error) {
       throw new Error(messageFromFirebaseError(error));
     }

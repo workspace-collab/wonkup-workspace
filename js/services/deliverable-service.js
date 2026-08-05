@@ -1,5 +1,5 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.5';
-import { MockDeliverableAdapter } from '../adapters/mock-deliverable-adapter.js?v=9.0.5';
+import { API_CONFIG } from '../config/api-config.js?v=10.0.0';
+import { MockDeliverableAdapter } from '../adapters/mock-deliverable-adapter.js?v=10.0.0';
 
 function adapter() {
   // Apps Script/Firebase adapters will follow the same contract in a later integration phase.

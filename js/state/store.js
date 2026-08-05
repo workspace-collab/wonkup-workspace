@@ -1,4 +1,4 @@
-import { APP_CONFIG } from '../config/app-config.js?v=9.0.5';
+import { APP_CONFIG } from '../config/app-config.js?v=10.0.0';
 
 const listeners = new Set();
 const SESSION_KEY = 'wonkup.session';

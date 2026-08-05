@@ -78,6 +78,37 @@ service cloud.firestore {
         && projectRole(workspaceId, projectId) in ['superadmin', 'workspace_admin', 'project_lead'];
     }
 
+
+    function canReadKanban(workspaceId, projectId) {
+      return canReadProject(workspaceId, projectId)
+        && projectRole(workspaceId, projectId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator', 'reviewer'];
+    }
+
+    function canEditKanban(workspaceId, projectId) {
+      return canReadProject(workspaceId, projectId)
+        && projectRole(workspaceId, projectId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator'];
+    }
+
+    function validKanbanBoard(workspaceId, projectId, boardId) {
+      return boardId == 'main'
+        && request.resource.data.workspaceId == workspaceId
+        && request.resource.data.projectId == projectId
+        && request.resource.data.name is string
+        && request.resource.data.columns is list
+        && request.resource.data.schemaVersion is int;
+    }
+
+    function validKanbanCard(workspaceId, projectId, cardId) {
+      return request.resource.data.id == cardId
+        && request.resource.data.workspaceId == workspaceId
+        && request.resource.data.projectId == projectId
+        && request.resource.data.title is string
+        && request.resource.data.columnId is string
+        && (request.resource.data.position is int || request.resource.data.position is float)
+        && request.resource.data.archived is bool
+        && request.resource.data.schemaVersion is int;
+    }
+
     function validWorkspaceDocument(workspaceId) {
       return request.resource.data.id == workspaceId
         && request.resource.data.name is string
@@ -94,7 +125,7 @@ service cloud.firestore {
     function validMembership(workspaceId) {
       return request.resource.data.workspaceId == workspaceId
         && request.resource.data.authUid is string
-        && request.resource.data.role in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator', 'client', 'guest']
+        && request.resource.data.role in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator', 'reviewer', 'client', 'guest']
         && request.resource.data.status in ['active', 'inactive', 'pending'];
     }
 
@@ -108,6 +139,21 @@ service cloud.firestore {
           'name', 'initials', 'photoURL', 'lastSeenAt', 'updatedAt'
         ])
       );
+
+      match /notifications/{notificationId} {
+        allow read: if hasActiveProfile() && request.auth.uid == userId;
+        allow create: if hasActiveProfile()
+          && request.resource.data.id == notificationId
+          && request.resource.data.recipientUid == userId
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.workspaceId is string
+          && request.resource.data.projectId is string
+          && canReadProject(request.resource.data.workspaceId, request.resource.data.projectId);
+        allow update: if hasActiveProfile()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        allow delete: if false;
+      }
     }
 
     match /system/{documentId} {
@@ -137,7 +183,8 @@ service cloud.firestore {
       }
 
       match /people/{personId} {
-        allow read: if isWorkspaceInternal(workspaceId);
+        allow read: if isWorkspaceInternal(workspaceId)
+          || (isWorkspaceMember(workspaceId) && workspaceRole(workspaceId) == 'reviewer');
         allow create, update: if isWorkspaceMember(workspaceId)
           && workspaceRole(workspaceId) in ['superadmin', 'workspace_admin', 'project_lead']
           && request.resource.data.workspaceId == workspaceId
@@ -160,7 +207,7 @@ service cloud.firestore {
         allow delete: if false;
 
         match /members/{memberId} {
-          allow read: if isInternalProjectUser(workspaceId, projectId)
+          allow read: if canReadKanban(workspaceId, projectId)
             || (signedIn() && request.auth.uid == memberId);
           allow create, update: if canLeadProject(workspaceId, projectId)
             && request.resource.data.workspaceId == workspaceId
@@ -189,14 +236,37 @@ service cloud.firestore {
         }
 
         match /boards/{boardId} {
-          allow read: if isInternalProjectUser(workspaceId, projectId);
-          allow create, update: if isInternalProjectUser(workspaceId, projectId);
+          allow read: if canReadKanban(workspaceId, projectId);
+          allow create, update: if canEditKanban(workspaceId, projectId)
+            && validKanbanBoard(workspaceId, projectId, boardId);
           allow delete: if false;
 
           match /cards/{cardId} {
-            allow read, create, update: if isInternalProjectUser(workspaceId, projectId);
+            allow read: if canReadKanban(workspaceId, projectId);
+            allow create: if canEditKanban(workspaceId, projectId)
+              && validKanbanCard(workspaceId, projectId, cardId);
+            allow update: if validKanbanCard(workspaceId, projectId, cardId) && (
+              canEditKanban(workspaceId, projectId)
+              || (
+                canReadKanban(workspaceId, projectId)
+                && projectRole(workspaceId, projectId) == 'reviewer'
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'comments', 'history', 'updatedAt', 'updatedBy'
+                ])
+              )
+            );
             allow delete: if isWorkspaceAdmin(workspaceId);
           }
+        }
+
+        match /activity/{eventId} {
+          allow read: if canReadKanban(workspaceId, projectId);
+          allow create: if canReadKanban(workspaceId, projectId)
+            && request.resource.data.id == eventId
+            && request.resource.data.workspaceId == workspaceId
+            && request.resource.data.projectId == projectId
+            && request.resource.data.actorUid == request.auth.uid;
+          allow update, delete: if false;
         }
 
         match /canvases/{canvasId} {

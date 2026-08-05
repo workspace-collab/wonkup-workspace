@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.5';
-import { escapeHtml } from '../utils/format.js?v=9.0.5';
-import { icon } from '../utils/icons.js?v=9.0.5';
-import { showToast } from '../components/toast.js?v=9.0.5';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=10.0.0';
+import { escapeHtml } from '../utils/format.js?v=10.0.0';
+import { icon } from '../utils/icons.js?v=10.0.0';
+import { showToast } from '../components/toast.js?v=10.0.0';
 
 let active = true;
 
@@ -29,6 +29,11 @@ function migrationCounts(plan) {
     <div class="cloud-count cloud-count-total"><strong>${counts.total}</strong><span>Documentos</span></div>`;
 }
 
+function kanbanMigrationCounts(plan) {
+  const counts = plan?.counts || { projectsScanned: 0, boards: 0, cards: 0, total: 0 };
+  return `<div class="cloud-count"><strong>${counts.projectsScanned}</strong><span>Proyectos revisados</span></div><div class="cloud-count"><strong>${counts.boards}</strong><span>Tableros</span></div><div class="cloud-count"><strong>${counts.cards}</strong><span>Tarjetas</span></div><div class="cloud-count cloud-count-total"><strong>${counts.total}</strong><span>Documentos</span></div>`;
+}
+
 function activationCounts(plan = null) {
   const counts = plan?.counts || { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, peopleLinks: 0, total: 0 };
   return `<div class="cloud-activation-count"><strong>${counts.profiles}</strong><span>Perfil</span></div><div class="cloud-activation-count"><strong>${counts.workspaceMemberships}</strong><span>Workspaces</span></div><div class="cloud-activation-count"><strong>${counts.projectMemberships}</strong><span>Proyectos</span></div><div class="cloud-activation-count"><strong>${counts.peopleLinks}</strong><span>Vínculos</span></div><div class="cloud-activation-count is-total"><strong>${counts.total}</strong><span>Escrituras</span></div>`;
@@ -39,6 +44,7 @@ function activationRoleOptions() {
     ['workspace_admin', 'Administrador de workspace'],
     ['project_lead', 'Líder de proyecto'],
     ['collaborator', 'Colaborador'],
+    ['reviewer', 'Revisor'],
     ['client', 'Cliente'],
     ['guest', 'Invitado']
   ].map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
@@ -48,25 +54,26 @@ export async function renderCloudFoundation(container, session) {
   active = true;
   const configuration = CloudFoundationService.getConfiguration();
   const preview = CloudFoundationService.getMigrationPreview();
+  const kanbanPreview = CloudFoundationService.getKanbanMigrationPreview();
   const profileTemplate = CloudFoundationService.getBootstrapProfileTemplate();
   const activationDirectory = CloudFoundationService.getActivationDirectory();
 
   container.innerHTML = `
     <section class="page cloud-foundation-page">
       <header class="page-header cloud-page-header">
-        <div><span class="eyebrow">ENTREGA 9</span><h1>Cloud Foundation</h1><p>Conecta WonkUp Workspace con Firebase sin usar terminal y migra primero Workspaces, Proyectos, Clientes y Personas.</p></div>
+        <div><span class="eyebrow">ENTREGA 10</span><h1>Cloud Foundation</h1><p>Administra Firebase sin terminal y activa la colaboración Kanban en tiempo real sin afectar los módulos que aún permanecen locales.</p></div>
         <div class="cloud-header-badges"><span class="badge badge-neutral">SDK ${escapeHtml(configuration.sdkVersion)}</span><span class="badge ${configuration.configured ? 'badge-success' : 'badge-warning'}">${configuration.configured ? 'Configuración detectada' : 'Modo diagnóstico'}</span></div>
       </header>
 
       <div class="cloud-safety-banner">
         <span>${icon('shield')}</span>
-        <div><strong>Migración controlada y reversible</strong><p>Los módulos Kanban, Canvas, Entregables y Finanzas permanecen en modo local. La nube se activa por etapas para evitar regresiones.</p></div>
+        <div><strong>Migración controlada y reversible</strong><p>Kanban ya opera en modo híbrido para cuentas Firebase. Canvas, Entregables y Finanzas permanecen locales hasta sus respectivas migraciones.</p></div>
       </div>
 
       <section class="cloud-architecture-grid" aria-label="Arquitectura objetivo">
         ${architectureCard('monitor', 'GitHub Pages', 'Frontend estático', 'ok')}
         ${architectureCard('lock', 'Firebase Authentication', configuration.authMode === 'mock' ? 'Preparado, aún inactivo' : configuration.authMode, configuration.authMode === 'mock' ? 'warning' : 'ok')}
-        ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Fuente ${configuration.projectMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
+        ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Proyectos ${configuration.projectMode} · Kanban ${configuration.kanbanMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
         ${architectureCard('cloud', 'Apps Script', 'Drive, Gmail y Calendar en fase posterior', 'pending')}
       </section>
 
@@ -78,6 +85,7 @@ export async function renderCloudFoundation(container, session) {
               ${configItem('Proyecto Firebase', configuration.projectId || 'Pendiente', Boolean(configuration.projectId))}
               ${configItem('Auth mode', configuration.authMode, configuration.authMode !== 'mock')}
               ${configItem('Project mode', configuration.projectMode, ['firebase', 'hybrid'].includes(configuration.projectMode))}
+              ${configItem('Kanban mode', configuration.kanbanMode, ['firebase', 'hybrid'].includes(configuration.kanbanMode))}
               ${configItem('App Check', configuration.appCheckEnabled ? 'Activado' : 'Pendiente', configuration.appCheckEnabled)}
               ${configItem('Caché persistente', configuration.persistentCacheEnabled ? 'Activada' : 'Desactivada', true)}
               ${configItem('Campos faltantes', configuration.missing.length ? configuration.missing.join(', ') : 'Ninguno', !configuration.missing.length)}
@@ -122,8 +130,26 @@ export async function renderCloudFoundation(container, session) {
             <div class="cloud-operation-result hidden" id="cloud-operation-result" role="status"></div>
           </section>
 
+          <section class="panel cloud-panel" id="cloud-kanban-migration-panel">
+            <div class="panel-heading"><div><span class="panel-kicker">MIGRACIÓN 10.1</span><h2>Kanban colaborativo</h2><p>Migra los tableros locales a Firestore con rutas deterministas y sincronización en tiempo real.</p></div><span class="badge badge-neutral">Schema v10</span></div>
+            <div class="cloud-backup-row"><div><strong>1. Respaldo del Kanban</strong><span>Descarga los tableros y tarjetas almacenados en este navegador.</span></div><button class="button button-secondary" id="export-kanban-backup" type="button">${icon('download')} Exportar Kanban</button></div>
+            <div class="cloud-migration-section">
+              <strong>2. Workspaces con proyectos</strong>
+              <div class="cloud-workspace-options">
+                ${kanbanPreview.selectedWorkspaceIds.map(workspaceId => `<label class="cloud-check-card"><input type="checkbox" data-kanban-workspace value="${escapeHtml(workspaceId)}" checked><span><strong>${escapeHtml(workspaceId)}</strong><small>Buscar tableros locales</small></span></label>`).join('')}
+              </div>
+            </div>
+            <div class="cloud-count-grid cloud-kanban-count-grid" id="kanban-migration-counts">${kanbanMigrationCounts(kanbanPreview)}</div>
+            <div class="cloud-migration-actions">
+              <button class="button button-secondary" id="preview-kanban-migration" type="button">${icon('eye')} Simular Kanban</button>
+              <button class="button button-primary" id="execute-kanban-migration" type="button">${icon('upload')} Migrar Kanban</button>
+              <button class="button button-secondary" id="verify-kanban-migration" type="button">${icon('check')} Verificar Kanban</button>
+            </div>
+            <div class="cloud-operation-result hidden" id="kanban-operation-result" role="status"></div>
+          </section>
+
           <section class="panel cloud-panel" id="cloud-user-activation-panel">
-            <div class="panel-heading"><div><span class="panel-kicker">IDENTIDADES 9.2</span><h2>Activar usuarios reales</h2><p>Primero crea el usuario en Firebase Authentication. Después pega su UID aquí para generar el perfil y sus permisos sin terminal.</p></div><span class="badge badge-neutral">Auth + Rules</span></div>
+            <div class="panel-heading"><div><span class="panel-kicker">IDENTIDADES CLOUD</span><h2>Activar usuarios reales</h2><p>Primero crea el usuario en Firebase Authentication. Después pega su UID aquí para generar el perfil y sus permisos sin terminal.</p></div><span class="badge badge-neutral">Auth + Rules</span></div>
             <div class="cloud-activation-notice">${icon('alert')}<span>Esta pantalla no crea contraseñas ni cuentas de Authentication. Solo vincula una cuenta ya creada con WonkUp Workspace.</span></div>
             <form class="cloud-activation-form" id="cloud-user-activation-form" novalidate>
               <div class="cloud-activation-grid">
@@ -155,7 +181,7 @@ export async function renderCloudFoundation(container, session) {
               <li><span>4</span><div><strong>Publicar reglas</strong><small>Copiar firebase/firestore.rules en la consola.</small></div></li>
               <li><span>5</span><div><strong>Crear superadministrador</strong><small>Authentication + documento users/UID.</small></div></li>
               <li><span>6</span><div><strong>Respaldar y migrar</strong><small>Usar esta misma pantalla.</small></div></li>
-              <li><span>7</span><div><strong>Activar modo híbrido</strong><small>Las cuentas Firebase usan Firestore; los códigos demo conservan localStorage.</small></div></li>
+              <li><span>7</span><div><strong>Activar modo híbrido</strong><small>Las cuentas Firebase usan Firestore; los códigos demo conservan localStorage.</small></div></li><li><span>8</span><div><strong>Migrar Kanban</strong><small>Tableros y tarjetas sincronizados en tiempo real.</small></div></li>
             </ol>
           </section>
 
@@ -183,6 +209,20 @@ function migrationOptions(container) {
   const include = {};
   container.querySelectorAll('[data-cloud-module]').forEach(input => { include[input.dataset.cloudModule] = input.checked; });
   return { workspaceIds, include };
+}
+
+
+function kanbanMigrationOptions(container) {
+  return {
+    workspaceIds: [...container.querySelectorAll('[data-kanban-workspace]:checked')].map(input => input.value)
+  };
+}
+
+function renderKanbanPlan(container, plan) {
+  container.querySelector('#kanban-migration-counts').innerHTML = kanbanMigrationCounts(plan);
+  const result = container.querySelector('#kanban-operation-result');
+  result.classList.remove('hidden', 'is-error', 'is-success');
+  result.innerHTML = `<strong>Simulación Kanban preparada</strong><span>${plan.counts.boards} tablero(s), ${plan.counts.cards} tarjeta(s) y ${plan.counts.total} documentos. ${plan.duplicates.length ? `${plan.duplicates.length} rutas duplicadas detectadas.` : 'No se detectaron rutas duplicadas.'}</span>`;
 }
 
 function renderPlan(container, plan) {
@@ -302,6 +342,80 @@ function bindCloudEvents(container) {
         showToast('No se pudo copiar automáticamente. Selecciona el texto manualmente.');
       }
     });
+  });
+
+  const refreshKanbanPreview = () => renderKanbanPlan(container, CloudFoundationService.getKanbanMigrationPreview(kanbanMigrationOptions(container)));
+  container.querySelectorAll('[data-kanban-workspace]').forEach(input => input.addEventListener('change', refreshKanbanPreview));
+  container.querySelector('#preview-kanban-migration')?.addEventListener('click', refreshKanbanPreview);
+  container.querySelector('#export-kanban-backup')?.addEventListener('click', () => {
+    CloudFoundationService.exportKanbanBackup();
+    showToast('Respaldo Kanban descargado.');
+  });
+  container.querySelector('#execute-kanban-migration')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const options = kanbanMigrationOptions(container);
+    const plan = CloudFoundationService.getKanbanMigrationPreview(options);
+    const result = container.querySelector('#kanban-operation-result');
+    if (!plan.counts.total) {
+      result.classList.remove('hidden', 'is-success');
+      result.classList.add('is-error');
+      result.innerHTML = '<strong>No hay tableros para migrar</strong><span>Abre primero un Kanban con el código demo o selecciona otro workspace.</span>';
+      return;
+    }
+    if (button.dataset.confirmKanban !== 'true') {
+      button.dataset.confirmKanban = 'true';
+      button.innerHTML = `${icon('alert')} Confirmar Kanban`;
+      result.classList.remove('hidden', 'is-error', 'is-success');
+      result.innerHTML = `<strong>Confirmación requerida</strong><span>Pulsa nuevamente para escribir ${plan.counts.total} documentos Kanban con merge.</span>`;
+      clearTimeout(button._confirmationTimer);
+      button._confirmationTimer = setTimeout(() => {
+        delete button.dataset.confirmKanban;
+        button.innerHTML = `${icon('upload')} Migrar Kanban`;
+      }, 20000);
+      return;
+    }
+    clearTimeout(button._confirmationTimer);
+    delete button.dataset.confirmKanban;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Migrando...';
+    result.classList.remove('hidden', 'is-error', 'is-success');
+    result.innerHTML = `<strong>Migración Kanban en curso</strong><span>Escribiendo ${plan.counts.boards} tableros y ${plan.counts.cards} tarjetas.</span>`;
+    try {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const migrated = await CloudFoundationService.migrateKanban(options);
+      result.classList.remove('is-error');
+      result.classList.add('is-success');
+      result.innerHTML = `<strong>Kanban migrado</strong><span>${migrated.plan.counts.boards} tablero(s), ${migrated.plan.counts.cards} tarjeta(s) y ${migrated.committed} escrituras confirmadas.</span>`;
+      showToast('Migración Kanban completada.');
+    } catch (error) {
+      result.classList.remove('is-success');
+      result.classList.add('is-error');
+      result.innerHTML = `<strong>No se completó la migración Kanban</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      button.disabled = false;
+      button.innerHTML = `${icon('upload')} Migrar Kanban`;
+    }
+  });
+  container.querySelector('#verify-kanban-migration')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const result = container.querySelector('#kanban-operation-result');
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Verificando...';
+    try {
+      const report = await CloudFoundationService.verifyKanbanMigration(kanbanMigrationOptions(container).workspaceIds);
+      const boards = report.reduce((sum, item) => sum + item.boards, 0);
+      const cards = report.reduce((sum, item) => sum + item.cards, 0);
+      result.classList.remove('hidden', 'is-error');
+      result.classList.add('is-success');
+      result.innerHTML = `<strong>Verificación Kanban</strong><span>${boards} tablero(s) y ${cards} tarjeta(s) encontrados en Firestore.</span><div class="cloud-verification-list">${report.map(item => `<span><b>${escapeHtml(item.workspaceName)}</b>: ${item.boards} tableros y ${item.cards} tarjetas.</span>`).join('')}</div>`;
+    } catch (error) {
+      result.classList.remove('hidden', 'is-success');
+      result.classList.add('is-error');
+      result.innerHTML = `<strong>No se pudo verificar</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      button.disabled = false;
+      button.innerHTML = `${icon('check')} Verificar Kanban`;
+    }
   });
 
   refreshActivationProjectAvailability(container);

@@ -1,255 +1,767 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.5';
-import { defaultKanbanColumns } from '../../data/demo-kanban.js?v=9.0.5';
-import { demoUsers } from '../../data/demo-users.js?v=9.0.5';
-import { canAccessProject, canEditKanban } from '../utils/permissions.js?v=9.0.5';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=10.0.0';
+import { defaultKanbanColumns } from '../../data/demo-kanban.js?v=10.0.0';
+import { getKanbanTemplate } from '../../data/kanban-templates.js?v=10.0.0';
+import {
+  canAccessProject,
+  canCommentKanban,
+  canConfigureKanban,
+  canDeleteKanbanCard,
+  canEditKanban,
+  canViewKanban
+} from '../utils/permissions.js?v=10.0.0';
 
-const SDK_VERSION = '10.12.5';
-let runtimePromise = null;
-let unsubscribeSnapshot = null;
 const listeners = new Set();
+const directoryCache = new Map();
+let activeRealtimeStops = [];
 
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
+const clone = value => JSON.parse(JSON.stringify(value));
 
 function uid(prefix) {
   return globalThis.crypto?.randomUUID
-    ? `${prefix}-${crypto.randomUUID()}`
+    ? `${prefix}-${globalThis.crypto.randomUUID()}`
     : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function requireConfigured() {
-  const config = API_CONFIG.firebase || {};
-  if (!config.apiKey || !config.projectId || !config.appId) {
-    throw new Error('Firebase no está configurado. Mantén kanbanMode en mock hasta completar la configuración.');
-  }
-  return config;
+function nowIso() {
+  return new Date().toISOString();
 }
 
-function requireAccess(session, projectId, workspaceId, edit = false) {
-  if (!canAccessProject(session, projectId, workspaceId)) throw new Error('No tienes acceso a este tablero.');
-  if (edit && !canEditKanban(session)) throw new Error('Tu rol no permite modificar el Kanban.');
+function friendlyError(error) {
+  const code = String(error?.code || '');
+  const messages = {
+    'permission-denied': 'Las reglas de Firestore no permiten esta operación en el Kanban.',
+    'unavailable': 'Firestore no está disponible temporalmente.',
+    'failed-precondition': 'Firestore requiere una configuración o índice adicional.',
+    'not-found': 'La tarjeta o el tablero ya no existe.',
+    'aborted': 'Otro usuario modificó el tablero al mismo tiempo. Vuelve a intentarlo.'
+  };
+  return new Error(messages[code] || error?.message || 'No se pudo completar la operación del Kanban.');
 }
 
-async function runtime(session) {
-  if (!runtimePromise) {
-    runtimePromise = Promise.all([
-      import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app.js`),
-      import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth.js`),
-      import(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore.js`)
-    ]).then(([appModule, authModule, firestoreModule]) => {
-      const config = requireConfigured();
-      const app = appModule.getApps().length ? appModule.getApp() : appModule.initializeApp(config);
-      return {
-        app,
-        auth: authModule.getAuth(app),
-        db: firestoreModule.getFirestore(app),
-        authModule,
-        firestore: firestoreModule
-      };
-    });
+async function context(session) {
+  if (session?.source !== 'firebase') {
+    throw new Error('Para usar el Kanban en la nube ingresa con una Cuenta WonkUp.');
   }
-  const result = await runtimePromise;
-  if (!result.auth.currentUser) {
-    if (!session?.firebaseCustomToken) {
-      throw new Error('La sesión no contiene un token personalizado de Firebase. Configura el Access Broker de Apps Script antes de activar Firebase.');
-    }
-    await result.authModule.signInWithCustomToken(result.auth, session.firebaseCustomToken);
+  const client = await getFirebaseClient();
+  const user = client.auth.currentUser || await waitForFirebaseAuth();
+  if (!user || user.uid !== session.firebaseUid) {
+    throw new Error('La sesión de Firebase no está disponible. Ingresa nuevamente.');
   }
-  return result;
+  return client;
 }
 
-function refs(r, workspaceId, projectId) {
-  const { doc, collection } = r.firestore;
-  const projectRef = doc(r.db, 'workspaces', workspaceId, 'projects', projectId);
+function requireView(session, projectId, workspaceId) {
+  if (!canAccessProject(session, projectId, workspaceId) || !canViewKanban(session, projectId, workspaceId)) {
+    throw new Error('No tienes acceso a este tablero.');
+  }
+}
+
+function requireEdit(session, projectId, workspaceId) {
+  requireView(session, projectId, workspaceId);
+  if (!canEditKanban(session, projectId, workspaceId)) {
+    throw new Error('Tu rol no permite modificar el Kanban.');
+  }
+}
+
+function requireComment(session, projectId, workspaceId) {
+  requireView(session, projectId, workspaceId);
+  if (!canCommentKanban(session, projectId, workspaceId)) {
+    throw new Error('Tu rol no permite comentar en el Kanban.');
+  }
+}
+
+function requireConfigure(session, projectId, workspaceId) {
+  requireView(session, projectId, workspaceId);
+  if (!canConfigureKanban(session, projectId, workspaceId)) {
+    throw new Error('Tu rol no permite configurar este tablero.');
+  }
+}
+
+function refs(client, workspaceId, projectId) {
+  const { doc, collection } = client.sdk.firestore;
+  const projectRef = doc(client.db, 'workspaces', workspaceId, 'projects', projectId);
   const boardRef = doc(projectRef, 'boards', 'main');
-  const cardsRef = collection(boardRef, 'cards');
-  return { projectRef, boardRef, cardsRef };
-}
-
-function actor(session) {
-  return session?.user?.id || 'system';
-}
-
-function history(type, title, session, meta = {}) {
-  return { id: uid('hist'), type, title, actorId: actor(session), createdAt: new Date().toISOString(), meta };
-}
-
-function enrich(board) {
-  const usersById = Object.fromEntries(demoUsers.map(user => [user.id, user]));
   return {
-    ...board,
-    cards: (board.cards || []).map(card => ({
-      ...card,
-      assignee: usersById[card.assigneeId] || null,
-      participants: (card.participantIds || []).map(id => usersById[id]).filter(Boolean),
-      comments: (card.comments || []).map(item => ({ ...item, author: usersById[item.authorId] || null })),
-      history: (card.history || []).map(item => ({ ...item, actor: usersById[item.actorId] || null }))
-    }))
+    projectRef,
+    boardRef,
+    cardsRef: collection(boardRef, 'cards'),
+    activityRef: collection(projectRef, 'activity')
   };
 }
 
-async function ensureBoard(r, workspaceId, projectId, canCreate) {
-  const { getDoc, setDoc } = r.firestore;
-  const { boardRef } = refs(r, workspaceId, projectId);
-  const snap = await getDoc(boardRef);
-  if (snap.exists()) return snap.data();
-  if (!canCreate) throw new Error('El tablero aún no ha sido inicializado.');
-  const createdAt = new Date().toISOString();
-  const board = { id: `board-${projectId}`, projectId, name: 'Tablero principal', columns: clone(defaultKanbanColumns), version: 1, createdAt, updatedAt: createdAt };
+function actor(session) {
+  return {
+    actorId: session?.user?.id || session?.firebaseUid || 'system',
+    actorUid: session?.firebaseUid || '',
+    actorName: session?.user?.name || session?.user?.email || 'Usuario WonkUp'
+  };
+}
+
+function history(type, title, session, meta = {}) {
+  return {
+    id: uid('hist'),
+    type,
+    title,
+    ...actor(session),
+    createdAt: nowIso(),
+    meta: clone(meta)
+  };
+}
+
+function activity(type, title, session, workspaceId, projectId, card = null, meta = {}) {
+  const id = uid('activity');
+  return {
+    id,
+    type,
+    title,
+    workspaceId,
+    projectId,
+    cardId: card?.id || '',
+    cardTitle: card?.title || '',
+    ...actor(session),
+    createdAt: nowIso(),
+    meta: clone(meta),
+    schemaVersion: 10
+  };
+}
+
+function normalizeColumns(columns) {
+  return (columns || []).map((column, index) => ({
+    id: String(column.id || `column-${index + 1}`),
+    name: String(column.name || `Columna ${index + 1}`).trim(),
+    order: Number(column.order || (index + 1) * 10),
+    wipLimit: Math.max(0, Number(column.wipLimit || 0)),
+    tone: String(column.tone || 'gray'),
+    isDone: Boolean(column.isDone),
+    active: column.active !== false && !column.archived,
+    archived: Boolean(column.archived || column.active === false)
+  })).sort((a, b) => a.order - b.order);
+}
+
+function defaultBoard(workspaceId, projectId) {
+  const timestamp = nowIso();
+  const columns = normalizeColumns(getKanbanTemplate('basic-4')?.columns || defaultKanbanColumns);
+  return {
+    id: `board-${projectId}`,
+    workspaceId,
+    projectId,
+    name: 'Tablero principal',
+    templateId: 'basic-4',
+    columns,
+    version: 1,
+    schemaVersion: 10,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    updatedBy: ''
+  };
+}
+
+async function ensureBoard(client, workspaceId, projectId, canCreate) {
+  const { getDoc, setDoc } = client.sdk.firestore;
+  const { boardRef } = refs(client, workspaceId, projectId);
+  const snapshot = await getDoc(boardRef);
+  if (snapshot.exists()) return { id: snapshot.id, ...snapshot.data() };
+  if (!canCreate) throw new Error('El tablero todavía no ha sido inicializado por un miembro del equipo.');
+  const board = defaultBoard(workspaceId, projectId);
   await setDoc(boardRef, board);
   return board;
 }
 
-async function loadBoard(r, workspaceId, projectId, canCreate) {
-  const { query, orderBy, getDocs } = r.firestore;
-  const board = await ensureBoard(r, workspaceId, projectId, canCreate);
-  const { cardsRef } = refs(r, workspaceId, projectId);
-  const cardsSnap = await getDocs(query(cardsRef, orderBy('position', 'asc')));
-  const allCards = cardsSnap.docs.map(item => ({ id: item.id, ...item.data() }));
-  const cards = allCards.filter(card => !card.archived);
-  const archivedCards = allCards.filter(card => card.archived);
-  return enrich({ ...board, columns: (board.columns || []).filter(column => column.active !== false && !column.archived), cards, archivedCards });
+async function loadDirectory(client, workspaceId, projectId, { force = false } = {}) {
+  const cacheKey = `${workspaceId}:${projectId}`;
+  if (!force && directoryCache.has(cacheKey)) return directoryCache.get(cacheKey);
+  const { collection, getDocs, doc, getDoc } = client.sdk.firestore;
+  const [peopleSnapshot, membersSnapshot] = await Promise.all([
+    getDocs(collection(client.db, 'workspaces', workspaceId, 'people')),
+    getDocs(collection(client.db, 'workspaces', workspaceId, 'projects', projectId, 'members'))
+  ]);
+  const map = new Map();
+  const uidByPersonId = new Map();
+  peopleSnapshot.docs.forEach(item => {
+    const person = { id: item.id, ...item.data() };
+    map.set(person.id, person);
+    if (person.authUid) {
+      map.set(person.authUid, person);
+      uidByPersonId.set(person.id, person.authUid);
+    }
+  });
+  for (const item of membersSnapshot.docs) {
+    const member = { id: item.id, ...item.data() };
+    const person = map.get(member.userId) || map.get(member.authUid) || null;
+    if (person) {
+      map.set(member.id, person);
+      if (member.authUid) map.set(member.authUid, person);
+    }
+    if (member.userId && member.authUid) uidByPersonId.set(member.userId, member.authUid);
+    if (!person && member.authUid) {
+      try {
+        const profileSnapshot = await getDoc(doc(client.db, 'users', member.authUid));
+        if (profileSnapshot.exists()) {
+          const profile = { id: member.userId || member.authUid, authUid: member.authUid, ...profileSnapshot.data() };
+          map.set(profile.id, profile);
+          map.set(member.authUid, profile);
+        }
+      } catch {
+        // Missing optional directory information must not block the board.
+      }
+    }
+  }
+  const value = { map, uidByPersonId };
+  directoryCache.set(cacheKey, value);
+  return value;
+}
+
+function publicPerson(person) {
+  if (!person) return null;
+  const name = person.name || person.displayName || person.email || 'Usuario';
+  return {
+    id: person.id || person.authUid || '',
+    authUid: person.authUid || '',
+    name,
+    email: person.email || '',
+    initials: person.initials || String(name).split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase(),
+    photoURL: person.photoURL || ''
+  };
+}
+
+async function enrichBoard(client, workspaceId, projectId, board, allCards) {
+  const directory = await loadDirectory(client, workspaceId, projectId);
+  const enrichCard = card => ({
+    ...card,
+    assignee: publicPerson(directory.map.get(card.assigneeId)),
+    participants: (card.participantIds || []).map(id => publicPerson(directory.map.get(id))).filter(Boolean),
+    comments: (card.comments || []).map(item => ({ ...item, author: publicPerson(directory.map.get(item.authorId) || directory.map.get(item.actorUid)) })),
+    history: (card.history || []).map(item => ({ ...item, actor: publicPerson(directory.map.get(item.actorId) || directory.map.get(item.actorUid)) }))
+  });
+  const columns = normalizeColumns(board.columns || []);
+  return {
+    ...board,
+    columns: columns.filter(column => column.active),
+    archivedColumns: columns.filter(column => !column.active),
+    cards: allCards.filter(card => !card.archived).map(enrichCard),
+    archivedCards: allCards.filter(card => card.archived).map(enrichCard)
+  };
+}
+
+async function loadBoard(client, workspaceId, projectId, canCreate) {
+  const { query, orderBy, getDocs } = client.sdk.firestore;
+  const board = await ensureBoard(client, workspaceId, projectId, canCreate);
+  const { cardsRef } = refs(client, workspaceId, projectId);
+  const snapshot = await getDocs(query(cardsRef, orderBy('position', 'asc')));
+  const cards = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  return enrichBoard(client, workspaceId, projectId, board, cards);
+}
+
+function cardById(board, cardId, { archived = null } = {}) {
+  const cards = [...(board.cards || []), ...(board.archivedCards || [])];
+  const card = cards.find(item => item.id === cardId && (archived === null || Boolean(item.archived) === archived));
+  if (!card) throw new Error('Tarjeta no encontrada.');
+  return card;
+}
+
+function ensureWip(board, columnId, ignoreCardId = '') {
+  const column = board.columns.find(item => item.id === columnId);
+  if (!column) throw new Error('La columna de destino no está disponible.');
+  const count = board.cards.filter(card => card.id !== ignoreCardId && card.columnId === columnId).length;
+  if (column.wipLimit > 0 && count >= column.wipLimit) {
+    throw new Error(`La columna ${column.name} alcanzó su límite WIP de ${column.wipLimit}.`);
+  }
+  return column;
+}
+
+function validateColumns(input, board) {
+  if (!Array.isArray(input)) throw new Error('La configuración de columnas no es válida.');
+  const columns = normalizeColumns(input).map((column, index) => ({ ...column, order: (index + 1) * 10 }));
+  const active = columns.filter(column => column.active);
+  if (active.length < 2) throw new Error('El tablero debe tener al menos dos columnas activas.');
+  if (columns.some(column => !column.name)) throw new Error('Todas las columnas deben tener un nombre.');
+  if (new Set(columns.map(column => column.id)).size !== columns.length) throw new Error('Los identificadores de columna deben ser únicos.');
+  if (!active.some(column => column.isDone)) throw new Error('Marca una columna activa como etapa final.');
+  const activeIds = new Set(active.map(column => column.id));
+  const occupied = board.cards.find(card => !activeIds.has(card.columnId));
+  if (occupied) throw new Error('No puedes desactivar una columna que todavía contiene tarjetas. Muévelas primero.');
+  return columns;
+}
+
+function addActivityToBatch(client, batch, workspaceId, projectId, entry) {
+  const { doc } = client.sdk.firestore;
+  const { activityRef } = refs(client, workspaceId, projectId);
+  batch.set(doc(activityRef, entry.id), entry);
+}
+
+async function recipientUids(client, workspaceId, projectId, personIds = []) {
+  const directory = await loadDirectory(client, workspaceId, projectId, { force: true });
+  return [...new Set(personIds.map(id => directory.uidByPersonId.get(id) || directory.map.get(id)?.authUid || '').filter(Boolean))];
+}
+
+async function createNotifications(client, { workspaceId, projectId, card, session, type, title, message, personIds = [] }) {
+  const actorUid = session?.firebaseUid || '';
+  const recipients = (await recipientUids(client, workspaceId, projectId, personIds)).filter(uidValue => uidValue !== actorUid).slice(0, 12);
+  const { doc, collection, setDoc } = client.sdk.firestore;
+  await Promise.allSettled(recipients.map(recipientUid => {
+    const ref = doc(collection(client.db, 'users', recipientUid, 'notifications'));
+    return setDoc(ref, {
+      id: ref.id,
+      recipientUid,
+      actorUid,
+      actorName: session?.user?.name || 'Usuario WonkUp',
+      type,
+      title,
+      message,
+      href: `#/w/${workspaceId}/p/${projectId}/kanban`,
+      workspaceId,
+      projectId,
+      cardId: card?.id || '',
+      read: false,
+      createdAt: nowIso(),
+      schemaVersion: 10
+    });
+  }));
+}
+
+async function updateBoardTouch(client, batch, boardRef, session) {
+  batch.update(boardRef, {
+    updatedAt: nowIso(),
+    updatedBy: session?.firebaseUid || '',
+    version: client.sdk.firestore.increment(1),
+    schemaVersion: 10
+  });
+}
+
+
+async function commitCardPatches(client, cardsRef, patches, chunkSize = 4) {
+  const { doc, writeBatch } = client.sdk.firestore;
+  for (let index = 0; index < patches.length; index += chunkSize) {
+    const batch = writeBatch(client.db);
+    patches.slice(index, index + chunkSize).forEach(item => {
+      batch.update(doc(cardsRef, item.id), item.patch);
+    });
+    await batch.commit();
+  }
+}
+
+async function commitBoardActivity(client, workspaceId, projectId, boardRef, session, entry) {
+  const batch = client.sdk.firestore.writeBatch(client.db);
+  addActivityToBatch(client, batch, workspaceId, projectId, entry);
+  await updateBoardTouch(client, batch, boardRef, session);
+  await batch.commit();
+}
+
+function normalizeCardInput(input = {}) {
+  return {
+    title: String(input.title || '').trim(),
+    description: String(input.description || '').trim(),
+    priority: ['high', 'medium', 'low'].includes(input.priority) ? input.priority : 'medium',
+    assigneeId: String(input.assigneeId || ''),
+    participantIds: [...new Set((input.participantIds || []).map(String))],
+    labels: clone(input.labels || []),
+    startDate: String(input.startDate || ''),
+    dueDate: String(input.dueDate || ''),
+    estimatedHours: Number(input.estimatedHours || 0),
+    actualHours: Number(input.actualHours || 0),
+    visibility: ['internal', 'client', 'restricted'].includes(input.visibility) ? input.visibility : 'internal',
+    dependencies: [...new Set((input.dependencies || []).map(String))]
+  };
 }
 
 export const FirebaseKanbanAdapter = {
   async getBoard({ projectId, workspaceId, session }) {
-    requireAccess(session, projectId, workspaceId);
-    const r = await runtime(session);
-    return loadBoard(r, workspaceId, projectId, canEditKanban(session));
+    try {
+      requireView(session, projectId, workspaceId);
+      const client = await context(session);
+      return await loadBoard(client, workspaceId, projectId, canEditKanban(session, projectId, workspaceId));
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
   async createCard({ projectId, workspaceId, input, session }) {
-    requireAccess(session, projectId, workspaceId, true);
-    const r = await runtime(session);
-    const { setDoc, doc, getDocs } = r.firestore;
-    const { boardRef, cardsRef } = refs(r, workspaceId, projectId);
-    await ensureBoard(r, workspaceId, projectId, true);
-    const existing = await getDocs(cardsRef);
-    const columnId = input.columnId || defaultKanbanColumns[0].id;
-    const position = (existing.docs.filter(item => item.data().columnId === columnId && !item.data().archived).length + 1) * 1000;
-    const now = new Date().toISOString();
-    const id = uid('card');
-    const card = {
-      columnId, position, title: String(input.title || '').trim(), description: String(input.description || '').trim(),
-      priority: input.priority || 'medium', assigneeId: input.assigneeId || '', participantIds: input.participantIds || [],
-      labels: input.labels || [], startDate: input.startDate || '', dueDate: input.dueDate || '',
-      estimatedHours: Number(input.estimatedHours || 0), actualHours: Number(input.actualHours || 0),
-      visibility: input.visibility || 'internal', dependencies: input.dependencies || [], checklist: [], comments: [],
-      history: [history('created', 'Tarjeta creada', session)], archived: false, createdAt: now, updatedAt: now
-    };
-    if (!card.title) throw new Error('Escribe un título para la tarjeta.');
-    await setDoc(doc(cardsRef, id), card);
-    await r.firestore.updateDoc(boardRef, { updatedAt: now, version: r.firestore.increment(1) });
-    return { id, ...card };
+    try {
+      requireEdit(session, projectId, workspaceId);
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const clean = normalizeCardInput(input);
+      if (!clean.title) throw new Error('Escribe un título para la tarjeta.');
+      const columnId = String(input.columnId || board.columns[0]?.id || 'backlog');
+      ensureWip(board, columnId);
+      const position = (board.cards.filter(card => card.columnId === columnId).length + 1) * 1000;
+      const timestamp = nowIso();
+      const { doc, writeBatch } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const cardRef = doc(cardsRef);
+      const card = {
+        id: cardRef.id,
+        workspaceId,
+        projectId,
+        columnId,
+        position,
+        ...clean,
+        checklist: [],
+        comments: [],
+        history: [history('created', 'Tarjeta creada', session)],
+        archived: false,
+        columnBeforeArchive: '',
+        positionBeforeArchive: 0,
+        archivedAt: '',
+        archivedBy: '',
+        restoredAt: '',
+        restoredBy: '',
+        schemaVersion: 10,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        updatedBy: session.firebaseUid
+      };
+      const entry = activity('kanban.card.created', `Creó la tarjeta “${card.title}”`, session, workspaceId, projectId, card);
+      const batch = writeBatch(client.db);
+      batch.set(cardRef, card);
+      addActivityToBatch(client, batch, workspaceId, projectId, entry);
+      await updateBoardTouch(client, batch, boardRef, session);
+      await batch.commit();
+      await createNotifications(client, {
+        workspaceId, projectId, card, session,
+        type: 'task_assigned',
+        title: 'Nueva tarea asignada',
+        message: card.title,
+        personIds: [card.assigneeId, ...card.participantIds]
+      });
+      return (await loadBoard(client, workspaceId, projectId, true)).cards.find(item => item.id === card.id);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
   async updateCard({ projectId, workspaceId, cardId, patch, session }) {
-    requireAccess(session, projectId, workspaceId, true);
-    const r = await runtime(session);
-    const { doc, updateDoc, arrayUnion } = r.firestore;
-    const { cardsRef, boardRef } = refs(r, workspaceId, projectId);
-    const now = new Date().toISOString();
-    const cleanPatch = { ...patch, updatedAt: now, history: arrayUnion(history('updated', 'Detalles actualizados', session)) };
-    await updateDoc(doc(cardsRef, cardId), cleanPatch);
-    await updateDoc(boardRef, { updatedAt: now, version: r.firestore.increment(1) });
-    return this.getBoard({ projectId, workspaceId, session }).then(board => board.cards.find(card => card.id === cardId));
+    try {
+      requireEdit(session, projectId, workspaceId);
+      const client = await context(session);
+      let board = await loadBoard(client, workspaceId, projectId, true);
+      let current = cardById(board, cardId, { archived: false });
+      if (patch.columnId && patch.columnId !== current.columnId) {
+        board = await this.moveCard({
+          projectId,
+          workspaceId,
+          cardId,
+          toColumnId: patch.columnId,
+          toIndex: board.cards.filter(card => card.columnId === patch.columnId).length,
+          session
+        });
+        current = cardById(board, cardId, { archived: false });
+      }
+      const cleanInput = normalizeCardInput({ ...current, ...patch });
+      if (!cleanInput.title) throw new Error('El título no puede quedar vacío.');
+      const allowedPatch = {
+        ...cleanInput,
+        updatedAt: nowIso(),
+        updatedBy: session.firebaseUid,
+        history: client.sdk.firestore.arrayUnion(history('updated', current.title === cleanInput.title ? 'Detalles actualizados' : `Título actualizado: ${cleanInput.title}`, session))
+      };
+      if ('checklist' in patch) allowedPatch.checklist = clone(patch.checklist || []);
+      const { doc, writeBatch } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const cardRef = doc(cardsRef, cardId);
+      const nextCard = { ...current, ...allowedPatch, history: current.history };
+      const entry = activity('kanban.card.updated', `Actualizó la tarjeta “${cleanInput.title}”`, session, workspaceId, projectId, nextCard);
+      const batch = writeBatch(client.db);
+      batch.update(cardRef, allowedPatch);
+      addActivityToBatch(client, batch, workspaceId, projectId, entry);
+      await updateBoardTouch(client, batch, boardRef, session);
+      await batch.commit();
+
+      const newlyAssigned = cleanInput.assigneeId && cleanInput.assigneeId !== current.assigneeId;
+      const dueChanged = cleanInput.dueDate && cleanInput.dueDate !== current.dueDate;
+      if (newlyAssigned || dueChanged) {
+        await createNotifications(client, {
+          workspaceId, projectId, card: { ...current, ...cleanInput }, session,
+          type: newlyAssigned ? 'task_assigned' : 'due_date_changed',
+          title: newlyAssigned ? 'Tarea asignada' : 'Fecha de tarea actualizada',
+          message: cleanInput.title,
+          personIds: [cleanInput.assigneeId, ...cleanInput.participantIds]
+        });
+      }
+      return (await loadBoard(client, workspaceId, projectId, true)).cards.find(item => item.id === cardId);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
   async moveCard({ projectId, workspaceId, cardId, toColumnId, toIndex = 0, session }) {
-    requireAccess(session, projectId, workspaceId, true);
-    const r = await runtime(session);
-    const board = await loadBoard(r, workspaceId, projectId, true);
-    const card = board.cards.find(item => item.id === cardId);
-    if (!card) throw new Error('Tarjeta no encontrada.');
-    const targetColumn = board.columns.find(item => item.id === toColumnId);
-    if (!targetColumn) throw new Error('Columna de destino no encontrada.');
-    const targetCards = board.cards.filter(item => item.id !== cardId && item.columnId === toColumnId).sort((a, b) => a.position - b.position);
-    if (targetColumn.wipLimit > 0 && targetCards.length >= targetColumn.wipLimit && card.columnId !== toColumnId) {
-      throw new Error(`La columna ${targetColumn.name} alcanzó su límite WIP.`);
+    try {
+      requireEdit(session, projectId, workspaceId);
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const moving = cardById(board, cardId, { archived: false });
+      const fromColumnId = moving.columnId;
+      const targetColumn = fromColumnId === toColumnId
+        ? board.columns.find(column => column.id === toColumnId)
+        : ensureWip(board, toColumnId, cardId);
+      if (!targetColumn) throw new Error('Columna de destino no encontrada.');
+
+      const sourceCards = board.cards
+        .filter(card => card.id !== cardId && card.columnId === fromColumnId)
+        .sort((a, b) => Number(a.position) - Number(b.position));
+      const targetCards = fromColumnId === toColumnId
+        ? sourceCards
+        : board.cards.filter(card => card.id !== cardId && card.columnId === toColumnId).sort((a, b) => Number(a.position) - Number(b.position));
+      const safeIndex = Math.max(0, Math.min(Number(toIndex || 0), targetCards.length));
+      targetCards.splice(safeIndex, 0, moving);
+
+      const { arrayUnion } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const timestamp = nowIso();
+      const affected = new Map();
+      sourceCards.forEach((card, index) => affected.set(card.id, { columnId: fromColumnId, position: (index + 1) * 1000 }));
+      targetCards.forEach((card, index) => affected.set(card.id, { columnId: toColumnId, position: (index + 1) * 1000 }));
+      const patches = [];
+      for (const [id, placement] of affected.entries()) {
+        const update = { ...placement, updatedAt: timestamp, updatedBy: session.firebaseUid };
+        if (id === cardId) {
+          update.history = arrayUnion(history(
+            fromColumnId === toColumnId ? 'reordered' : 'moved',
+            fromColumnId === toColumnId ? 'Orden actualizado' : `Movida a ${targetColumn.name}`,
+            session,
+            { fromColumnId, toColumnId }
+          ));
+        }
+        patches.push({ id, patch: update });
+      }
+      await commitCardPatches(client, cardsRef, patches);
+      const movedCard = { ...moving, columnId: toColumnId, position: (safeIndex + 1) * 1000 };
+      const entry = activity('kanban.card.moved', `Movió “${moving.title}” a ${targetColumn.name}`, session, workspaceId, projectId, movedCard, { fromColumnId, toColumnId });
+      await commitBoardActivity(client, workspaceId, projectId, boardRef, session, entry);
+      await createNotifications(client, {
+        workspaceId, projectId, card: movedCard, session,
+        type: 'task_moved',
+        title: `Tarea movida a ${targetColumn.name}`,
+        message: moving.title,
+        personIds: [moving.assigneeId, ...(moving.participantIds || [])]
+      });
+      return loadBoard(client, workspaceId, projectId, true);
+    } catch (error) {
+      throw friendlyError(error);
     }
-    targetCards.splice(Math.max(0, Math.min(toIndex, targetCards.length)), 0, card);
-    const { doc, writeBatch, arrayUnion, increment } = r.firestore;
-    const { cardsRef, boardRef } = refs(r, workspaceId, projectId);
-    const batch = writeBatch(r.db);
-    targetCards.forEach((item, index) => {
-      const patch = { columnId: toColumnId, position: (index + 1) * 1000, updatedAt: new Date().toISOString() };
-      if (item.id === cardId) patch.history = arrayUnion(history('moved', `Movida a ${targetColumn.name}`, session));
-      batch.update(doc(cardsRef, item.id), patch);
-    });
-    batch.update(boardRef, { updatedAt: new Date().toISOString(), version: increment(1) });
-    await batch.commit();
-    return loadBoard(r, workspaceId, projectId, true);
   },
 
   async archiveCard({ projectId, workspaceId, cardId, session }) {
-    requireAccess(session, projectId, workspaceId, true);
-    const r = await runtime(session);
-    const { doc, updateDoc, arrayUnion, increment } = r.firestore;
-    const { cardsRef, boardRef } = refs(r, workspaceId, projectId);
-    const now = new Date().toISOString();
-    await updateDoc(doc(cardsRef, cardId), { archived: true, archivedAt: now, archivedBy: actor(session), updatedAt: now, history: arrayUnion(history('archived', 'Tarjeta archivada', session)) });
-    await updateDoc(boardRef, { updatedAt: now, version: increment(1) });
-    return { archived: true };
+    try {
+      requireEdit(session, projectId, workspaceId);
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const card = cardById(board, cardId, { archived: false });
+      const remaining = board.cards.filter(item => item.id !== cardId && item.columnId === card.columnId).sort((a, b) => Number(a.position) - Number(b.position));
+      const { arrayUnion } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const timestamp = nowIso();
+      const patches = [{ id: cardId, patch: {
+        archived: true,
+        columnBeforeArchive: card.columnId,
+        positionBeforeArchive: Number(card.position || 0),
+        archivedAt: timestamp,
+        archivedBy: session.firebaseUid,
+        restoredAt: '',
+        restoredBy: '',
+        updatedAt: timestamp,
+        updatedBy: session.firebaseUid,
+        history: arrayUnion(history('archived', 'Tarjeta archivada', session, { columnId: card.columnId }))
+      }}];
+      remaining.forEach((item, index) => patches.push({ id: item.id, patch: { position: (index + 1) * 1000, updatedAt: timestamp } }));
+      await commitCardPatches(client, cardsRef, patches);
+      await commitBoardActivity(client, workspaceId, projectId, boardRef, session, activity('kanban.card.archived', `Archivó “${card.title}”`, session, workspaceId, projectId, card));
+      return loadBoard(client, workspaceId, projectId, true);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
-
-  async restoreCard() {
-    throw new Error('La restauración de tarjetas en Firebase se habilitará al activar la integración real. Mantén kanbanMode en mock durante esta revisión.');
+  async restoreCard({ projectId, workspaceId, cardId, columnId = '', session }) {
+    try {
+      requireEdit(session, projectId, workspaceId);
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const card = cardById(board, cardId, { archived: true });
+      const fallback = board.columns.some(column => column.id === card.columnBeforeArchive)
+        ? card.columnBeforeArchive
+        : board.columns[0]?.id;
+      const destinationId = columnId || fallback;
+      const destination = ensureWip(board, destinationId, cardId);
+      const position = (board.cards.filter(item => item.columnId === destinationId).length + 1) * 1000;
+      const { doc, writeBatch, arrayUnion } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const batch = writeBatch(client.db);
+      const timestamp = nowIso();
+      batch.update(doc(cardsRef, cardId), {
+        columnId: destinationId,
+        position,
+        archived: false,
+        restoredAt: timestamp,
+        restoredBy: session.firebaseUid,
+        updatedAt: timestamp,
+        updatedBy: session.firebaseUid,
+        history: arrayUnion(history('restored', `Tarjeta restaurada en ${destination.name}`, session))
+      });
+      addActivityToBatch(client, batch, workspaceId, projectId, activity('kanban.card.restored', `Restauró “${card.title}”`, session, workspaceId, projectId, card));
+      await updateBoardTouch(client, batch, boardRef, session);
+      await batch.commit();
+      return loadBoard(client, workspaceId, projectId, true);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
-  async deleteCard() {
-    throw new Error('La eliminación definitiva en Firebase se habilitará al activar la integración real.');
+  async deleteCard({ projectId, workspaceId, cardId, session }) {
+    try {
+      requireView(session, projectId, workspaceId);
+      if (!canDeleteKanbanCard(session, projectId, workspaceId)) throw new Error('Tu rol no permite eliminar tarjetas definitivamente.');
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const card = cardById(board, cardId);
+      const { doc, writeBatch } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const batch = writeBatch(client.db);
+      batch.delete(doc(cardsRef, cardId));
+      addActivityToBatch(client, batch, workspaceId, projectId, activity('kanban.card.deleted', `Eliminó definitivamente “${card.title}”`, session, workspaceId, projectId, card));
+      await updateBoardTouch(client, batch, boardRef, session);
+      await batch.commit();
+      return loadBoard(client, workspaceId, projectId, true);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
   async addComment({ projectId, workspaceId, cardId, text, session }) {
-    requireAccess(session, projectId, workspaceId, true);
-    const cleanText = String(text || '').trim();
-    if (!cleanText) throw new Error('Escribe un comentario.');
-    const r = await runtime(session);
-    const { doc, updateDoc, arrayUnion, increment } = r.firestore;
-    const { cardsRef, boardRef } = refs(r, workspaceId, projectId);
-    const now = new Date().toISOString();
-    await updateDoc(doc(cardsRef, cardId), {
-      comments: arrayUnion({ id: uid('com'), authorId: actor(session), text: cleanText, createdAt: now }),
-      history: arrayUnion(history('commented', 'Comentario agregado', session)), updatedAt: now
-    });
-    await updateDoc(boardRef, { updatedAt: now, version: increment(1) });
-    return this.getBoard({ projectId, workspaceId, session }).then(board => board.cards.find(card => card.id === cardId));
+    try {
+      requireComment(session, projectId, workspaceId);
+      const cleanText = String(text || '').trim();
+      if (!cleanText) throw new Error('Escribe un comentario.');
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, false);
+      const card = cardById(board, cardId, { archived: false });
+      const timestamp = nowIso();
+      const comment = { id: uid('com'), authorId: session.user.id, actorUid: session.firebaseUid, text: cleanText, createdAt: timestamp };
+      const { doc, writeBatch, arrayUnion } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      const batch = writeBatch(client.db);
+      batch.update(doc(cardsRef, cardId), {
+        comments: arrayUnion(comment),
+        history: arrayUnion(history('commented', 'Comentario agregado', session)),
+        updatedAt: timestamp,
+        updatedBy: session.firebaseUid
+      });
+      addActivityToBatch(client, batch, workspaceId, projectId, activity('kanban.card.commented', `Comentó en “${card.title}”`, session, workspaceId, projectId, card));
+      if (canEditKanban(session, projectId, workspaceId)) {
+        await updateBoardTouch(client, batch, boardRef, session);
+      }
+      await batch.commit();
+      await createNotifications(client, {
+        workspaceId, projectId, card, session,
+        type: 'task_comment',
+        title: 'Nuevo comentario en una tarea',
+        message: card.title,
+        personIds: [card.assigneeId, ...(card.participantIds || [])]
+      });
+      return (await loadBoard(client, workspaceId, projectId, false)).cards.find(item => item.id === cardId);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
   async addChecklistItem({ projectId, workspaceId, cardId, text, session }) {
+    const clean = String(text || '').trim();
+    if (!clean) throw new Error('Escribe el elemento de la checklist.');
     const board = await this.getBoard({ projectId, workspaceId, session });
-    const card = board.cards.find(item => item.id === cardId);
-    if (!card) throw new Error('Tarjeta no encontrada.');
-    return this.updateCard({ projectId, workspaceId, cardId, patch: { checklist: [...(card.checklist || []), { id: uid('chk'), text: String(text || '').trim(), completed: false }] }, session });
+    const card = cardById(board, cardId, { archived: false });
+    return this.updateCard({
+      projectId,
+      workspaceId,
+      cardId,
+      patch: { checklist: [...(card.checklist || []), { id: uid('chk'), text: clean, completed: false }] },
+      session
+    });
   },
 
   async toggleChecklistItem({ projectId, workspaceId, cardId, itemId, completed, session }) {
     const board = await this.getBoard({ projectId, workspaceId, session });
-    const card = board.cards.find(item => item.id === cardId);
-    const checklist = (card?.checklist || []).map(item => item.id === itemId ? { ...item, completed: Boolean(completed) } : item);
+    const card = cardById(board, cardId, { archived: false });
+    const checklist = (card.checklist || []).map(item => item.id === itemId ? { ...item, completed: Boolean(completed) } : item);
     return this.updateCard({ projectId, workspaceId, cardId, patch: { checklist }, session });
   },
 
   async deleteChecklistItem({ projectId, workspaceId, cardId, itemId, session }) {
     const board = await this.getBoard({ projectId, workspaceId, session });
-    const card = board.cards.find(item => item.id === cardId);
-    const checklist = (card?.checklist || []).filter(item => item.id !== itemId);
+    const card = cardById(board, cardId, { archived: false });
+    const checklist = (card.checklist || []).filter(item => item.id !== itemId);
     return this.updateCard({ projectId, workspaceId, cardId, patch: { checklist }, session });
   },
 
-
-  async updateBoardColumns() {
-    throw new Error('La configuración de columnas en Firebase se habilitará al activar la integración real.');
+  async updateBoardColumns({ projectId, workspaceId, name, columns, session }) {
+    try {
+      requireConfigure(session, projectId, workspaceId);
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const normalized = validateColumns(columns, board);
+      const { writeBatch } = client.sdk.firestore;
+      const { boardRef } = refs(client, workspaceId, projectId);
+      const batch = writeBatch(client.db);
+      batch.update(boardRef, {
+        name: String(name || 'Tablero principal').trim() || 'Tablero principal',
+        columns: normalized,
+        templateId: 'custom',
+        updatedAt: nowIso(),
+        updatedBy: session.firebaseUid,
+        version: client.sdk.firestore.increment(1),
+        schemaVersion: 10
+      });
+      addActivityToBatch(client, batch, workspaceId, projectId, activity('kanban.board.updated', 'Actualizó la configuración del tablero', session, workspaceId, projectId));
+      await batch.commit();
+      return loadBoard(client, workspaceId, projectId, true);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
-  async applyTemplate() {
-    throw new Error('Las plantillas de tablero en Firebase se habilitarán al activar la integración real.');
+  async applyTemplate({ projectId, workspaceId, templateId, session }) {
+    try {
+      requireConfigure(session, projectId, workspaceId);
+      const template = getKanbanTemplate(templateId);
+      if (!template) throw new Error('Plantilla no encontrada.');
+      const client = await context(session);
+      const board = await loadBoard(client, workspaceId, projectId, true);
+      const columns = normalizeColumns(template.columns).map((column, index) => ({ ...column, order: (index + 1) * 10, active: true, archived: false }));
+      const activeIds = new Set(columns.map(column => column.id));
+      const fallbackColumnId = columns[0].id;
+      const { writeBatch, arrayUnion } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      let fallbackPosition = board.cards.filter(card => activeIds.has(card.columnId)).filter(card => card.columnId === fallbackColumnId).length;
+      const patches = [];
+      board.cards.filter(card => !activeIds.has(card.columnId)).forEach(card => {
+        fallbackPosition += 1;
+        patches.push({ id: card.id, patch: {
+          columnId: fallbackColumnId,
+          position: fallbackPosition * 1000,
+          updatedAt: nowIso(),
+          updatedBy: session.firebaseUid,
+          history: arrayUnion(history('moved', `Movida a ${columns[0].name} al aplicar plantilla`, session))
+        }});
+      });
+      await commitCardPatches(client, cardsRef, patches);
+      const batch = writeBatch(client.db);
+      batch.update(boardRef, {
+        templateId: template.id,
+        columns,
+        updatedAt: nowIso(),
+        updatedBy: session.firebaseUid,
+        version: client.sdk.firestore.increment(1),
+        schemaVersion: 10
+      });
+      addActivityToBatch(client, batch, workspaceId, projectId, activity('kanban.board.template', `Aplicó la plantilla ${template.name}`, session, workspaceId, projectId));
+      await batch.commit();
+      return loadBoard(client, workspaceId, projectId, true);
+    } catch (error) {
+      throw friendlyError(error);
+    }
   },
 
   async resetBoard() {
-    throw new Error('El reinicio del tablero solo está disponible en modo demo.');
+    throw new Error('El reinicio de datos demo solo está disponible al ingresar mediante un código local.');
   },
 
   subscribe(listener) {
@@ -258,14 +770,29 @@ export const FirebaseKanbanAdapter = {
   },
 
   async startRealtime({ projectId, workspaceId, session }) {
-    requireAccess(session, projectId, workspaceId);
-    const r = await runtime(session);
-    unsubscribeSnapshot?.();
-    const { query, onSnapshot } = r.firestore;
-    const { cardsRef } = refs(r, workspaceId, projectId);
-    unsubscribeSnapshot = onSnapshot(query(cardsRef), () => {
-      listeners.forEach(listener => listener({ source: 'firebase', projectId, action: 'snapshot' }));
-    });
-    return unsubscribeSnapshot;
+    try {
+      requireView(session, projectId, workspaceId);
+      const client = await context(session);
+      activeRealtimeStops.forEach(stop => stop?.());
+      activeRealtimeStops = [];
+      const { query, orderBy, onSnapshot } = client.sdk.firestore;
+      const { cardsRef, boardRef } = refs(client, workspaceId, projectId);
+      let readySnapshots = 0;
+      const emit = action => {
+        if (readySnapshots < 2) {
+          readySnapshots += 1;
+          return;
+        }
+        listeners.forEach(listener => listener({ source: 'firebase', projectId, workspaceId, action, at: nowIso() }));
+      };
+      activeRealtimeStops.push(onSnapshot(boardRef, () => emit('board:snapshot'), () => {}));
+      activeRealtimeStops.push(onSnapshot(query(cardsRef, orderBy('position', 'asc')), () => emit('cards:snapshot'), () => {}));
+      return () => {
+        activeRealtimeStops.forEach(stop => stop?.());
+        activeRealtimeStops = [];
+      };
+    } catch (error) {
+      throw friendlyError(error);
+    }
   }
 };

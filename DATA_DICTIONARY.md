@@ -340,3 +340,79 @@ Registra cantidades, workspaces, fecha, ejecutor y origen de cada migración.
 Ruta: `system/schema/userActivations/{activationId}`
 
 Registra UID, correo, rol, workspaces, proyectos, cantidades, fecha y ejecutor de cada activación.
+
+# Ampliación — Entrega 10 Kanban Cloud
+
+## KanbanBoardCloud
+
+Ruta: `workspaces/{workspaceId}/projects/{projectId}/boards/main`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | string | Identificador lógico del tablero |
+| `workspaceId` | string | Workspace padre |
+| `projectId` | string | Proyecto padre |
+| `name` | string | Nombre del tablero |
+| `templateId` | string | Plantilla aplicada o `custom` |
+| `columns` | array<KanbanColumn> | Columnas activas y archivadas |
+| `version` | number | Versión incremental del tablero |
+| `schemaVersion` | number | Versión del esquema, actualmente 10 |
+| `createdAt` | ISO string | Fecha de creación |
+| `updatedAt` | ISO string | Última modificación |
+| `updatedBy` | string | UID del último actor |
+
+## KanbanCardCloud
+
+Ruta: `workspaces/{workspaceId}/projects/{projectId}/boards/main/cards/{cardId}`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | string | ID del documento y tarjeta |
+| `workspaceId` | string | Workspace padre |
+| `projectId` | string | Proyecto padre |
+| `title` | string | Título obligatorio |
+| `description` | string | Descripción |
+| `columnId` | string | Columna actual |
+| `position` | number | Orden dentro de la columna |
+| `priority` | string | `high`, `medium` o `low` |
+| `assigneeId` | string | Persona responsable |
+| `participantIds` | array<string> | Participantes |
+| `labels` | array | Etiquetas |
+| `startDate` | string | Fecha de inicio |
+| `dueDate` | string | Fecha límite |
+| `estimatedHours` | number | Horas estimadas |
+| `actualHours` | number | Horas reales |
+| `visibility` | string | Visibilidad declarada |
+| `checklist` | array | Elementos y estado |
+| `comments` | array | Comentarios embebidos |
+| `history` | array | Historial resumido |
+| `archived` | boolean | Estado de archivo |
+| `schemaVersion` | number | Versión del esquema 10 |
+| `createdAt` | ISO string | Creación |
+| `updatedAt` | ISO string | Actualización |
+| `updatedBy` | string | UID del actor |
+
+## ProjectActivityCloud
+
+Ruta: `workspaces/{workspaceId}/projects/{projectId}/activity/{eventId}`
+
+Registra el tipo de acción, actor, tarjeta, fecha y metadatos. Los eventos se crean y no se modifican.
+
+## UserNotificationCloud
+
+Ruta: `users/{uid}/notifications/{notificationId}`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `recipientUid` | string | Usuario destinatario |
+| `actorUid` | string | Usuario que generó el evento |
+| `type` | string | Tipo de notificación |
+| `title` | string | Título visible |
+| `message` | string | Resumen |
+| `href` | string | Ruta interna de navegación |
+| `workspaceId` | string | Workspace relacionado |
+| `projectId` | string | Proyecto relacionado |
+| `cardId` | string | Tarjeta relacionada |
+| `read` | boolean | Estado de lectura |
+| `readAt` | ISO string | Momento de lectura |
+| `createdAt` | ISO string | Creación |

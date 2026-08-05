@@ -1,27 +1,43 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.5';
-import { MockKanbanAdapter } from '../adapters/mock-kanban-adapter.js?v=9.0.5';
-import { FirebaseKanbanAdapter } from '../adapters/firebase-kanban-adapter.js?v=9.0.5';
+import { API_CONFIG } from '../config/api-config.js?v=10.0.0';
+import { MockKanbanAdapter } from '../adapters/mock-kanban-adapter.js?v=10.0.0';
+import { FirebaseKanbanAdapter } from '../adapters/firebase-kanban-adapter.js?v=10.0.0';
 
-function adapter() {
-  return API_CONFIG.kanbanMode === 'firebase' ? FirebaseKanbanAdapter : MockKanbanAdapter;
+export function kanbanDataSourceForSession(session) {
+  if (API_CONFIG.kanbanMode === 'firebase') return 'firebase';
+  if (API_CONFIG.kanbanMode === 'hybrid') return session?.source === 'firebase' ? 'firebase' : 'mock';
+  return 'mock';
+}
+
+function adapter(options = {}) {
+  return kanbanDataSourceForSession(options?.session) === 'firebase'
+    ? FirebaseKanbanAdapter
+    : MockKanbanAdapter;
 }
 
 export const KanbanService = {
   mode: API_CONFIG.kanbanMode,
-  getBoard: options => adapter().getBoard(options),
-  createCard: options => adapter().createCard(options),
-  updateCard: options => adapter().updateCard(options),
-  moveCard: options => adapter().moveCard(options),
-  archiveCard: options => adapter().archiveCard(options),
-  restoreCard: options => adapter().restoreCard(options),
-  deleteCard: options => adapter().deleteCard(options),
-  addComment: options => adapter().addComment(options),
-  addChecklistItem: options => adapter().addChecklistItem(options),
-  toggleChecklistItem: options => adapter().toggleChecklistItem(options),
-  deleteChecklistItem: options => adapter().deleteChecklistItem(options),
-  updateBoardColumns: options => adapter().updateBoardColumns(options),
-  applyTemplate: options => adapter().applyTemplate(options),
-  resetBoard: options => adapter().resetBoard(options),
-  subscribe: listener => adapter().subscribe(listener),
-  startRealtime: options => adapter().startRealtime ? adapter().startRealtime(options) : Promise.resolve(() => {})
+  dataSource: options => kanbanDataSourceForSession(options?.session),
+  getBoard: options => adapter(options).getBoard(options),
+  createCard: options => adapter(options).createCard(options),
+  updateCard: options => adapter(options).updateCard(options),
+  moveCard: options => adapter(options).moveCard(options),
+  archiveCard: options => adapter(options).archiveCard(options),
+  restoreCard: options => adapter(options).restoreCard(options),
+  deleteCard: options => adapter(options).deleteCard(options),
+  addComment: options => adapter(options).addComment(options),
+  addChecklistItem: options => adapter(options).addChecklistItem(options),
+  toggleChecklistItem: options => adapter(options).toggleChecklistItem(options),
+  deleteChecklistItem: options => adapter(options).deleteChecklistItem(options),
+  updateBoardColumns: options => adapter(options).updateBoardColumns(options),
+  applyTemplate: options => adapter(options).applyTemplate(options),
+  resetBoard: options => adapter(options).resetBoard(options),
+  subscribe(listener) {
+    const stopMock = MockKanbanAdapter.subscribe(listener);
+    const stopFirebase = FirebaseKanbanAdapter.subscribe(listener);
+    return () => {
+      stopMock?.();
+      stopFirebase?.();
+    };
+  },
+  startRealtime: options => adapter(options).startRealtime?.(options) || Promise.resolve(() => {})
 };
