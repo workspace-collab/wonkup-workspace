@@ -15,7 +15,7 @@ globalThis.WONKUP_API_CONFIG = {
   demoCodesVisible: true,
   firebaseSdkVersion: '12.16.0',
   firebase: {
-    apiKey: 'AIzaSyD_hvX5wW1I1YTN2qajNqhCEPiv29yoAkrM',
+    apiKey: 'AIzaSyD_hvX5wW1IYTN2qajNqhCEPiv29yoAkrM',
     authDomain: 'wonkup-workspace.firebaseapp.com',
     projectId: 'wonkup-workspace',
     storageBucket: 'wonkup-workspace.firebasestorage.app',
