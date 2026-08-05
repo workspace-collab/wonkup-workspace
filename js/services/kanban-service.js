@@ -1,6 +1,6 @@
 import { API_CONFIG } from '../config/api-config.js?v=10.0.0';
 import { MockKanbanAdapter } from '../adapters/mock-kanban-adapter.js?v=10.0.0';
-import { FirebaseKanbanAdapter } from '../adapters/firebase-kanban-adapter.js?v=10.0.0';
+import { FirebaseKanbanAdapter } from '../adapters/firebase-kanban-adapter.js?v=10.0.1';
 
 export function kanbanDataSourceForSession(session) {
   if (API_CONFIG.kanbanMode === 'firebase') return 'firebase';

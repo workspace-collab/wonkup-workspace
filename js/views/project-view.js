@@ -12,7 +12,7 @@ import {
 import { icon } from '../utils/icons.js?v=10.0.0';
 import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js?v=10.0.0';
 import { isValidEmail, normalizeText, normalizeUrl } from '../utils/validation.js?v=10.0.0';
-import { renderKanban } from './kanban-view.js?v=10.0.0';
+import { renderKanban } from './kanban-view.js?v=10.0.1';
 import { renderToolkit } from './toolkit-view.js?v=10.0.0';
 import { renderDeliverables } from './deliverables-view.js?v=10.0.0';
 import { openProjectForm } from '../components/project-form.js?v=10.0.0';

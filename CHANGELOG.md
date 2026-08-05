@@ -315,3 +315,12 @@
 - Se añadió una migración Kanban controlada, idempotente y verificable en Cloud Foundation.
 - Se dividieron movimientos y migraciones en lotes pequeños compatibles con las reglas.
 - Se actualizó el esquema y el versionado de caché a `10.0.0`.
+
+## 10.0.1 — Hotfix de notificaciones Kanban
+
+- Se corrigió el envío de comentarios en tarjetas sin responsable ni participantes.
+- Se incorporaron como destinatarios el creador y los comentaristas previos.
+- Se añadió fallback a miembros Firebase activos del proyecto.
+- Se reforzó el vínculo de personas con cuentas Firebase por UID, persona y correo.
+- Se añadieron metadatos de creación a las tarjetas nuevas.
+- Se actualizó la cadena de caché del Kanban y la campana a 10.0.1.

@@ -1,0 +1,13 @@
+CHANGELOG.md
+HOTFIX_10_0_1_ARCHIVOS.txt
+HOTFIX_10_0_1_GUIA.md
+TEST_RESULTS_10_0_1.md
+index.html
+js/adapters/firebase-kanban-adapter.js
+js/app.js
+js/bootstrap.js
+js/components/app-shell.js
+js/config/runtime-config.js
+js/services/kanban-service.js
+js/views/kanban-view.js
+js/views/project-view.js

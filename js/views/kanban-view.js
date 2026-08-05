@@ -1,4 +1,4 @@
-import { KanbanService } from '../services/kanban-service.js?v=10.0.0';
+import { KanbanService } from '../services/kanban-service.js?v=10.0.1';
 import { ProjectService } from '../services/project-service.js?v=10.0.0';
 import { canCommentKanban, canConfigureKanban, canDeleteKanbanCard, canEditKanban } from '../utils/permissions.js?v=10.0.0';
 import { KANBAN_TONES, kanbanTemplates } from '../../data/kanban-templates.js?v=10.0.0';

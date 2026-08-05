@@ -1,7 +1,7 @@
 import { icon } from '../utils/icons.js?v=10.0.0';
 import { DemoService } from '../services/demo-service.js?v=10.0.0';
 import { AccessService } from '../services/access-service.js?v=10.0.0';
-import { NotificationService } from '../services/notification-service.js?v=10.0.0';
+import { NotificationService } from '../services/notification-service.js?v=10.0.1';
 import { GlobalSearchService } from '../services/global-search-service.js?v=10.0.0';
 import { getState, setState, clearSession } from '../state/store.js?v=10.0.0';
 import { showToast } from './toast.js?v=10.0.0';

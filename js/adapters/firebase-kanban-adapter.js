@@ -177,36 +177,57 @@ async function loadDirectory(client, workspaceId, projectId, { force = false } =
   ]);
   const map = new Map();
   const uidByPersonId = new Map();
+  const peopleByEmail = new Map();
+  const memberUids = new Set();
   peopleSnapshot.docs.forEach(item => {
     const person = { id: item.id, ...item.data() };
     map.set(person.id, person);
+    const email = String(person.email || '').trim().toLowerCase();
+    if (email) peopleByEmail.set(email, person);
     if (person.authUid) {
       map.set(person.authUid, person);
       uidByPersonId.set(person.id, person.authUid);
+      memberUids.add(person.authUid);
     }
   });
   for (const item of membersSnapshot.docs) {
     const member = { id: item.id, ...item.data() };
-    const person = map.get(member.userId) || map.get(member.authUid) || null;
-    if (person) {
-      map.set(member.id, person);
-      if (member.authUid) map.set(member.authUid, person);
-    }
-    if (member.userId && member.authUid) uidByPersonId.set(member.userId, member.authUid);
-    if (!person && member.authUid) {
+    const authUid = String(
+      member.authUid || (item.id && item.id !== member.userId ? item.id : '') || ''
+    ).trim();
+    if (authUid) memberUids.add(authUid);
+    let person = map.get(member.userId) || map.get(authUid) || null;
+    let profile = null;
+    if (authUid) {
       try {
-        const profileSnapshot = await getDoc(doc(client.db, 'users', member.authUid));
-        if (profileSnapshot.exists()) {
-          const profile = { id: member.userId || member.authUid, authUid: member.authUid, ...profileSnapshot.data() };
-          map.set(profile.id, profile);
-          map.set(member.authUid, profile);
-        }
+        const profileSnapshot = await getDoc(doc(client.db, 'users', authUid));
+        if (profileSnapshot.exists()) profile = { authUid, ...profileSnapshot.data() };
       } catch {
-        // Missing optional directory information must not block the board.
+        // Missing optional profile information must not block the board.
       }
     }
+    if (!person && profile?.personId) person = map.get(profile.personId) || null;
+    if (!person && profile?.email) person = peopleByEmail.get(String(profile.email).trim().toLowerCase()) || null;
+    if (person) {
+      map.set(member.id, person);
+      if (authUid) {
+        map.set(authUid, person);
+        uidByPersonId.set(person.id, authUid);
+      }
+      if (member.userId && authUid) uidByPersonId.set(member.userId, authUid);
+    } else if (profile && authUid) {
+      const fallback = {
+        id: member.userId || profile.personId || authUid,
+        authUid,
+        ...profile
+      };
+      map.set(fallback.id, fallback);
+      map.set(authUid, fallback);
+      if (member.userId) uidByPersonId.set(member.userId, authUid);
+      if (profile.personId) uidByPersonId.set(profile.personId, authUid);
+    }
   }
-  const value = { map, uidByPersonId };
+  const value = { map, uidByPersonId, memberUids };
   directoryCache.set(cacheKey, value);
   return value;
 }
@@ -289,16 +310,63 @@ function addActivityToBatch(client, batch, workspaceId, projectId, entry) {
   batch.set(doc(activityRef, entry.id), entry);
 }
 
-async function recipientUids(client, workspaceId, projectId, personIds = []) {
-  const directory = await loadDirectory(client, workspaceId, projectId, { force: true });
-  return [...new Set(personIds.map(id => directory.uidByPersonId.get(id) || directory.map.get(id)?.authUid || '').filter(Boolean))];
+export function buildKanbanNotificationAudience(card = {}, { includeCreator = false, includeCommenters = false, personIds = [], directUids = [] } = {}) {
+  const people = new Set((personIds || []).map(String).filter(Boolean));
+  const uids = new Set((directUids || []).map(String).filter(Boolean));
+  if (includeCreator) {
+    if (card.createdById) people.add(String(card.createdById));
+    if (card.createdByUid) uids.add(String(card.createdByUid));
+    const created = (card.history || []).find(item => item.type === 'created') || (card.history || [])[0];
+    if (created?.actorId) people.add(String(created.actorId));
+    if (created?.actorUid) uids.add(String(created.actorUid));
+  }
+  if (includeCommenters) {
+    (card.comments || []).forEach(comment => {
+      if (comment.authorId) people.add(String(comment.authorId));
+      if (comment.actorUid) uids.add(String(comment.actorUid));
+    });
+  }
+  return { personIds: [...people], directUids: [...uids] };
 }
 
-async function createNotifications(client, { workspaceId, projectId, card, session, type, title, message, personIds = [] }) {
+async function recipientUids(client, workspaceId, projectId, personIds = [], directUids = [], fallbackToProjectMembers = false) {
+  const directory = await loadDirectory(client, workspaceId, projectId, { force: true });
+  const recipients = new Set((directUids || []).map(String).filter(Boolean));
+  (personIds || []).forEach(id => {
+    const value = String(id || '');
+    const resolved = directory.uidByPersonId.get(value) || directory.map.get(value)?.authUid || '';
+    if (resolved) recipients.add(resolved);
+  });
+  if (!recipients.size && fallbackToProjectMembers) {
+    directory.memberUids.forEach(uidValue => recipients.add(uidValue));
+  }
+  return [...recipients];
+}
+
+async function createNotifications(client, {
+  workspaceId,
+  projectId,
+  card,
+  session,
+  type,
+  title,
+  message,
+  personIds = [],
+  directUids = [],
+  fallbackToProjectMembers = false
+}) {
   const actorUid = session?.firebaseUid || '';
-  const recipients = (await recipientUids(client, workspaceId, projectId, personIds)).filter(uidValue => uidValue !== actorUid).slice(0, 12);
+  const recipients = (await recipientUids(
+    client,
+    workspaceId,
+    projectId,
+    personIds,
+    directUids,
+    fallbackToProjectMembers
+  )).filter(uidValue => uidValue !== actorUid).slice(0, 12);
+  if (!recipients.length) return { attempted: 0, delivered: 0 };
   const { doc, collection, setDoc } = client.sdk.firestore;
-  await Promise.allSettled(recipients.map(recipientUid => {
+  const results = await Promise.allSettled(recipients.map(recipientUid => {
     const ref = doc(collection(client.db, 'users', recipientUid, 'notifications'));
     return setDoc(ref, {
       id: ref.id,
@@ -317,6 +385,9 @@ async function createNotifications(client, { workspaceId, projectId, card, sessi
       schemaVersion: 10
     });
   }));
+  const rejected = results.filter(result => result.status === 'rejected');
+  if (rejected.length) console.warn('WonkUp notification delivery failed', rejected.map(result => result.reason));
+  return { attempted: recipients.length, delivered: recipients.length - rejected.length };
 }
 
 async function updateBoardTouch(client, batch, boardRef, session) {
@@ -407,6 +478,8 @@ export const FirebaseKanbanAdapter = {
         restoredAt: '',
         restoredBy: '',
         schemaVersion: 10,
+        createdById: session.user.id || session.firebaseUid,
+        createdByUid: session.firebaseUid,
         createdAt: timestamp,
         updatedAt: timestamp,
         updatedBy: session.firebaseUid
@@ -470,12 +543,16 @@ export const FirebaseKanbanAdapter = {
       const newlyAssigned = cleanInput.assigneeId && cleanInput.assigneeId !== current.assigneeId;
       const dueChanged = cleanInput.dueDate && cleanInput.dueDate !== current.dueDate;
       if (newlyAssigned || dueChanged) {
+        const audience = buildKanbanNotificationAudience({ ...current, ...cleanInput }, {
+          includeCreator: dueChanged,
+          personIds: [cleanInput.assigneeId, ...cleanInput.participantIds]
+        });
         await createNotifications(client, {
           workspaceId, projectId, card: { ...current, ...cleanInput }, session,
           type: newlyAssigned ? 'task_assigned' : 'due_date_changed',
           title: newlyAssigned ? 'Tarea asignada' : 'Fecha de tarea actualizada',
           message: cleanInput.title,
-          personIds: [cleanInput.assigneeId, ...cleanInput.participantIds]
+          ...audience
         });
       }
       return (await loadBoard(client, workspaceId, projectId, true)).cards.find(item => item.id === cardId);
@@ -528,12 +605,16 @@ export const FirebaseKanbanAdapter = {
       const movedCard = { ...moving, columnId: toColumnId, position: (safeIndex + 1) * 1000 };
       const entry = activity('kanban.card.moved', `Movió “${moving.title}” a ${targetColumn.name}`, session, workspaceId, projectId, movedCard, { fromColumnId, toColumnId });
       await commitBoardActivity(client, workspaceId, projectId, boardRef, session, entry);
+      const moveAudience = buildKanbanNotificationAudience(movedCard, {
+        includeCreator: true,
+        personIds: [moving.assigneeId, ...(moving.participantIds || [])]
+      });
       await createNotifications(client, {
         workspaceId, projectId, card: movedCard, session,
         type: 'task_moved',
         title: `Tarea movida a ${targetColumn.name}`,
         message: moving.title,
-        personIds: [moving.assigneeId, ...(moving.participantIds || [])]
+        ...moveAudience
       });
       return loadBoard(client, workspaceId, projectId, true);
     } catch (error) {
@@ -651,12 +732,18 @@ export const FirebaseKanbanAdapter = {
         await updateBoardTouch(client, batch, boardRef, session);
       }
       await batch.commit();
+      const commentAudience = buildKanbanNotificationAudience(card, {
+        includeCreator: true,
+        includeCommenters: true,
+        personIds: [card.assigneeId, ...(card.participantIds || [])]
+      });
       await createNotifications(client, {
         workspaceId, projectId, card, session,
         type: 'task_comment',
         title: 'Nuevo comentario en una tarea',
         message: card.title,
-        personIds: [card.assigneeId, ...(card.participantIds || [])]
+        fallbackToProjectMembers: true,
+        ...commentAudience
       });
       return (await loadBoard(client, workspaceId, projectId, false)).cards.find(item => item.id === cardId);
     } catch (error) {

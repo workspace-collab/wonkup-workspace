@@ -2,7 +2,7 @@
 // Entrega 10: Firebase real, Kanban hibrido y colaboracion en tiempo real.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
-  release: '10.0.0',
+  release: '10.0.1',
   authMode: 'hybrid',
   projectMode: 'hybrid',
   kanbanMode: 'hybrid',
