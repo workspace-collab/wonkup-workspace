@@ -1,9 +1,9 @@
-import { ProjectService } from '../services/project-service.js?v=11.0.0';
-import { DeliverableService } from '../services/deliverable-service.js?v=11.0.0';
-import { renderDeliverables } from './deliverables-view.js?v=11.0.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=11.0.0';
-import { icon } from '../utils/icons.js?v=11.0.0';
-import { isInternalUser } from '../utils/permissions.js?v=11.0.0';
+import { ProjectService } from '../services/project-service.js?v=11.0.1';
+import { DeliverableService } from '../services/deliverable-service.js?v=11.0.1';
+import { renderDeliverables } from './deliverables-view.js?v=11.0.1';
+import { escapeHtml, formatDate } from '../utils/format.js?v=11.0.1';
+import { icon } from '../utils/icons.js?v=11.0.1';
+import { isInternalUser } from '../utils/permissions.js?v=11.0.1';
 
 const STATUS_LABELS = Object.freeze({
   draft: 'Borrador', in_review: 'En revisión', changes_requested: 'Cambios solicitados', approved: 'Aprobado'

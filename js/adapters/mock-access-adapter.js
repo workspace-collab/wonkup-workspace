@@ -1,5 +1,5 @@
-import { demoAccessGrants } from '../../data/demo-access.js?v=11.0.0';
-import { demoUsers } from '../../data/demo-users.js?v=11.0.0';
+import { demoAccessGrants } from '../../data/demo-access.js?v=11.0.1';
+import { demoUsers } from '../../data/demo-users.js?v=11.0.1';
 
 const wait = (milliseconds = 280) => new Promise(resolve => setTimeout(resolve, milliseconds));
 

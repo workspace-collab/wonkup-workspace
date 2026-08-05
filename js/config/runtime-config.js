@@ -2,7 +2,7 @@
 // Entrega 11: Firebase real, Kanban y entregables colaborativos en tiempo real.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
-  release: '11.0.0',
+  release: '11.0.1',
   authMode: 'hybrid',
   projectMode: 'hybrid',
   kanbanMode: 'hybrid',

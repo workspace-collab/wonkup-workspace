@@ -9,7 +9,7 @@ La Entrega 11 parte de la versión estable 10.0.1 y conserva el singleton Fireba
 ## Configuración activa
 
 ```javascript
-release: '11.0.0',
+release: '11.0.1',
 authMode: 'hybrid',
 projectMode: 'hybrid',
 kanbanMode: 'hybrid',

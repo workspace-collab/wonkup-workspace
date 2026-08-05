@@ -334,12 +334,18 @@ service cloud.firestore {
         }
 
         match /deliverables/{deliverableId} {
-          allow read: if canReadDeliverables(workspaceId, projectId)
-            && (canManageDeliverables(workspaceId, projectId) || resource.data.visibility == 'client');
-          allow create: if canManageDeliverables(workspaceId, projectId)
+          // Internal project members can read every deliverable. Reviewer, client and guest
+          // roles can only read records explicitly published for the client portal.
+          allow read: if isInternalProjectUser(workspaceId, projectId)
+            || (
+              canReadProject(workspaceId, projectId)
+              && projectRole(workspaceId, projectId) in ['reviewer', 'client', 'guest']
+              && resource.data.visibility == 'client'
+            );
+          allow create: if isInternalProjectUser(workspaceId, projectId)
             && validDeliverable(workspaceId, projectId, deliverableId);
           allow update: if validDeliverable(workspaceId, projectId, deliverableId) && (
-            canManageDeliverables(workspaceId, projectId)
+            isInternalProjectUser(workspaceId, projectId)
             || (
               canReviewDeliverables(workspaceId, projectId)
               && resource.data.visibility == 'client'

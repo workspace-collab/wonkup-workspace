@@ -1,5 +1,5 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=11.0.0';
-import { ROLE_LABELS } from '../utils/permissions.js?v=11.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=11.0.1';
+import { ROLE_LABELS } from '../utils/permissions.js?v=11.0.1';
 
 function sessionExpiry() {
   return new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString();
@@ -46,6 +46,32 @@ async function getWorkspaceContext(client, profile, uid) {
   return { workspaces, workspaceRoles };
 }
 
+async function getProjectRoleContext(client, profile, uid, workspaceIds, projectIds) {
+  const projectRoles = { ...(profile.projectRoles || {}) };
+  const projectWorkspaceIds = {};
+  const { doc, getDoc } = client.sdk.firestore;
+
+  for (const projectId of projectIds) {
+    for (const workspaceId of workspaceIds) {
+      try {
+        const membershipSnapshot = await getDoc(
+          doc(client.db, 'workspaces', workspaceId, 'projects', projectId, 'members', uid)
+        );
+        if (!membershipSnapshot.exists()) continue;
+        const membership = membershipSnapshot.data();
+        if (membership.status !== 'active') continue;
+        projectRoles[projectId] = membership.role || projectRoles[projectId] || profile.role;
+        projectWorkspaceIds[projectId] = workspaceId;
+        break;
+      } catch {
+        // A missing or unauthorized path must not block the remaining assigned projects.
+      }
+    }
+  }
+
+  return { projectRoles, projectWorkspaceIds };
+}
+
 async function createSession(user) {
   const client = await getFirebaseClient();
   const profile = await getProfile(client, user.uid);
@@ -65,6 +91,9 @@ async function createSession(user) {
   const projectIds = role === 'superadmin'
     ? ['*']
     : normalizeScope(profile.projectIds).filter(id => id !== '*');
+  const projectRoleContext = role === 'superadmin'
+    ? { projectRoles: { ...(profile.projectRoles || {}) }, projectWorkspaceIds: {} }
+    : await getProjectRoleContext(client, profile, user.uid, workspaceIds, projectIds);
   globalThis.__wonkupCloudWorkspaces = workspaces;
 
   return {
@@ -89,7 +118,8 @@ async function createSession(user) {
       projectIds
     },
     workspaceRoles: { ...(profile.workspaceRoles || {}), ...workspaceContext.workspaceRoles },
-    projectRoles: { ...(profile.projectRoles || {}) },
+    projectRoles: projectRoleContext.projectRoles,
+    projectWorkspaceIds: projectRoleContext.projectWorkspaceIds,
     workspaces
   };
 }

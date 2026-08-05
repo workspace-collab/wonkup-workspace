@@ -1,4 +1,4 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=11.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=11.0.1';
 import {
   canAccessProject,
   canCommentDeliverable,
@@ -6,7 +6,7 @@ import {
   canReviewDeliverable,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js?v=11.0.0';
+} from '../utils/permissions.js?v=11.0.1';
 
 const listeners = new Set();
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -71,6 +71,17 @@ function refs(client, workspaceId, projectId, deliverableId = '') {
     deliverableRef: deliverableId ? doc(deliverablesRef, deliverableId) : null,
     activityRef: collection(projectRef, 'activity')
   };
+}
+
+function clientVisibleQuery(client, reference) {
+  return client.sdk.firestore.query(
+    reference,
+    client.sdk.firestore.where('visibility', '==', 'client')
+  );
+}
+
+function isPermissionDenied(error) {
+  return String(error?.code || '').includes('permission-denied');
 }
 
 function actor(session) {
@@ -221,12 +232,19 @@ export const FirebaseDeliverableAdapter = {
     try {
       requireView(session, projectId, workspaceId);
       const client = await context(session);
-      const { getDocs, query, where } = client.sdk.firestore;
+      const { getDocs } = client.sdk.firestore;
       const reference = refs(client, workspaceId, projectId).deliverablesRef;
-      const source = canManageDeliverables(session, projectId, workspaceId)
-        ? reference
-        : query(reference, where('visibility', '==', 'client'));
-      const snapshot = await getDocs(source);
+      const managesDeliverables = canManageDeliverables(session, projectId, workspaceId);
+      const source = managesDeliverables ? reference : clientVisibleQuery(client, reference);
+      let snapshot;
+      try {
+        snapshot = await getDocs(source);
+      } catch (error) {
+        // A stale project-role map can make the frontend request a broader query than
+        // Firestore allows. Retry safely with client-visible records instead of blanking the view.
+        if (!managesDeliverables || !isPermissionDenied(error)) throw error;
+        snapshot = await getDocs(clientVisibleQuery(client, reference));
+      }
       return snapshot.docs
         .map(item => normalizeDeliverable(item.data(), item.id))
         .filter(item => includeArchived || !item.archived)
@@ -488,20 +506,32 @@ export const FirebaseDeliverableAdapter = {
       requireView(session, projectId, workspaceId);
       const client = await context(session);
       let first = true;
+      let activeStop = () => {};
       const reference = refs(client, workspaceId, projectId).deliverablesRef;
-      const source = canManageDeliverables(session, projectId, workspaceId)
-        ? reference
-        : client.sdk.firestore.query(reference, client.sdk.firestore.where('visibility', '==', 'client'));
-      const stop = client.sdk.firestore.onSnapshot(
-        source,
-        () => {
-          if (first) { first = false; return; }
-          emit({ type: 'realtime_sync', workspaceId, projectId });
-          onChange?.();
-        },
-        () => {}
+      const managesDeliverables = canManageDeliverables(session, projectId, workspaceId);
+
+      const attach = (source, allowFallback) => {
+        activeStop = client.sdk.firestore.onSnapshot(
+          source,
+          () => {
+            if (first) { first = false; return; }
+            emit({ type: 'realtime_sync', workspaceId, projectId });
+            onChange?.();
+          },
+          error => {
+            if (!allowFallback || !isPermissionDenied(error)) return;
+            activeStop?.();
+            first = true;
+            attach(clientVisibleQuery(client, reference), false);
+          }
+        );
+      };
+
+      attach(
+        managesDeliverables ? reference : clientVisibleQuery(client, reference),
+        managesDeliverables
       );
-      return stop;
+      return () => activeStop?.();
     } catch (error) {
       throw friendlyError(error);
     }

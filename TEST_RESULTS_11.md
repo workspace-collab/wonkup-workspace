@@ -31,7 +31,7 @@ Cobertura relevante:
 ## Sintaxis y estructura
 
 - Todos los archivos JavaScript superaron `node --check`.
-- Importaciones de módulos versionadas en `11.0.0`.
+- Importaciones de módulos versionadas en `11.0.1`.
 - No quedan referencias JavaScript a versiones de caché 10.x.
 - Reglas Firestore balanceadas estructuralmente.
 - CSS balanceado estructuralmente.

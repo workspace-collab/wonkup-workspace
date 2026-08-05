@@ -32,7 +32,7 @@ storage_mock = '''() => {
   Object.defineProperty(window, 'sessionStorage', { value: makeStorage(), configurable: true });
   if (!window.BroadcastChannel) window.BroadcastChannel = class { addEventListener(){} postMessage(){} close(){} };
   if (!window.matchMedia) window.matchMedia = () => ({ matches:false, addEventListener(){}, removeEventListener(){} });
-  window.WONKUP_API_CONFIG = { mode:'mock', release:'11.0.0', authMode:'mock', projectMode:'mock', kanbanMode:'mock', canvasMode:'mock', deliverableMode:'hybrid', financeMode:'mock', reportMode:'aggregate', foundationMode:'diagnostic', appsScriptUrl:'', demoCodesVisible:true, firebaseSdkVersion:'12.16.0', firebase:{} };
+  window.WONKUP_API_CONFIG = { mode:'mock', release:'11.0.1', authMode:'mock', projectMode:'mock', kanbanMode:'mock', canvasMode:'mock', deliverableMode:'hybrid', financeMode:'mock', reportMode:'aggregate', foundationMode:'diagnostic', appsScriptUrl:'', demoCodesVisible:true, firebaseSdkVersion:'12.16.0', firebase:{} };
 }'''
 
 with sync_playwright() as p:

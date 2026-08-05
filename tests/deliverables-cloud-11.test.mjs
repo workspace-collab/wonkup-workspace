@@ -66,3 +66,40 @@ test('Deliverable view passes workspace and project context to cloud operations'
   assert.match(view, /requestReview\(\{ deliverableId, workspaceId: item\.workspaceId, projectId: item\.projectId/);
   assert.match(view, /startRealtime/);
 });
+
+test('Deliverable permissions use the project-specific role instead of the global profile role', () => {
+  const permissions = read('js/utils/permissions.js');
+  const access = read('js/adapters/firebase-access-adapter.js');
+  assert.match(permissions, /INTERNAL_ROLES\.has\(getProjectRole\(session, projectId, workspaceId\)\)/);
+  assert.match(permissions, /const role = getProjectRole\(session, projectId, workspaceId\)/);
+  assert.match(access, /getProjectRoleContext/);
+  assert.match(access, /membershipSnapshot\.data\(\)\.role|membership\.role/);
+});
+
+test('Deliverable reads prioritize internal members and retry a safe client-visible query', () => {
+  const adapter = read('js/adapters/firebase-deliverable-adapter.js');
+  const rules = read('firebase/firestore.rules');
+  assert.match(adapter, /clientVisibleQuery/);
+  assert.match(adapter, /isPermissionDenied/);
+  assert.match(adapter, /Retry safely with client-visible records/);
+  assert.match(rules, /allow read: if isInternalProjectUser\(workspaceId, projectId\)/);
+  assert.match(rules, /projectRole\(workspaceId, projectId\) in \['reviewer', 'client', 'guest'\]/);
+});
+
+test('Deliverable management follows the project membership role', async () => {
+  const permissionsModule = await import(`../js/utils/permissions.js?roles=${Date.now()}`);
+  const base = {
+    role: 'collaborator',
+    scopes: { workspaceIds: ['w-wonkup'], projectIds: ['p-wonkup-workspace'] },
+    workspaceRoles: { 'w-wonkup': 'collaborator' }
+  };
+  assert.equal(permissionsModule.canManageDeliverables({
+    ...base,
+    projectRoles: { 'p-wonkup-workspace': 'reviewer' }
+  }, 'p-wonkup-workspace', 'w-wonkup'), false);
+  assert.equal(permissionsModule.canManageDeliverables({
+    ...base,
+    role: 'reviewer',
+    projectRoles: { 'p-wonkup-workspace': 'collaborator' }
+  }, 'p-wonkup-workspace', 'w-wonkup'), true);
+});

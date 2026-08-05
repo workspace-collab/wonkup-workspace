@@ -189,16 +189,19 @@ export function canViewDeliverables(session, projectId, workspaceId) {
 }
 
 export function canManageDeliverables(session, projectId, workspaceId) {
-  return Boolean(session && INTERNAL_ROLES.has(session.role) && canAccessProject(session, projectId, workspaceId));
+  if (!session || !canAccessProject(session, projectId, workspaceId)) return false;
+  return INTERNAL_ROLES.has(getProjectRole(session, projectId, workspaceId));
 }
 
 export function canReviewDeliverable(session, projectId, workspaceId) {
   if (!session || !canAccessProject(session, projectId, workspaceId)) return false;
-  return session.role === 'client' || MANAGEMENT_ROLES.has(session.role);
+  const role = getProjectRole(session, projectId, workspaceId);
+  return role === 'client' || MANAGEMENT_ROLES.has(role);
 }
 
 export function canCommentDeliverable(session, projectId, workspaceId) {
-  return Boolean(session && session.role !== 'guest' && canAccessProject(session, projectId, workspaceId));
+  if (!session || !canAccessProject(session, projectId, workspaceId)) return false;
+  return getProjectRole(session, projectId, workspaceId) !== 'guest';
 }
 
 export function isReadOnlyRole(session) {

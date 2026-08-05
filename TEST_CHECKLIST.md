@@ -553,7 +553,7 @@ Validar:
 ### Despliegue
 
 - [ ] Paquete de cambios subido directamente a la raíz.
-- [ ] GitHub Pages carga recursos `11.0.0`.
+- [ ] GitHub Pages carga recursos `11.0.1`.
 - [ ] Reglas `firebase/firestore.rules` publicadas manualmente.
 - [ ] Cuenta superadministradora inicia sesión.
 

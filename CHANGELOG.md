@@ -1,3 +1,11 @@
+## 11.0.1 — Hotfix de permisos y sincronización de entregables
+
+- Los permisos usan el rol específico de cada proyecto.
+- La sesión Firebase actualiza `projectRoles` desde las membresías reales.
+- Las reglas distinguen miembros internos de revisor, cliente e invitado.
+- Se agregó un reintento seguro para entregables visibles ante sesiones obsoletas.
+- Caché actualizada a 11.0.1.
+
 # Changelog
 
 ## Entrega 11 — Entregables y aprobaciones en Firestore
@@ -12,7 +20,7 @@
 - Se publicaron reglas específicas por rol, visibilidad y campos modificables.
 - Se incorporó Migración 11.1 con respaldo, simulación, escritura idempotente y verificación.
 - Se actualizó ReportService para agregar entregables proyecto por proyecto.
-- Se versionaron los módulos y recursos locales en `11.0.0`.
+- Se versionaron los módulos y recursos locales en `11.0.1`.
 - Canvas y Finanzas permanecen en modo local.
 
 ## Entrega 10 — Cierre y Hotfix 10.0.1
