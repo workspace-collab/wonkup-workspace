@@ -416,3 +416,39 @@ Ruta: `users/{uid}/notifications/{notificationId}`
 | `read` | boolean | Estado de lectura |
 | `readAt` | ISO string | Momento de lectura |
 | `createdAt` | ISO string | Creación |
+
+## Entrega 11 — Deliverable Cloud Document
+
+Ruta:
+
+```text
+workspaces/{workspaceId}/projects/{projectId}/deliverables/{deliverableId}
+```
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | string | Identificador determinista del entregable |
+| workspaceId | string | Workspace propietario |
+| projectId | string | Proyecto propietario |
+| title | string | Nombre del entregable |
+| type | string | Tipo de recurso |
+| description | string | Alcance o descripción |
+| status | enum | `draft`, `in_review`, `changes_requested`, `approved` |
+| visibility | enum | `internal` o `client` |
+| priority | string | Prioridad operativa |
+| dueDate | string | Fecha prevista |
+| ownerId | string | Responsable interno |
+| ownerName | string | Nombre visible del responsable |
+| archived | boolean | Archivo lógico |
+| checklist | array | Criterios de aceptación |
+| versions | array | Versiones publicadas mediante enlaces |
+| comments | array | Conversación interna/cliente |
+| history | array | Trazabilidad del flujo |
+| schemaVersion | int | Versión del esquema, actualmente 11 |
+| createdAt | ISO 8601 | Fecha de creación |
+| updatedAt | ISO 8601 | Fecha de actualización |
+
+### Fuente de verdad
+
+- Cuenta Firebase: Cloud Firestore.
+- Código demo: `localStorage` mediante `MockDeliverableAdapter`.

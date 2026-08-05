@@ -24,9 +24,10 @@ test('Firebase client reuses an existing Firestore instance', () => {
   assert.match(client, /already been called with different options/);
 });
 
-test('all JavaScript module imports use cache version 10.0.0', () => {
+test('all JavaScript module imports use cache version 11.0.0', () => {
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
-    assert.doesNotMatch(source, /\?v=9\.0\.[0-3]/, file);
+    const versions = [...source.matchAll(/\?v=(\d+\.\d+\.\d+)/g)].map(match => match[1]);
+    versions.forEach(version => assert.equal(version, '11.0.0', `${file} uses ${version}`));
   }
 });

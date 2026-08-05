@@ -1,13 +1,13 @@
 // Configuracion publica del frontend. No coloques claves privadas ni secretos aqui.
-// Entrega 10: Firebase real, Kanban hibrido y colaboracion en tiempo real.
+// Entrega 11: Firebase real, Kanban y entregables colaborativos en tiempo real.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
-  release: '10.0.1',
+  release: '11.0.0',
   authMode: 'hybrid',
   projectMode: 'hybrid',
   kanbanMode: 'hybrid',
   canvasMode: 'mock',
-  deliverableMode: 'mock',
+  deliverableMode: 'hybrid',
   financeMode: 'mock',
   reportMode: 'aggregate',
   foundationMode: 'connected',

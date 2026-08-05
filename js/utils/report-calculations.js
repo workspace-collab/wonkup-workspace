@@ -1,4 +1,4 @@
-import { calculateFinanceMetrics, buildFinanceAlerts, getEffectiveIncomeStatus } from './finance-calculations.js?v=10.0.0';
+import { calculateFinanceMetrics, buildFinanceAlerts, getEffectiveIncomeStatus } from './finance-calculations.js?v=11.0.0';
 
 const DAY_MS = 86400000;
 

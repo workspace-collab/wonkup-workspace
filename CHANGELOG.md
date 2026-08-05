@@ -1,5 +1,26 @@
 # Changelog
 
+## Entrega 11 — Entregables y aprobaciones en Firestore
+
+- Se activó `deliverableMode: hybrid`.
+- Se incorporó `FirebaseDeliverableAdapter` reutilizando el singleton Firebase.
+- Los entregables de cuentas reales se almacenan por proyecto en Cloud Firestore.
+- Se añadieron versiones, checklist, comentarios, revisión, aprobación, solicitud de cambios, archivo y restauración en la nube.
+- El Portal del Cliente utiliza la misma fuente Firestore y respeta la visibilidad del entregable.
+- Se incorporó sincronización en tiempo real con `onSnapshot`.
+- Se agregaron notificaciones para revisión, comentarios, aprobación y cambios solicitados.
+- Se publicaron reglas específicas por rol, visibilidad y campos modificables.
+- Se incorporó Migración 11.1 con respaldo, simulación, escritura idempotente y verificación.
+- Se actualizó ReportService para agregar entregables proyecto por proyecto.
+- Se versionaron los módulos y recursos locales en `11.0.0`.
+- Canvas y Finanzas permanecen en modo local.
+
+## Entrega 10 — Cierre y Hotfix 10.0.1
+
+- Kanban Cloud validado entre cuentas y navegadores reales.
+- Se corrigieron destinatarios de notificaciones para tarjetas sin responsable.
+- Entrega 10 aprobada.
+
 ## Entrega 9 — Cloud Foundation
 
 - Se incorporó Firebase Authentication con acceso por correo y contraseña.

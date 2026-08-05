@@ -1,9 +1,9 @@
-import { ProjectService } from './project-service.js?v=10.0.0';
-import { FinanceService } from './finance-service.js?v=10.0.0';
-import { DeliverableService } from './deliverable-service.js?v=10.0.0';
-import { DemoService } from './demo-service.js?v=10.0.0';
-import { buildPortfolioReport, resolveReportPeriod } from '../utils/report-calculations.js?v=10.0.0';
-import { canAccessProjectFinance, isInternalUser } from '../utils/permissions.js?v=10.0.0';
+import { ProjectService } from './project-service.js?v=11.0.0';
+import { FinanceService } from './finance-service.js?v=11.0.0';
+import { DeliverableService } from './deliverable-service.js?v=11.0.0';
+import { DemoService } from './demo-service.js?v=11.0.0';
+import { buildPortfolioReport, resolveReportPeriod } from '../utils/report-calculations.js?v=11.0.0';
+import { canAccessProjectFinance, isInternalUser } from '../utils/permissions.js?v=11.0.0';
 
 async function loadFinance(projects, session) {
   const results = await Promise.all(projects.map(async project => {
@@ -23,10 +23,16 @@ export const ReportService = {
   async getPortfolioReport({ workspaceId = 'all', session, period = '90d', status = 'all' } = {}) {
     if (!isInternalUser(session)) throw new Error('Tu rol no permite consultar reportes internos.');
     const projects = await ProjectService.listProjects({ workspaceId, session, includeArchived: false });
-    const [financeRecords, deliverables] = await Promise.all([
+    const [financeRecords, deliverableGroups] = await Promise.all([
       loadFinance(projects, session),
-      DeliverableService.listDeliverables({ workspaceId, session, includeArchived: false })
+      Promise.all(projects.map(project => DeliverableService.listDeliverables({
+        workspaceId: project.workspaceId,
+        projectId: project.id,
+        session,
+        includeArchived: false
+      }).catch(() => [])))
     ]);
+    const deliverables = deliverableGroups.flat();
     return buildPortfolioReport({
       projects,
       financeRecords,

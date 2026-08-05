@@ -1,4 +1,4 @@
-import { clamp } from './format.js?v=10.0.0';
+import { clamp } from './format.js?v=11.0.0';
 
 export function normalizeText(value, maxLength = 500) {
   return String(value ?? '').trim().slice(0, maxLength);

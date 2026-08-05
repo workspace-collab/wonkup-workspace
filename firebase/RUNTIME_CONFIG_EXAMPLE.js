@@ -2,11 +2,12 @@
 // No agregues claves privadas, cuentas de servicio ni claves de Gemini.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
+  release: '11.0.0',
   authMode: 'hybrid',
   projectMode: 'hybrid',
-  kanbanMode: 'mock',
+  kanbanMode: 'hybrid',
   canvasMode: 'mock',
-  deliverableMode: 'mock',
+  deliverableMode: 'hybrid',
   financeMode: 'mock',
   reportMode: 'aggregate',
   foundationMode: 'connected',

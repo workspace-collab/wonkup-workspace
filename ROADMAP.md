@@ -13,8 +13,8 @@
 | Entrega 8 — Dashboard ejecutivo y reportes | Aprobada |
 | Ajuste 8.1 — Altas rápidas | Aprobado |
 | Entrega 9 — Cloud Foundation | Aprobada |
-| Entrega 10 — Kanban colaborativo en Firestore | Código listo; validación real pendiente |
-| Entrega 11 — Entregables y portal del cliente cloud | Pendiente |
+| Entrega 10 — Kanban colaborativo en Firestore | Aprobada |
+| Entrega 11 — Entregables y portal del cliente cloud | Código listo; validación real pendiente |
 | Entrega 12 — Canvas Engine cloud | Pendiente |
 | Entrega 13 — Finanzas y reportes cloud | Pendiente |
 | Entrega 14 — Integraciones Google e IA | Pendiente |

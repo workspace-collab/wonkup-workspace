@@ -547,3 +547,47 @@ Validar:
 - [ ] App Check se registra primero sin enforcement.
 - [ ] Métricas App Check se observan antes de forzar.
 - [ ] Persistencia web solo se habilita con confirmación de dispositivo confiable.
+
+## Entrega 11 — Entregables y aprobaciones Cloud
+
+### Despliegue
+
+- [ ] Paquete de cambios subido directamente a la raíz.
+- [ ] GitHub Pages carga recursos `11.0.0`.
+- [ ] Reglas `firebase/firestore.rules` publicadas manualmente.
+- [ ] Cuenta superadministradora inicia sesión.
+
+### Migración 11.1
+
+- [ ] Respaldo JSON descargado.
+- [ ] Simulación sin rutas duplicadas.
+- [ ] Migración confirmada con dos clics.
+- [ ] Verificación coincide con entregables, versiones y comentarios esperados.
+
+### Operación interna
+
+- [ ] Crear y editar entregable.
+- [ ] Agregar versión.
+- [ ] Completar checklist.
+- [ ] Enviar a revisión.
+- [ ] Archivar y restaurar.
+- [ ] Cambios visibles en segundo navegador.
+
+### Portal del cliente
+
+- [ ] Solo muestra entregables visibles para cliente.
+- [ ] Cliente puede comentar.
+- [ ] Cliente puede aprobar.
+- [ ] Cliente puede solicitar cambios.
+- [ ] Revisor puede consultar y comentar, pero no aprobar.
+- [ ] Invitado permanece en solo lectura.
+- [ ] Información interna permanece oculta.
+
+### Notificaciones y regresión
+
+- [ ] Revisión notifica al cliente/revisor.
+- [ ] Aprobación o cambios notifican al equipo interno.
+- [ ] Comentario notifica al lado contrario.
+- [ ] Kanban Cloud continúa funcionando.
+- [ ] Código demo conserva entregables locales.
+- [ ] Canvas y Finanzas continúan en modo local.

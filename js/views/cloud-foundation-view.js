@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=10.0.0';
-import { escapeHtml } from '../utils/format.js?v=10.0.0';
-import { icon } from '../utils/icons.js?v=10.0.0';
-import { showToast } from '../components/toast.js?v=10.0.0';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=11.0.0';
+import { escapeHtml } from '../utils/format.js?v=11.0.0';
+import { icon } from '../utils/icons.js?v=11.0.0';
+import { showToast } from '../components/toast.js?v=11.0.0';
 
 let active = true;
 
@@ -34,6 +34,11 @@ function kanbanMigrationCounts(plan) {
   return `<div class="cloud-count"><strong>${counts.projectsScanned}</strong><span>Proyectos revisados</span></div><div class="cloud-count"><strong>${counts.boards}</strong><span>Tableros</span></div><div class="cloud-count"><strong>${counts.cards}</strong><span>Tarjetas</span></div><div class="cloud-count cloud-count-total"><strong>${counts.total}</strong><span>Documentos</span></div>`;
 }
 
+function deliverableMigrationCounts(plan) {
+  const counts = plan?.counts || { projects: 0, deliverables: 0, versions: 0, comments: 0, total: 0 };
+  return `<div class="cloud-count"><strong>${counts.projects}</strong><span>Proyectos</span></div><div class="cloud-count"><strong>${counts.deliverables}</strong><span>Entregables</span></div><div class="cloud-count"><strong>${counts.versions}</strong><span>Versiones</span></div><div class="cloud-count"><strong>${counts.comments}</strong><span>Comentarios</span></div><div class="cloud-count cloud-count-total"><strong>${counts.total}</strong><span>Documentos</span></div>`;
+}
+
 function activationCounts(plan = null) {
   const counts = plan?.counts || { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, peopleLinks: 0, total: 0 };
   return `<div class="cloud-activation-count"><strong>${counts.profiles}</strong><span>Perfil</span></div><div class="cloud-activation-count"><strong>${counts.workspaceMemberships}</strong><span>Workspaces</span></div><div class="cloud-activation-count"><strong>${counts.projectMemberships}</strong><span>Proyectos</span></div><div class="cloud-activation-count"><strong>${counts.peopleLinks}</strong><span>Vínculos</span></div><div class="cloud-activation-count is-total"><strong>${counts.total}</strong><span>Escrituras</span></div>`;
@@ -55,25 +60,26 @@ export async function renderCloudFoundation(container, session) {
   const configuration = CloudFoundationService.getConfiguration();
   const preview = CloudFoundationService.getMigrationPreview();
   const kanbanPreview = CloudFoundationService.getKanbanMigrationPreview();
+  const deliverablePreview = CloudFoundationService.getDeliverableMigrationPreview();
   const profileTemplate = CloudFoundationService.getBootstrapProfileTemplate();
   const activationDirectory = CloudFoundationService.getActivationDirectory();
 
   container.innerHTML = `
     <section class="page cloud-foundation-page">
       <header class="page-header cloud-page-header">
-        <div><span class="eyebrow">ENTREGA 10</span><h1>Cloud Foundation</h1><p>Administra Firebase sin terminal y activa la colaboración Kanban en tiempo real sin afectar los módulos que aún permanecen locales.</p></div>
+        <div><span class="eyebrow">ENTREGA 11</span><h1>Cloud Foundation</h1><p>Administra Firebase sin terminal y activa entregables, comentarios y aprobaciones en tiempo real.</p></div>
         <div class="cloud-header-badges"><span class="badge badge-neutral">SDK ${escapeHtml(configuration.sdkVersion)}</span><span class="badge ${configuration.configured ? 'badge-success' : 'badge-warning'}">${configuration.configured ? 'Configuración detectada' : 'Modo diagnóstico'}</span></div>
       </header>
 
       <div class="cloud-safety-banner">
         <span>${icon('shield')}</span>
-        <div><strong>Migración controlada y reversible</strong><p>Kanban ya opera en modo híbrido para cuentas Firebase. Canvas, Entregables y Finanzas permanecen locales hasta sus respectivas migraciones.</p></div>
+        <div><strong>Migración controlada y reversible</strong><p>Kanban y Entregables operan en modo híbrido para cuentas Firebase. Canvas y Finanzas permanecen locales hasta sus respectivas migraciones.</p></div>
       </div>
 
       <section class="cloud-architecture-grid" aria-label="Arquitectura objetivo">
         ${architectureCard('monitor', 'GitHub Pages', 'Frontend estático', 'ok')}
         ${architectureCard('lock', 'Firebase Authentication', configuration.authMode === 'mock' ? 'Preparado, aún inactivo' : configuration.authMode, configuration.authMode === 'mock' ? 'warning' : 'ok')}
-        ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Proyectos ${configuration.projectMode} · Kanban ${configuration.kanbanMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
+        ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Proyectos ${configuration.projectMode} · Kanban ${configuration.kanbanMode} · Entregables ${configuration.deliverableMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
         ${architectureCard('cloud', 'Apps Script', 'Drive, Gmail y Calendar en fase posterior', 'pending')}
       </section>
 
@@ -86,6 +92,7 @@ export async function renderCloudFoundation(container, session) {
               ${configItem('Auth mode', configuration.authMode, configuration.authMode !== 'mock')}
               ${configItem('Project mode', configuration.projectMode, ['firebase', 'hybrid'].includes(configuration.projectMode))}
               ${configItem('Kanban mode', configuration.kanbanMode, ['firebase', 'hybrid'].includes(configuration.kanbanMode))}
+              ${configItem('Entregables mode', configuration.deliverableMode, ['firebase', 'hybrid'].includes(configuration.deliverableMode))}
               ${configItem('App Check', configuration.appCheckEnabled ? 'Activado' : 'Pendiente', configuration.appCheckEnabled)}
               ${configItem('Caché persistente', configuration.persistentCacheEnabled ? 'Activada' : 'Desactivada', true)}
               ${configItem('Campos faltantes', configuration.missing.length ? configuration.missing.join(', ') : 'Ninguno', !configuration.missing.length)}
@@ -148,6 +155,24 @@ export async function renderCloudFoundation(container, session) {
             <div class="cloud-operation-result hidden" id="kanban-operation-result" role="status"></div>
           </section>
 
+          <section class="panel cloud-panel" id="cloud-deliverable-migration-panel">
+            <div class="panel-heading"><div><span class="panel-kicker">MIGRACIÓN 11.1</span><h2>Entregables y aprobaciones</h2><p>Migra versiones, comentarios, checklist y estados de aprobación a Firestore.</p></div><span class="badge badge-neutral">Schema v11</span></div>
+            <div class="cloud-backup-row"><div><strong>1. Respaldo de entregables</strong><span>Descarga los entregables almacenados en este navegador antes de migrar.</span></div><button class="button button-secondary" id="export-deliverable-backup" type="button">${icon('download')} Exportar entregables</button></div>
+            <div class="cloud-migration-section">
+              <strong>2. Workspaces con proyectos</strong>
+              <div class="cloud-workspace-options">
+                ${deliverablePreview.selectedWorkspaceIds.map(workspaceId => `<label class="cloud-check-card"><input type="checkbox" data-deliverable-workspace value="${escapeHtml(workspaceId)}" checked><span><strong>${escapeHtml(workspaceId)}</strong><small>Buscar entregables locales</small></span></label>`).join('')}
+              </div>
+            </div>
+            <div class="cloud-count-grid" id="deliverable-migration-counts">${deliverableMigrationCounts(deliverablePreview)}</div>
+            <div class="cloud-migration-actions">
+              <button class="button button-secondary" id="preview-deliverable-migration" type="button">${icon('eye')} Simular entregables</button>
+              <button class="button button-primary" id="execute-deliverable-migration" type="button">${icon('upload')} Migrar entregables</button>
+              <button class="button button-secondary" id="verify-deliverable-migration" type="button">${icon('check')} Verificar entregables</button>
+            </div>
+            <div class="cloud-operation-result hidden" id="deliverable-operation-result" role="status"></div>
+          </section>
+
           <section class="panel cloud-panel" id="cloud-user-activation-panel">
             <div class="panel-heading"><div><span class="panel-kicker">IDENTIDADES CLOUD</span><h2>Activar usuarios reales</h2><p>Primero crea el usuario en Firebase Authentication. Después pega su UID aquí para generar el perfil y sus permisos sin terminal.</p></div><span class="badge badge-neutral">Auth + Rules</span></div>
             <div class="cloud-activation-notice">${icon('alert')}<span>Esta pantalla no crea contraseñas ni cuentas de Authentication. Solo vincula una cuenta ya creada con WonkUp Workspace.</span></div>
@@ -181,7 +206,7 @@ export async function renderCloudFoundation(container, session) {
               <li><span>4</span><div><strong>Publicar reglas</strong><small>Copiar firebase/firestore.rules en la consola.</small></div></li>
               <li><span>5</span><div><strong>Crear superadministrador</strong><small>Authentication + documento users/UID.</small></div></li>
               <li><span>6</span><div><strong>Respaldar y migrar</strong><small>Usar esta misma pantalla.</small></div></li>
-              <li><span>7</span><div><strong>Activar modo híbrido</strong><small>Las cuentas Firebase usan Firestore; los códigos demo conservan localStorage.</small></div></li><li><span>8</span><div><strong>Migrar Kanban</strong><small>Tableros y tarjetas sincronizados en tiempo real.</small></div></li>
+              <li><span>7</span><div><strong>Activar modo híbrido</strong><small>Las cuentas Firebase usan Firestore; los códigos demo conservan localStorage.</small></div></li><li><span>8</span><div><strong>Migrar Kanban</strong><small>Tableros y tarjetas sincronizados en tiempo real.</small></div></li><li><span>9</span><div><strong>Migrar entregables</strong><small>Versiones, comentarios y aprobaciones compartidas.</small></div></li>
             </ol>
           </section>
 
@@ -216,6 +241,19 @@ function kanbanMigrationOptions(container) {
   return {
     workspaceIds: [...container.querySelectorAll('[data-kanban-workspace]:checked')].map(input => input.value)
   };
+}
+
+function deliverableMigrationOptions(container) {
+  return {
+    workspaceIds: [...container.querySelectorAll('[data-deliverable-workspace]:checked')].map(input => input.value)
+  };
+}
+
+function renderDeliverablePlan(container, plan) {
+  container.querySelector('#deliverable-migration-counts').innerHTML = deliverableMigrationCounts(plan);
+  const result = container.querySelector('#deliverable-operation-result');
+  result.classList.remove('hidden', 'is-error', 'is-success');
+  result.innerHTML = `<strong>Simulación de entregables preparada</strong><span>${plan.counts.deliverables} entregable(s), ${plan.counts.versions} versión(es), ${plan.counts.comments} comentario(s) y ${plan.counts.total} documentos. ${plan.duplicates.length ? `${plan.duplicates.length} rutas duplicadas detectadas.` : 'No se detectaron rutas duplicadas.'}</span>`;
 }
 
 function renderKanbanPlan(container, plan) {
@@ -415,6 +453,81 @@ function bindCloudEvents(container) {
     } finally {
       button.disabled = false;
       button.innerHTML = `${icon('check')} Verificar Kanban`;
+    }
+  });
+
+  const refreshDeliverablePreview = () => renderDeliverablePlan(container, CloudFoundationService.getDeliverableMigrationPreview(deliverableMigrationOptions(container)));
+  container.querySelectorAll('[data-deliverable-workspace]').forEach(input => input.addEventListener('change', refreshDeliverablePreview));
+  container.querySelector('#preview-deliverable-migration')?.addEventListener('click', refreshDeliverablePreview);
+  container.querySelector('#export-deliverable-backup')?.addEventListener('click', () => {
+    CloudFoundationService.exportDeliverableBackup();
+    showToast('Respaldo de entregables descargado.');
+  });
+  container.querySelector('#execute-deliverable-migration')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const options = deliverableMigrationOptions(container);
+    const plan = CloudFoundationService.getDeliverableMigrationPreview(options);
+    const result = container.querySelector('#deliverable-operation-result');
+    if (!plan.counts.total) {
+      result.classList.remove('hidden', 'is-success');
+      result.classList.add('is-error');
+      result.innerHTML = '<strong>No hay entregables para migrar</strong><span>Crea o abre entregables con un código demo, o selecciona otro workspace.</span>';
+      return;
+    }
+    if (button.dataset.confirmDeliverables !== 'true') {
+      button.dataset.confirmDeliverables = 'true';
+      button.innerHTML = `${icon('alert')} Confirmar entregables`;
+      result.classList.remove('hidden', 'is-error', 'is-success');
+      result.innerHTML = `<strong>Confirmación requerida</strong><span>Pulsa nuevamente para escribir ${plan.counts.total} documentos con merge.</span>`;
+      clearTimeout(button._confirmationTimer);
+      button._confirmationTimer = setTimeout(() => {
+        delete button.dataset.confirmDeliverables;
+        button.innerHTML = `${icon('upload')} Migrar entregables`;
+      }, 20000);
+      return;
+    }
+    clearTimeout(button._confirmationTimer);
+    delete button.dataset.confirmDeliverables;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Migrando...';
+    result.classList.remove('hidden', 'is-error', 'is-success');
+    result.innerHTML = `<strong>Migración de entregables en curso</strong><span>Escribiendo ${plan.counts.deliverables} entregables.</span>`;
+    try {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const migrated = await CloudFoundationService.migrateDeliverables(options);
+      result.classList.remove('is-error');
+      result.classList.add('is-success');
+      result.innerHTML = `<strong>Entregables migrados</strong><span>${migrated.plan.counts.deliverables} entregable(s) y ${migrated.committed} escrituras confirmadas.</span>`;
+      showToast('Migración de entregables completada.');
+    } catch (error) {
+      result.classList.remove('is-success');
+      result.classList.add('is-error');
+      result.innerHTML = `<strong>No se completó la migración de entregables</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      button.disabled = false;
+      button.innerHTML = `${icon('upload')} Migrar entregables`;
+    }
+  });
+  container.querySelector('#verify-deliverable-migration')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const result = container.querySelector('#deliverable-operation-result');
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Verificando...';
+    try {
+      const report = await CloudFoundationService.verifyDeliverableMigration(deliverableMigrationOptions(container).workspaceIds);
+      const deliverables = report.reduce((sum, item) => sum + item.deliverables, 0);
+      const versions = report.reduce((sum, item) => sum + item.versions, 0);
+      const comments = report.reduce((sum, item) => sum + item.comments, 0);
+      result.classList.remove('hidden', 'is-error');
+      result.classList.add('is-success');
+      result.innerHTML = `<strong>Verificación de entregables</strong><span>${deliverables} entregable(s), ${versions} versión(es) y ${comments} comentario(s) encontrados en Firestore.</span><div class="cloud-verification-list">${report.map(item => `<span><b>${escapeHtml(item.workspaceName)}</b>: ${item.deliverables} entregables.</span>`).join('')}</div>`;
+    } catch (error) {
+      result.classList.remove('hidden', 'is-success');
+      result.classList.add('is-error');
+      result.innerHTML = `<strong>No se pudo verificar</strong><span>${escapeHtml(error.message)}</span>`;
+    } finally {
+      button.disabled = false;
+      button.innerHTML = `${icon('check')} Verificar entregables`;
     }
   });
 

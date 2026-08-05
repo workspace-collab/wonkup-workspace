@@ -1,6 +1,6 @@
-import { demoNotifications } from '../../data/demo-notifications.js?v=10.0.0';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=10.0.0';
-import { canAccessProject, canAccessWorkspace, canViewMaster, isReadOnlyRole } from '../utils/permissions.js?v=10.0.0';
+import { demoNotifications } from '../../data/demo-notifications.js?v=11.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=11.0.0';
+import { canAccessProject, canAccessWorkspace, canViewMaster, isReadOnlyRole } from '../utils/permissions.js?v=11.0.0';
 
 const STORAGE_PREFIX = 'wonkup.notifications.read.';
 const cloudCache = new Map();

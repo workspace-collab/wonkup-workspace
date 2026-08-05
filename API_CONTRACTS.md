@@ -396,3 +396,37 @@ system/schema/userActivations/{activationId}
 ```
 
 La pantalla no crea la contraseña ni la cuenta Authentication. La cuenta debe existir previamente en Firebase Console.
+
+## Entrega 11 — DeliverableService híbrido
+
+Todas las operaciones Cloud reciben explícitamente contexto de workspace y proyecto:
+
+```text
+listDeliverables({ workspaceId, projectId, session, includeArchived })
+getDeliverable({ workspaceId, projectId, deliverableId, session })
+createDeliverable({ workspaceId, projectId, input, session })
+updateDeliverable({ workspaceId, projectId, deliverableId, patch, session })
+addVersion({ workspaceId, projectId, deliverableId, input, session })
+requestReview({ workspaceId, projectId, deliverableId, session })
+approve({ workspaceId, projectId, deliverableId, session })
+requestChanges({ workspaceId, projectId, deliverableId, feedback, session })
+addComment({ workspaceId, projectId, deliverableId, text, session })
+toggleChecklist({ workspaceId, projectId, deliverableId, checklistId, done, session })
+archiveDeliverable({ workspaceId, projectId, deliverableId, session })
+restoreDeliverable({ workspaceId, projectId, deliverableId, session })
+startRealtime({ workspaceId, projectId, session })
+subscribe(listener)
+```
+
+Selección de adaptador:
+
+```text
+deliverableMode = hybrid + sesión Firebase → FirebaseDeliverableAdapter
+deliverableMode = hybrid + código demo       → MockDeliverableAdapter
+```
+
+Ruta Firestore:
+
+```text
+workspaces/{workspaceId}/projects/{projectId}/deliverables/{deliverableId}
+```

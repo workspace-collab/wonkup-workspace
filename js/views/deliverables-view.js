@@ -1,16 +1,16 @@
-import { DeliverableService } from '../services/deliverable-service.js?v=10.0.0';
-import { ProjectService } from '../services/project-service.js?v=10.0.0';
+import { DeliverableService } from '../services/deliverable-service.js?v=11.0.0';
+import { ProjectService } from '../services/project-service.js?v=11.0.0';
 import {
   canCommentDeliverable,
   canManageDeliverables,
   canReviewDeliverable,
   isReadOnlyRole
-} from '../utils/permissions.js?v=10.0.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=10.0.0';
-import { normalizeText, normalizeUrl } from '../utils/validation.js?v=10.0.0';
-import { icon } from '../utils/icons.js?v=10.0.0';
-import { openModal, confirmModal } from '../components/modal.js?v=10.0.0';
-import { showToast } from '../components/toast.js?v=10.0.0';
+} from '../utils/permissions.js?v=11.0.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=11.0.0';
+import { normalizeText, normalizeUrl } from '../utils/validation.js?v=11.0.0';
+import { icon } from '../utils/icons.js?v=11.0.0';
+import { openModal, confirmModal } from '../components/modal.js?v=11.0.0';
+import { showToast } from '../components/toast.js?v=11.0.0';
 
 const STATUS_LABELS = Object.freeze({
   draft: 'Borrador',
@@ -25,6 +25,9 @@ const STATUS_TONES = Object.freeze({
   changes_requested: 'orange',
   approved: 'green'
 });
+
+const deliverableRealtimeStops = new WeakMap();
+const deliverableViewState = new WeakMap();
 
 const TYPE_LABELS = Object.freeze({
   document: 'Documento', prototype: 'Prototipo', website: 'Sitio web',
@@ -75,11 +78,15 @@ function card(item, { session, compact = false }) {
 }
 
 export function renderDeliverables(container, { workspaceId, projectId, embedded = false, portal = false } = {}, session) {
+  deliverableRealtimeStops.get(container)?.();
+  deliverableRealtimeStops.delete(container);
+  deliverableViewState.set(container, { selectedFilter: 'active' });
   container.innerHTML = `<div class="deliverables-loading"><span class="spinner spinner-blue"></span><p>Cargando entregables...</p></div>`;
   loadDeliverables(container, { workspaceId, projectId, embedded, portal }, session);
 }
 
 async function loadDeliverables(container, context, session, selectedFilter = 'active') {
+  deliverableViewState.set(container, { selectedFilter });
   try {
     const [items, project] = await Promise.all([
       DeliverableService.listDeliverables({ projectId: context.projectId, workspaceId: context.workspaceId, session, includeArchived: selectedFilter === 'archived' }),
@@ -108,7 +115,7 @@ async function loadDeliverables(container, context, session, selectedFilter = 'a
         ${internal ? `<button class="deliverable-filter" data-toggle-archived="true">${selectedFilter === 'archived' ? 'Ver activos' : 'Archivados'}</button>` : ''}
       </div>
       <div class="deliverables-grid" id="deliverables-grid">${filtered.length ? filtered.map(item => card(item, { session, compact: context.portal })).join('') : emptyState({ internal })}</div>
-      ${DeliverableService.mode === 'mock' ? '<p class="module-demo-note">Modo demo local: los entregables y comentarios se guardan en este navegador.</p>' : ''}
+      ${DeliverableService.dataSource({ session }) === 'mock' ? '<p class="module-demo-note">Modo demo local: los entregables y comentarios se guardan en este navegador.</p>' : '<p class="module-demo-note module-cloud-note">Firestore en tiempo real: versiones, comentarios y aprobaciones se sincronizan entre usuarios.</p>'}
     </section>`;
 
     const grid = container.querySelector('#deliverables-grid');
@@ -123,9 +130,38 @@ async function loadDeliverables(container, context, session, selectedFilter = 'a
     container.querySelector('[data-toggle-archived]')?.addEventListener('click', () => loadDeliverables(container, context, session, selectedFilter === 'archived' ? 'active' : 'archived'));
     container.querySelector('#new-deliverable')?.addEventListener('click', () => openDeliverableForm({ context, session, project, onSaved: () => loadDeliverables(container, context, session, selectedFilter) }));
     bindCardEvents(container, context, session, () => loadDeliverables(container, context, session, selectedFilter));
+    ensureDeliverableRealtime(container, context, session);
   } catch (error) {
     if (!container.isConnected) return;
     container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h2>No se pudieron cargar los entregables</h2><p>${escapeHtml(error.message)}</p></div>`;
+  }
+}
+
+
+async function ensureDeliverableRealtime(container, context, session) {
+  if (DeliverableService.dataSource({ session }) !== 'firebase' || deliverableRealtimeStops.has(container)) return;
+  try {
+    const stop = await DeliverableService.startRealtime({
+      workspaceId: context.workspaceId,
+      projectId: context.projectId,
+      session,
+      onChange: () => {
+        if (!container.isConnected) {
+          deliverableRealtimeStops.get(container)?.();
+          deliverableRealtimeStops.delete(container);
+          return;
+        }
+        clearTimeout(container.__deliverableRealtimeTimer);
+        container.__deliverableRealtimeTimer = setTimeout(() => {
+          const state = deliverableViewState.get(container) || { selectedFilter: 'active' };
+          loadDeliverables(container, context, session, state.selectedFilter);
+        }, 160);
+      }
+    });
+    if (!container.isConnected) { stop?.(); return; }
+    deliverableRealtimeStops.set(container, stop);
+  } catch {
+    // La carga manual permanece disponible aunque el listener no pueda iniciarse.
   }
 }
 
@@ -183,7 +219,7 @@ function openDeliverableForm({ context, session, project, deliverable = null, on
     submit.setAttribute('aria-busy', 'true');
     submit.textContent = deliverable ? 'Guardando...' : 'Creando...';
     try {
-      if (deliverable) await DeliverableService.updateDeliverable({ deliverableId: deliverable.id, patch: input, session });
+      if (deliverable) await DeliverableService.updateDeliverable({ deliverableId: deliverable.id, workspaceId: context.workspaceId, projectId: context.projectId, patch: input, session });
       else await DeliverableService.createDeliverable({ workspaceId: context.workspaceId, projectId: context.projectId, input, session });
       modal.close();
       showToast(deliverable ? 'Entregable actualizado.' : 'Entregable creado.');
@@ -200,7 +236,7 @@ function openDeliverableForm({ context, session, project, deliverable = null, on
 
 async function openDeliverableDetail({ deliverableId, context, session, onChanged }) {
   try {
-    const item = await DeliverableService.getDeliverable({ deliverableId, session });
+    const item = await DeliverableService.getDeliverable({ deliverableId, workspaceId: context.workspaceId, projectId: context.projectId, session });
     const internal = canManageDeliverables(session, item.projectId, item.workspaceId);
     const reviewer = canReviewDeliverable(session, item.projectId, item.workspaceId);
     const commenter = canCommentDeliverable(session, item.projectId, item.workspaceId);
@@ -232,37 +268,37 @@ async function openDeliverableDetail({ deliverableId, context, session, onChange
       openDeliverableDetail({ deliverableId, context, session, onChanged });
     };
 
-    modal.root.querySelector('#add-deliverable-version')?.addEventListener('click', () => openVersionForm({ item, session, onSaved: refresh }));
+    modal.root.querySelector('#add-deliverable-version')?.addEventListener('click', () => openVersionForm({ item, context, session, onSaved: refresh }));
     modal.root.querySelector('#edit-deliverable')?.addEventListener('click', async () => {
       modal.close();
       const project = await ProjectService.getProject({ projectId: item.projectId, session });
       openDeliverableForm({ context, session, project, deliverable: item, onSaved: onChanged });
     });
     modal.root.querySelector('#request-deliverable-review')?.addEventListener('click', async () => {
-      try { await DeliverableService.requestReview({ deliverableId, session }); showToast('Entregable enviado a revisión.'); await refresh(); }
+      try { await DeliverableService.requestReview({ deliverableId, workspaceId: item.workspaceId, projectId: item.projectId, session }); showToast('Entregable enviado a revisión.'); await refresh(); }
       catch (error) { showToast(error.message); }
     });
     modal.root.querySelector('#approve-deliverable')?.addEventListener('click', async () => {
       const confirmed = await confirmModal({ title: 'Aprobar entregable', message: 'La versión actual quedará registrada como aprobada.', confirmLabel: 'Aprobar' });
       if (!confirmed) return;
-      try { await DeliverableService.approve({ deliverableId, session }); showToast('Entregable aprobado.'); await refresh(); }
+      try { await DeliverableService.approve({ deliverableId, workspaceId: item.workspaceId, projectId: item.projectId, session }); showToast('Entregable aprobado.'); await refresh(); }
       catch (error) { showToast(error.message); }
     });
-    modal.root.querySelector('#request-deliverable-changes')?.addEventListener('click', () => openChangesForm({ item, session, onSaved: refresh }));
+    modal.root.querySelector('#request-deliverable-changes')?.addEventListener('click', () => openChangesForm({ item, context, session, onSaved: refresh }));
     modal.root.querySelector('#restore-deliverable')?.addEventListener('click', async () => {
       try {
-        await DeliverableService.restoreDeliverable({ deliverableId, session });
+        await DeliverableService.restoreDeliverable({ deliverableId, workspaceId: item.workspaceId, projectId: item.projectId, session });
         modal.close(); showToast('Entregable restaurado.'); await onChanged?.();
       } catch (error) { showToast(error.message); }
     });
     modal.root.querySelector('#archive-deliverable')?.addEventListener('click', async () => {
       const confirmed = await confirmModal({ title: 'Archivar entregable', message: 'Se ocultará del listado activo, sin eliminar su historial.', confirmLabel: 'Archivar', danger: true });
       if (!confirmed) return;
-      await DeliverableService.archiveDeliverable({ deliverableId, session });
+      await DeliverableService.archiveDeliverable({ deliverableId, workspaceId: item.workspaceId, projectId: item.projectId, session });
       modal.close(); showToast('Entregable archivado.'); await onChanged?.();
     });
     modal.root.querySelectorAll('[data-checklist-id]').forEach(input => input.addEventListener('change', async () => {
-      try { await DeliverableService.toggleChecklist({ deliverableId, checklistId: input.dataset.checklistId, done: input.checked, session }); input.closest('.deliverable-check')?.classList.toggle('is-done', input.checked); }
+      try { await DeliverableService.toggleChecklist({ deliverableId, workspaceId: item.workspaceId, projectId: item.projectId, checklistId: input.dataset.checklistId, done: input.checked, session }); input.closest('.deliverable-check')?.classList.toggle('is-done', input.checked); }
       catch (error) { input.checked = !input.checked; showToast(error.message); }
     }));
     modal.root.querySelector('#deliverable-comment-form')?.addEventListener('submit', async event => {
@@ -270,7 +306,7 @@ async function openDeliverableDetail({ deliverableId, context, session, onChange
       const form = event.currentTarget;
       const text = normalizeText(new FormData(form).get('comment'), 2000);
       if (!text) return;
-      try { await DeliverableService.addComment({ deliverableId, text, session }); showToast('Comentario agregado.'); await refresh(); }
+      try { await DeliverableService.addComment({ deliverableId, workspaceId: item.workspaceId, projectId: item.projectId, text, session }); showToast('Comentario agregado.'); await refresh(); }
       catch (error) { showToast(error.message); }
     });
   } catch (error) {
@@ -278,7 +314,7 @@ async function openDeliverableDetail({ deliverableId, context, session, onChange
   }
 }
 
-function openVersionForm({ item, session, onSaved }) {
+function openVersionForm({ item, context, session, onSaved }) {
   const modal = openModal({
     title: 'Registrar nueva versión', subtitle: item.title,
     body: `<form id="version-form" class="project-form" novalidate><div class="form-grid form-grid-2">
@@ -297,12 +333,12 @@ function openVersionForm({ item, session, onSaved }) {
     const input = { label: normalizeText(raw.label, 120), fileName: normalizeText(raw.fileName, 180), fileType: normalizeText(raw.fileType, 60), url: normalizeUrl(raw.url), notes: normalizeText(raw.notes, 1000) };
     form.querySelector('[data-error-for="url"]').textContent = input.url ? '' : 'Ingresa un enlace válido con https://';
     if (!input.fileName || !input.url) return;
-    try { await DeliverableService.addVersion({ deliverableId: item.id, input, session }); modal.close(); showToast('Versión registrada.'); await onSaved?.(); }
+    try { await DeliverableService.addVersion({ deliverableId: item.id, workspaceId: item.workspaceId || context.workspaceId, projectId: item.projectId || context.projectId, input, session }); modal.close(); showToast('Versión registrada.'); await onSaved?.(); }
     catch (error) { const slot = form.querySelector('#version-error'); slot.textContent = error.message; slot.classList.remove('hidden'); }
   });
 }
 
-function openChangesForm({ item, session, onSaved }) {
+function openChangesForm({ item, context, session, onSaved }) {
   const modal = openModal({
     title: 'Solicitar cambios', subtitle: item.title,
     body: `<form id="changes-form"><label class="form-field"><span>¿Qué debe ajustarse? *</span><textarea class="textarea" name="feedback" rows="6" placeholder="Describe el cambio, dónde se encuentra y qué resultado esperas."></textarea></label><div class="form-global-error hidden" id="changes-error"></div><div class="modal-actions"><button type="button" class="button button-secondary" data-modal-close>Cancelar</button><button class="button button-primary">Enviar solicitud</button></div></form>`,
@@ -313,7 +349,7 @@ function openChangesForm({ item, session, onSaved }) {
     const form = event.currentTarget;
     const feedback = normalizeText(new FormData(form).get('feedback'), 2000);
     if (feedback.length < 3) { const slot = form.querySelector('#changes-error'); slot.textContent = 'Describe el cambio solicitado.'; slot.classList.remove('hidden'); return; }
-    try { await DeliverableService.requestChanges({ deliverableId: item.id, feedback, session }); modal.close(); showToast('Solicitud de cambios enviada.'); await onSaved?.(); }
+    try { await DeliverableService.requestChanges({ deliverableId: item.id, workspaceId: item.workspaceId || context.workspaceId, projectId: item.projectId || context.projectId, feedback, session }); modal.close(); showToast('Solicitud de cambios enviada.'); await onSaved?.(); }
     catch (error) { const slot = form.querySelector('#changes-error'); slot.textContent = error.message; slot.classList.remove('hidden'); }
   });
 }
