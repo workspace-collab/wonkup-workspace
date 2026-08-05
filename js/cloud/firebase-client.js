@@ -1,18 +1,22 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.0';
-import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=9.0.0';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.1';
+import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=9.0.1';
 
 let clientPromise = null;
+
+function normalizeConfigValue(value) {
+  return typeof value === 'string' ? value.trim() : value;
+}
 
 function publicFirebaseConfig() {
   const source = API_CONFIG.firebase;
   return {
-    apiKey: source.apiKey,
-    authDomain: source.authDomain,
-    projectId: source.projectId,
-    storageBucket: source.storageBucket || undefined,
-    messagingSenderId: source.messagingSenderId || undefined,
-    appId: source.appId,
-    databaseURL: source.databaseURL || undefined
+    apiKey: normalizeConfigValue(source.apiKey),
+    authDomain: normalizeConfigValue(source.authDomain),
+    projectId: normalizeConfigValue(source.projectId),
+    storageBucket: normalizeConfigValue(source.storageBucket) || undefined,
+    messagingSenderId: normalizeConfigValue(source.messagingSenderId) || undefined,
+    appId: normalizeConfigValue(source.appId),
+    databaseURL: normalizeConfigValue(source.databaseURL) || undefined
   };
 }
 
@@ -31,6 +35,9 @@ export async function getFirebaseClient() {
 
     const sdk = await loadFirebaseSdk({ appCheck: API_CONFIG.firebase.enableAppCheck });
     const config = cleanUndefined(publicFirebaseConfig());
+    if (!/^AIza[0-9A-Za-z_-]{30,}$/.test(config.apiKey || '')) {
+      throw new Error('La API key publica de Firebase no tiene un formato valido. Revisa js/config/runtime-config.js.');
+    }
     const app = sdk.app.getApps().length
       ? sdk.app.getApp()
       : sdk.app.initializeApp(config);

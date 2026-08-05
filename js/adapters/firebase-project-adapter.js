@@ -1,4 +1,4 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.1';
 import {
   canAccessProject,
   canAccessWorkspace,
