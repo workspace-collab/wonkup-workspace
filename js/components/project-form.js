@@ -1,8 +1,9 @@
 import { DemoService } from '../services/demo-service.js';
-import { ProjectService } from '../services/project-service.js';
+import { ProjectService } from '../services/project-service.js?v=8.1.0';
 import { getState } from '../state/store.js';
 import { escapeHtml } from '../utils/format.js';
-import { normalizeAssetUrl, normalizeProjectInput, normalizeUrl, validateProjectInput } from '../utils/validation.js';
+import { isValidEmail, normalizeAssetUrl, normalizeProjectInput, normalizeText, normalizeUrl, validateProjectInput } from '../utils/validation.js';
+import { canManageClients } from '../utils/permissions.js?v=8.1.0';
 import { openModal } from './modal.js';
 import { showToast } from './toast.js';
 
@@ -53,14 +54,29 @@ function readForm(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
-function projectFormHtml({ project, workspaces, defaultWorkspaceId }) {
+function projectFormHtml({ project, workspaces, defaultWorkspaceId, allowQuickClientCreate }) {
   const value = (key, fallback = '') => escapeHtml(project?.[key] ?? fallback);
   return `<form id="project-form" class="project-form" novalidate>
     <div class="form-section">
       <div class="form-section-title"><strong>Información principal</strong><span>Datos que identifican el proyecto.</span></div>
       <div class="form-grid form-grid-2">
         <label class="form-field"><span>Workspace *</span><select class="select" id="project-workspace" name="workspaceId" required aria-required="true" aria-describedby="project-workspace-error" ${project ? 'disabled' : ''}>${workspaces.map(workspace => `<option value="${workspace.id}" ${workspace.id === (project?.workspaceId || defaultWorkspaceId) ? 'selected' : ''}>${escapeHtml(workspace.name)}</option>`).join('')}</select><small id="project-workspace-error" data-error-for="workspaceId"></small></label>
-        <label class="form-field"><span>Cliente</span><select class="select" name="clientId" id="project-client-select"><option value="">Sin cliente</option></select><small data-error-for="clientId"></small></label>
+        <div class="form-field form-field-quick-create">
+          <div class="form-label-row"><label for="project-client-select">Cliente</label>${allowQuickClientCreate ? '<button class="quick-create-trigger" type="button" id="open-quick-client" aria-controls="quick-client-panel" aria-expanded="false">+ Nuevo cliente</button>' : ''}</div>
+          <select class="select" name="clientId" id="project-client-select"><option value="">Sin cliente</option></select>
+          <small data-error-for="clientId"></small>
+          ${allowQuickClientCreate ? `<section class="quick-create-panel" id="quick-client-panel" aria-label="Registrar nuevo cliente" hidden>
+            <div class="quick-create-heading"><div><strong>Nuevo cliente</strong><span>Se guardará y quedará seleccionado en este proyecto.</span></div></div>
+            <div class="quick-create-grid">
+              <label><span>Nombre *</span><input class="input" id="quick-client-name" maxlength="120" autocomplete="organization"></label>
+              <label><span>Contacto principal</span><input class="input" id="quick-client-contact" maxlength="120" autocomplete="name"></label>
+              <label><span>Correo</span><input class="input" id="quick-client-email" type="email" maxlength="254" autocomplete="email"></label>
+              <label><span>Teléfono</span><input class="input" id="quick-client-phone" maxlength="40" autocomplete="tel"></label>
+            </div>
+            <div class="quick-create-error hidden" id="quick-client-error" role="alert"></div>
+            <div class="quick-create-actions"><button class="button button-secondary button-compact" type="button" id="cancel-quick-client">Cancelar</button><button class="button button-primary button-compact" type="button" id="save-quick-client">Guardar y seleccionar</button></div>
+          </section>` : ''}
+        </div>
         <label class="form-field form-span-2"><span>Nombre del proyecto *</span><input class="input" id="project-name" name="name" maxlength="120" required aria-required="true" aria-describedby="project-name-error" value="${value('name')}" placeholder="Ej. Plataforma de reservas"><small id="project-name-error" data-error-for="name"></small></label>
         <label class="form-field form-span-2"><span>Frase breve</span><input class="input" name="tagline" maxlength="180" value="${value('tagline')}" placeholder="Describe el proyecto en una frase"><small data-error-for="tagline"></small></label>
         <label class="form-field form-span-2"><span>Descripción</span><textarea class="textarea" name="description" rows="4" maxlength="2000" placeholder="Objetivo, alcance y resultado esperado">${value('description')}</textarea><small data-error-for="description"></small></label>
@@ -107,7 +123,7 @@ export async function openProjectForm({ session = getState().session, workspaceI
   const modal = openModal({
     title: project ? 'Editar proyecto' : 'Nuevo proyecto',
     subtitle: project ? `${project.code} · Los cambios se guardan en la fuente activa.` : 'Crea la ficha y, opcionalmente, su estructura documental.',
-    body: projectFormHtml({ project, workspaces: availableWorkspaces, defaultWorkspaceId }),
+    body: projectFormHtml({ project, workspaces: availableWorkspaces, defaultWorkspaceId, allowQuickClientCreate: canManageClients(session) }),
     size: 'lg',
     closeOnBackdrop: false
   });
@@ -121,27 +137,100 @@ export async function openProjectForm({ session = getState().session, workspaceI
   const brandColorCode = brandColorInput?.closest('.color-input-row')?.querySelector('code');
   brandColorInput?.addEventListener('input', event => { if (brandColorCode) brandColorCode.textContent = event.target.value; });
 
-  async function loadRelations(nextWorkspaceId) {
+  async function loadRelations(nextWorkspaceId, preferredClientId = null) {
+    const selectedClientId = preferredClientId ?? clientSelect.value ?? project?.clientId ?? '';
+    const selectedOwnerId = ownerSelect.value || project?.ownerUserId || '';
     clientSelect.disabled = true;
     ownerSelect.disabled = true;
     const [clients, users] = await Promise.all([
       ProjectService.listClients({ workspaceId: nextWorkspaceId, session }),
       ProjectService.listUsers({ workspaceId: nextWorkspaceId, session })
     ]);
-    clientSelect.innerHTML = `<option value="">Sin cliente</option>${clients.map(client => `<option value="${client.id}" ${client.id === project?.clientId ? 'selected' : ''}>${escapeHtml(client.name)}</option>`).join('')}`;
-    ownerSelect.innerHTML = `<option value="">Selecciona</option>${users.map(user => `<option value="${user.id}" ${user.id === project?.ownerUserId ? 'selected' : ''}>${escapeHtml(user.name)}</option>`).join('')}`;
+    clientSelect.innerHTML = `<option value="">Sin cliente</option>${clients.map(client => `<option value="${client.id}" ${client.id === selectedClientId ? 'selected' : ''}>${escapeHtml(client.name)}</option>`).join('')}`;
+    ownerSelect.innerHTML = `<option value="">Selecciona</option>${users.map(user => `<option value="${user.id}" ${user.id === selectedOwnerId ? 'selected' : ''}>${escapeHtml(user.name)}</option>`).join('')}`;
     clientSelect.disabled = false;
     ownerSelect.disabled = false;
   }
 
   try {
-    await loadRelations(defaultWorkspaceId);
+    await loadRelations(defaultWorkspaceId, project?.clientId || '');
   } catch (error) {
     form.querySelector('#project-form-error').textContent = error.message;
     form.querySelector('#project-form-error').classList.remove('hidden');
   }
 
-  workspaceSelect?.addEventListener('change', event => loadRelations(event.target.value));
+  const quickClientTrigger = form.querySelector('#open-quick-client');
+  const quickClientPanel = form.querySelector('#quick-client-panel');
+  const quickClientName = form.querySelector('#quick-client-name');
+  const quickClientContact = form.querySelector('#quick-client-contact');
+  const quickClientEmail = form.querySelector('#quick-client-email');
+  const quickClientPhone = form.querySelector('#quick-client-phone');
+  const quickClientError = form.querySelector('#quick-client-error');
+  const quickClientSave = form.querySelector('#save-quick-client');
+
+  function closeQuickClientPanel({ clear = false } = {}) {
+    if (!quickClientPanel) return;
+    quickClientPanel.hidden = true;
+    quickClientTrigger?.setAttribute('aria-expanded', 'false');
+    if (clear) {
+      [quickClientName, quickClientContact, quickClientEmail, quickClientPhone].forEach(field => { if (field) field.value = ''; });
+      quickClientError?.classList.add('hidden');
+      if (quickClientError) quickClientError.textContent = '';
+    }
+  }
+
+  quickClientTrigger?.addEventListener('click', () => {
+    const opening = quickClientPanel?.hidden !== false;
+    if (!quickClientPanel) return;
+    quickClientPanel.hidden = !opening;
+    quickClientTrigger.setAttribute('aria-expanded', String(opening));
+    if (opening) requestAnimationFrame(() => quickClientName?.focus());
+  });
+  form.querySelector('#cancel-quick-client')?.addEventListener('click', () => closeQuickClientPanel({ clear: true }));
+  quickClientPanel?.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    quickClientSave?.click();
+  });
+  quickClientSave?.addEventListener('click', async () => {
+    const workspaceIdForClient = project?.workspaceId || workspaceSelect?.value || defaultWorkspaceId;
+    const input = {
+      workspaceId: normalizeText(workspaceIdForClient, 80),
+      name: normalizeText(quickClientName?.value, 120),
+      contactName: normalizeText(quickClientContact?.value, 120),
+      email: normalizeText(quickClientEmail?.value, 254),
+      phone: normalizeText(quickClientPhone?.value, 40)
+    };
+    let message = '';
+    if (input.name.length < 2) message = 'Escribe el nombre del cliente.';
+    else if (!isValidEmail(input.email)) message = 'Escribe un correo válido o deja el campo vacío.';
+    if (message) {
+      quickClientError.textContent = message;
+      quickClientError.classList.remove('hidden');
+      (input.name.length < 2 ? quickClientName : quickClientEmail)?.focus();
+      return;
+    }
+    quickClientSave.disabled = true;
+    quickClientSave.innerHTML = '<span class="spinner"></span> Guardando...';
+    quickClientError.classList.add('hidden');
+    try {
+      const created = await ProjectService.createClient({ input, session });
+      await loadRelations(workspaceIdForClient, created.id);
+      closeQuickClientPanel({ clear: true });
+      showToast('Cliente creado y seleccionado.');
+    } catch (error) {
+      quickClientError.textContent = error.message || 'No se pudo crear el cliente.';
+      quickClientError.classList.remove('hidden');
+    } finally {
+      quickClientSave.disabled = false;
+      quickClientSave.textContent = 'Guardar y seleccionar';
+    }
+  });
+
+  workspaceSelect?.addEventListener('change', event => {
+    closeQuickClientPanel({ clear: true });
+    loadRelations(event.target.value, '');
+  });
 
   form.addEventListener('submit', async event => {
     event.preventDefault();

@@ -6,14 +6,14 @@ import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/per
 import { renderAccess } from './views/access-view.js';
 import { renderForbidden } from './views/forbidden-view.js';
 import { renderDashboard } from './views/dashboard-view.js?v=8.0.0';
-import { renderProjects } from './views/projects-view.js';
-import { renderProject } from './views/project-view.js?v=7.0.0';
+import { renderProjects } from './views/projects-view.js?v=8.1.0';
+import { renderProject } from './views/project-view.js?v=8.1.0';
 import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
 import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=6.0.0';
 import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
 import { renderPlaceholder } from './views/placeholder-view.js';
 import { renderClients } from './views/clients-view.js';
-import { renderClientPortal } from './views/client-portal-view.js?v=6.0.0';
+import { renderClientPortal } from './views/client-portal-view.js?v=8.1.0';
 import { renderReports, cleanupReportsView } from './views/reports-view.js?v=8.0.0';
 import { icon } from './utils/icons.js';
 

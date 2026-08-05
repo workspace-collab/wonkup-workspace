@@ -1,20 +1,21 @@
-import { ProjectService } from '../services/project-service.js';
+import { ProjectService } from '../services/project-service.js?v=8.1.0';
 import {
   canArchiveProject,
   canEditProject,
   canManageProjectResources,
   canManageProjectTeam,
+  canCreateWorkspaceUser,
   canViewFinancials,
   canAccessProjectFinance,
   isReadOnlyRole
-} from '../utils/permissions.js?v=7.0.0';
+} from '../utils/permissions.js?v=8.1.0';
 import { icon } from '../utils/icons.js';
 import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js';
-import { normalizeText, normalizeUrl } from '../utils/validation.js';
+import { isValidEmail, normalizeText, normalizeUrl } from '../utils/validation.js';
 import { renderKanban } from './kanban-view.js';
 import { renderToolkit } from './toolkit-view.js';
 import { renderDeliverables } from './deliverables-view.js';
-import { openProjectForm } from '../components/project-form.js';
+import { openProjectForm } from '../components/project-form.js?v=8.1.0';
 import { confirmModal, openModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 
@@ -319,20 +320,126 @@ function openResourceForm({ project, session, onSaved }) {
 
 async function openMemberForm({ project, session, onSaved }) {
   const users = await ProjectService.listUsers({ workspaceId: project.workspaceId, session });
+  const allowQuickUserCreate = canCreateWorkspaceUser(session, project.workspaceId);
   const modal = openModal({
     title: 'Agregar miembro',
     subtitle: 'Asigna una persona y su nivel de participación.',
-    body: `<form id="member-form" class="project-form"><div class="form-grid form-grid-2"><label class="form-field"><span>Persona</span><select class="select" name="userId">${users.map(user => `<option value="${user.id}">${escapeHtml(user.name)}</option>`).join('')}</select></label><label class="form-field"><span>Rol</span><select class="select" name="role"><option value="project_lead">Líder</option><option value="collaborator" selected>Colaborador</option><option value="reviewer">Revisor</option></select></label><label class="form-field form-span-2"><span>Dedicación estimada (%)</span><input class="input" type="number" name="allocation" min="0" max="100" value="20"></label></div><div class="form-global-error hidden" id="member-error"></div><div class="modal-actions"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary">Asignar</button></div></form>`,
+    body: `<form id="member-form" class="project-form" novalidate>
+      <div class="form-grid form-grid-2">
+        <div class="form-field form-field-quick-create">
+          <div class="form-label-row"><label for="member-user-select">Persona</label>${allowQuickUserCreate ? '<button class="quick-create-trigger" type="button" id="open-quick-user" aria-controls="quick-user-panel" aria-expanded="false">+ Nueva persona</button>' : ''}</div>
+          <select class="select" name="userId" id="member-user-select" required>${users.length ? users.map(user => `<option value="${user.id}">${escapeHtml(user.name)}</option>`).join('') : '<option value="">Sin personas disponibles</option>'}</select>
+          ${allowQuickUserCreate ? `<section class="quick-create-panel" id="quick-user-panel" aria-label="Registrar nueva persona" hidden>
+            <div class="quick-create-heading"><div><strong>Nueva persona</strong><span>Se registrará en el workspace y quedará seleccionada.</span></div></div>
+            <div class="quick-create-grid quick-create-grid-single">
+              <label><span>Nombre completo *</span><input class="input" id="quick-user-name" maxlength="120" autocomplete="name"></label>
+              <label><span>Correo *</span><input class="input" id="quick-user-email" type="email" maxlength="254" autocomplete="email"></label>
+            </div>
+            <div class="quick-create-error hidden" id="quick-user-error" role="alert"></div>
+            <div class="quick-create-actions"><button class="button button-secondary button-compact" type="button" id="cancel-quick-user">Cancelar</button><button class="button button-primary button-compact" type="button" id="save-quick-user">Guardar y seleccionar</button></div>
+          </section>` : ''}
+        </div>
+        <label class="form-field"><span>Rol</span><select class="select" name="role"><option value="project_lead">Líder</option><option value="collaborator" selected>Colaborador</option><option value="reviewer">Revisor</option></select></label>
+        <label class="form-field form-span-2"><span>Dedicación estimada (%)</span><input class="input" type="number" name="allocation" min="0" max="100" value="20"></label>
+      </div>
+      <div class="form-global-error hidden" id="member-error" role="alert"></div>
+      <div class="modal-actions"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit" id="member-submit">Asignar</button></div>
+    </form>`,
     size: 'sm', closeOnBackdrop: false
   });
-  modal.root.querySelector('#member-form').addEventListener('submit', async event => {
+
+  const form = modal.root.querySelector('#member-form');
+  const userSelect = form.querySelector('#member-user-select');
+  const quickUserTrigger = form.querySelector('#open-quick-user');
+  const quickUserPanel = form.querySelector('#quick-user-panel');
+  const quickUserName = form.querySelector('#quick-user-name');
+  const quickUserEmail = form.querySelector('#quick-user-email');
+  const quickUserError = form.querySelector('#quick-user-error');
+  const quickUserSave = form.querySelector('#save-quick-user');
+
+  function closeQuickUserPanel({ clear = false } = {}) {
+    if (!quickUserPanel) return;
+    quickUserPanel.hidden = true;
+    quickUserTrigger?.setAttribute('aria-expanded', 'false');
+    if (clear) {
+      if (quickUserName) quickUserName.value = '';
+      if (quickUserEmail) quickUserEmail.value = '';
+      quickUserError?.classList.add('hidden');
+      if (quickUserError) quickUserError.textContent = '';
+    }
+  }
+
+  quickUserTrigger?.addEventListener('click', () => {
+    if (!quickUserPanel) return;
+    const opening = quickUserPanel.hidden;
+    quickUserPanel.hidden = !opening;
+    quickUserTrigger.setAttribute('aria-expanded', String(opening));
+    if (opening) requestAnimationFrame(() => quickUserName?.focus());
+  });
+  form.querySelector('#cancel-quick-user')?.addEventListener('click', () => closeQuickUserPanel({ clear: true }));
+  quickUserPanel?.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
     event.preventDefault();
-    const raw = Object.fromEntries(new FormData(event.currentTarget).entries());
+    quickUserSave?.click();
+  });
+  quickUserSave?.addEventListener('click', async () => {
+    const input = {
+      workspaceId: project.workspaceId,
+      name: normalizeText(quickUserName?.value, 120),
+      email: normalizeText(quickUserEmail?.value, 254).toLowerCase()
+    };
+    let message = '';
+    if (input.name.length < 2) message = 'Escribe el nombre de la persona.';
+    else if (!input.email || !isValidEmail(input.email)) message = 'Escribe un correo válido.';
+    if (message) {
+      quickUserError.textContent = message;
+      quickUserError.classList.remove('hidden');
+      (input.name.length < 2 ? quickUserName : quickUserEmail)?.focus();
+      return;
+    }
+    quickUserSave.disabled = true;
+    quickUserSave.innerHTML = '<span class="spinner"></span> Guardando...';
+    quickUserError.classList.add('hidden');
+    try {
+      const created = await ProjectService.createUser({ input, session });
+      const option = document.createElement('option');
+      option.value = created.id;
+      option.textContent = created.name;
+      option.selected = true;
+      userSelect.appendChild(option);
+      userSelect.disabled = false;
+      closeQuickUserPanel({ clear: true });
+      showToast('Persona creada y seleccionada.');
+    } catch (error) {
+      quickUserError.textContent = error.message || 'No se pudo registrar la persona.';
+      quickUserError.classList.remove('hidden');
+    } finally {
+      quickUserSave.disabled = false;
+      quickUserSave.textContent = 'Guardar y seleccionar';
+    }
+  });
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const raw = Object.fromEntries(new FormData(form).entries());
+    const errorSlot = form.querySelector('#member-error');
+    if (!raw.userId) {
+      errorSlot.textContent = 'Selecciona o registra una persona.';
+      errorSlot.classList.remove('hidden');
+      userSelect.focus();
+      return;
+    }
+    const submit = form.querySelector('#member-submit');
+    submit.disabled = true;
+    submit.innerHTML = '<span class="spinner"></span> Asignando...';
     try {
       await ProjectService.assignMember({ projectId: project.id, input: { userId: raw.userId, role: raw.role, allocation: Math.min(100, Math.max(0, Number(raw.allocation || 0))) }, session });
       modal.close(); showToast('Miembro asignado.'); await onSaved?.();
     } catch (error) {
-      const slot = event.currentTarget.querySelector('#member-error'); slot.textContent = error.message; slot.classList.remove('hidden');
+      errorSlot.textContent = error.message;
+      errorSlot.classList.remove('hidden');
+      submit.disabled = false;
+      submit.textContent = 'Asignar';
     }
   });
 }

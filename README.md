@@ -4,14 +4,14 @@ Centro operativo de WonkUp para la gestión de proyectos, innovación, entregabl
 
 ## Estado actual
 
-- Entregas 0 a 7: aprobadas.
-- Entrega 8: Dashboard ejecutivo y reportes en revisión.
+- Entregas 0 a 8: aprobadas.
+- Ajuste 8.1: altas rápidas de clientes y personas, listo para validación.
 
 ## Módulos funcionales
 
 - Panel Maestro y workspaces.
 - Acceso mediante códigos y roles.
-- Proyectos, clientes, equipo y recursos.
+- Proyectos, clientes, equipo y recursos, con altas rápidas contextuales.
 - Google Drive simulado y Apps Script preparado.
 - Kanban configurable.
 - Innovation Toolkit y Canvas Engine.

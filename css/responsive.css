@@ -303,3 +303,11 @@
   .report-trend { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); gap: 6px; overflow-x: auto; }
   .report-trend-column { min-width: 52px; }
 }
+
+/* Ajuste 8.1: altas rápidas contextuales */
+@media (max-width: 760px) {
+  .form-label-row { align-items: flex-start; }
+  .quick-create-grid { grid-template-columns: 1fr; }
+  .quick-create-actions { align-items: stretch; flex-direction: column-reverse; }
+  .quick-create-actions .button { width: 100%; justify-content: center; }
+}

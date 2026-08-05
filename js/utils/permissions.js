@@ -54,6 +54,11 @@ export function canManageClients(session) {
   return Boolean(session && MANAGEMENT_ROLES.has(session.role));
 }
 
+export function canCreateWorkspaceUser(session, workspaceId) {
+  if (!session || !workspaceId || !canAccessWorkspace(session, workspaceId)) return false;
+  return ['superadmin', 'workspace_admin', 'project_lead'].includes(session.role);
+}
+
 export function canManageProjectTeam(session, projectId, workspaceId) {
   return canEditProject(session, projectId, workspaceId);
 }

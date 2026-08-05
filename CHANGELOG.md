@@ -263,3 +263,14 @@
 - Se habilitó exportación CSV e impresión/PDF A4 horizontal.
 - Se añadió actualización automática frente a cambios de Finanzas y Entregables.
 - Se agregó `reportMode: aggregate` a la configuración pública.
+
+## Ajuste 8.1 - Altas rápidas contextuales
+
+- Se añadió `+ Nuevo cliente` dentro del formulario de proyecto.
+- El cliente se crea sin cerrar el modal principal y queda seleccionado automáticamente.
+- Se añadió `+ Nueva persona` dentro del formulario de asignación de equipo.
+- La persona se registra en el workspace, queda seleccionada y puede asignarse inmediatamente.
+- Se incorporó persistencia local de personas creadas y validación de correos duplicados.
+- Se añadió el contrato `users.create` para Google Apps Script.
+- Se corrigió el fallback sintáctico del Portal del Cliente para evitar pantallas en blanco en paquetes completos.
+- Se actualizó el versionado de caché a `8.1.0`.

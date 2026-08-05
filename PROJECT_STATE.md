@@ -6,7 +6,7 @@ WonkUp Workspace
 
 ## Fase actual
 
-Entrega 8 - Dashboard ejecutivo y reportes
+Ajuste 8.1 - Altas rápidas contextuales
 
 ## Estado
 
@@ -22,21 +22,18 @@ EN REVISIÓN
 - Entrega 5 - Innovation Toolkit y Canvas Engine, incluido Ajuste 5.9.
 - Entrega 6 - Portal del cliente y entregables, incluido Hotfix 6.0.3.
 - Entrega 7 - Finanzas, horas y rentabilidad.
+- Entrega 8 - Dashboard ejecutivo y reportes.
 
-## Construido en esta entrega
+## Construido en este ajuste
 
-- Dashboard ejecutivo consolidado.
-- Reportes por workspace y Panel Maestro.
-- KPIs operativos, de entrega, horas y finanzas.
-- Cálculo de riesgo por proyecto.
-- Tendencia de ingresos, costos y horas.
-- Comparativo de proyectos.
-- Reporte de entregables.
-- Reporte financiero restringido.
-- Filtros por periodo y estado.
-- Exportación CSV.
-- Impresión y PDF A4 horizontal.
-- Sincronización con cambios de Entregables y Finanzas.
+- Alta rápida de clientes desde Nuevo proyecto.
+- Selección automática del cliente recién creado.
+- Alta rápida de personas desde Agregar miembro.
+- Selección y asignación inmediata de la persona registrada.
+- Persistencia local de personas por workspace.
+- Validación de nombre, correo y duplicados.
+- Contrato Apps Script `users.create`.
+- Corrección preventiva del Portal del Cliente.
 
 ## Fuente de datos vigente
 
@@ -49,4 +46,4 @@ EN REVISIÓN
 
 ## Próxima fase
 
-Entrega 9 - Seguridad, integraciones y publicación productiva.
+Entrega 9 - Cloud Foundation: Firebase Authentication, Firestore y migración híbrida sin terminal.

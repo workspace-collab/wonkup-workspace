@@ -12,18 +12,20 @@ import {
   canCreateProject,
   canEditProject,
   canManageClients,
+  canCreateWorkspaceUser,
   canManageProjectResources,
   canManageProjectTeam,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js';
+} from '../utils/permissions.js?v=8.1.0';
 
 const KEYS = Object.freeze({
   projects: 'wonkup.e3.projects',
   clients: 'wonkup.e3.clients',
   members: 'wonkup.e3.members',
   resources: 'wonkup.e3.resources',
-  milestones: 'wonkup.e3.milestones'
+  milestones: 'wonkup.e3.milestones',
+  users: 'wonkup.e8.users'
 });
 
 const wait = (milliseconds = 120) => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -70,7 +72,8 @@ function projectCode(workspaceId, projects) {
 
 function enrichProject(input) {
   const clients = read(KEYS.clients, demoClients);
-  const user = demoUsers.find(item => item.id === input.ownerUserId);
+  const users = read(KEYS.users, demoUsers);
+  const user = users.find(item => item.id === input.ownerUserId);
   const client = clients.find(item => item.id === input.clientId);
   const seed = demoProjects.find(item => item.id === input.id) || {};
   return {
@@ -292,22 +295,63 @@ export const MockProjectAdapter = {
   async listUsers({ workspaceId, session }) {
     await wait(60);
     requireWorkspace(session, workspaceId);
-    return clone(demoUsers.filter(user => user.status === 'active' && !['usr-cliente-taxi', 'usr-invitado'].includes(user.id)));
+    return clone(read(KEYS.users, demoUsers)
+      .filter(user => user.status === 'active')
+      .filter(user => !['client', 'guest'].includes(user.userType))
+      .filter(user => !['usr-cliente-taxi', 'usr-invitado'].includes(user.id))
+      .filter(user => !Array.isArray(user.workspaceIds) || !user.workspaceIds.length || user.workspaceIds.includes('*') || user.workspaceIds.includes(workspaceId)));
+  },
+
+  async createUser({ input, session }) {
+    await wait(140);
+    const workspaceId = String(input?.workspaceId || '').trim();
+    if (!canCreateWorkspaceUser(session, workspaceId)) throw new Error('Tu rol no permite registrar personas en este workspace.');
+    requireWorkspace(session, workspaceId);
+    const users = read(KEYS.users, demoUsers);
+    const name = String(input?.name || '').trim().replace(/\s+/g, ' ');
+    const email = String(input?.email || '').trim().toLowerCase();
+    if (name.length < 2) throw new Error('Escribe el nombre de la persona.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Escribe un correo válido.');
+    const duplicate = users.find(user => String(user.email || '').trim().toLowerCase() === email && user.status !== 'archived');
+    if (duplicate) throw new Error('Ya existe una persona registrada con ese correo.');
+    const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'US';
+    const now = new Date().toISOString();
+    const user = {
+      id: id('usr'),
+      name,
+      email,
+      initials,
+      status: 'active',
+      userType: 'internal',
+      workspaceIds: [workspaceId],
+      createdAt: now,
+      updatedAt: now
+    };
+    users.push(user);
+    write(KEYS.users, users);
+    return clone(user);
   },
 
   async listMembers({ projectId, session }) {
     await wait(70);
     const project = read(KEYS.projects, demoProjects).find(item => item.id === projectId);
     if (!project || !sessionCanSeeProject(project, session)) throw new Error('Proyecto no autorizado.');
+    const users = read(KEYS.users, demoUsers);
     return read(KEYS.members, demoProjectMembers)
       .filter(member => member.projectId === projectId && member.status === 'active')
-      .map(member => ({ ...member, user: clone(demoUsers.find(user => user.id === member.userId) || { name: 'Usuario', initials: 'US' }) }));
+      .map(member => ({ ...member, user: clone(users.find(user => user.id === member.userId) || { name: 'Usuario', initials: 'US' }) }));
   },
 
   async assignMember({ projectId, input, session }) {
     await wait(150);
     const project = read(KEYS.projects, demoProjects).find(item => item.id === projectId);
     if (!project || !canManageProjectTeam(session, projectId, project.workspaceId)) throw new Error('Tu rol no permite administrar el equipo.');
+    const users = read(KEYS.users, demoUsers);
+    const user = users.find(item => item.id === input.userId && item.status === 'active');
+    if (!user) throw new Error('La persona seleccionada no está disponible.');
+    if (Array.isArray(user.workspaceIds) && user.workspaceIds.length && !user.workspaceIds.includes('*') && !user.workspaceIds.includes(project.workspaceId)) {
+      throw new Error('La persona no pertenece a este workspace.');
+    }
     const members = read(KEYS.members, demoProjectMembers);
     const existing = members.find(item => item.projectId === projectId && item.userId === input.userId);
     if (existing) {

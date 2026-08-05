@@ -44,6 +44,9 @@ export const AppsScriptProjectAdapter = {
   listUsers({ workspaceId, session }) {
     return postAppsScript('users.listForWorkspace', withSession(session, { workspaceId }));
   },
+  createUser({ input, session }) {
+    return postAppsScript('users.create', withSession(session, { input }));
+  },
   listMembers({ projectId, session }) {
     return postAppsScript('projectMembers.list', withSession(session, { projectId }));
   },

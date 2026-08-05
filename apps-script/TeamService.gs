@@ -12,6 +12,51 @@ function listUsersForWorkspace_(payload) {
     });
 }
 
+
+function createUserForWorkspace_(payload) {
+  var session = requireSession_(payload.sessionToken);
+  var input = payload.input || {};
+  var workspaceId = String(input.workspaceId || '').trim();
+  assertWorkspaceAccess_(session, workspaceId);
+  if (['superadmin','workspace_admin','project_lead'].indexOf(String(session.role)) < 0) {
+    throw new Error('Tu rol no permite registrar personas en este workspace.');
+  }
+
+  var name = String(input.name || '').trim().replace(/\s+/g, ' ');
+  var email = String(input.email || '').trim().toLowerCase();
+  if (name.length < 2) throw new Error('Escribe el nombre de la persona.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Escribe un correo válido.');
+
+  var duplicate = findObject_(WONKUP_CONFIG.sheets.users, function(user) {
+    return String(user.email || '').trim().toLowerCase() === email && String(user.status) !== 'archived';
+  });
+  if (duplicate) throw new Error('Ya existe una persona registrada con ese correo.');
+
+  var initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(function(part) { return part.charAt(0); }).join('').toUpperCase() || 'US';
+  var now = nowIso_();
+  var userId = Utilities.getUuid();
+  appendObject_(WONKUP_CONFIG.sheets.users, {
+    id: userId,
+    display_name: name,
+    email: email,
+    initials: initials,
+    status: 'active',
+    created_at: now,
+    updated_at: now
+  });
+  appendObject_(WONKUP_CONFIG.sheets.workspaceMembers, {
+    id: Utilities.getUuid(),
+    workspace_id: workspaceId,
+    user_id: userId,
+    role: 'collaborator',
+    status: 'active',
+    created_at: now,
+    updated_at: now
+  });
+  audit_(session.user.id, 'workspace.user_created', 'user', userId, { workspaceId: workspaceId, email: email });
+  return { id: userId, name: name, email: email, initials: initials, status: 'active' };
+}
+
 function listProjectMembers_(payload) {
   var session = requireSession_(payload.sessionToken);
   if (isReadOnlyRole_(session)) throw new Error('Tu rol no permite consultar el equipo interno.');

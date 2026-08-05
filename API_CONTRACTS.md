@@ -212,3 +212,39 @@ subscribe(listener)
 - Los datos de rentabilidad solo se muestran a roles administrativos.
 - `period` acepta: `month`, `30d`, `90d`, `180d`, `year` y `all`.
 - `status` acepta los estados de proyecto o `all`.
+
+
+## Ajuste 8.1 - Altas rápidas contextuales
+
+### `users.create`
+
+Entrada:
+
+```json
+{
+  "input": {
+    "workspaceId": "w-agora",
+    "name": "Nueva persona",
+    "email": "persona@ejemplo.com"
+  }
+}
+```
+
+Registra una persona interna, crea su membresía básica en el workspace y devuelve:
+
+```json
+{
+  "id": "uuid",
+  "name": "Nueva persona",
+  "email": "persona@ejemplo.com",
+  "initials": "NP",
+  "status": "active"
+}
+```
+
+Reglas:
+
+- Disponible para `superadmin`, `workspace_admin` y `project_lead` con acceso al workspace.
+- El correo debe ser válido y único entre registros activos.
+- La creación no genera todavía una cuenta de Firebase Authentication ni envía invitaciones.
+- En modo mock se persiste en `localStorage`.

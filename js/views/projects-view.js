@@ -1,8 +1,8 @@
-import { ProjectService } from '../services/project-service.js';
+import { ProjectService } from '../services/project-service.js?v=8.1.0';
 import { canArchiveProject, canCreateProject, canEditProject } from '../utils/permissions.js';
 import { icon } from '../utils/icons.js';
 import { escapeHtml, formatDate } from '../utils/format.js';
-import { openProjectForm } from '../components/project-form.js';
+import { openProjectForm } from '../components/project-form.js?v=8.1.0';
 import { confirmModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 
