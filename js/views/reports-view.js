@@ -1,8 +1,8 @@
-import { ReportService } from '../services/report-service.js?v=9.0.0';
-import { canViewFinancials } from '../utils/permissions.js?v=9.0.0';
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { escapeHtml, formatCurrency, formatDate } from '../utils/format.js?v=9.0.0';
-import { showToast } from '../components/toast.js?v=9.0.0';
+import { ReportService } from '../services/report-service.js?v=9.0.4';
+import { canViewFinancials } from '../utils/permissions.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { escapeHtml, formatCurrency, formatDate } from '../utils/format.js?v=9.0.4';
+import { showToast } from '../components/toast.js?v=9.0.4';
 
 const STATUS_LABELS = {
   all: 'Todos los estados',

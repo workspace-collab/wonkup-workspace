@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.3';
-import { escapeHtml } from '../utils/format.js?v=9.0.0';
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { showToast } from '../components/toast.js?v=9.0.0';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=9.0.4';
+import { escapeHtml } from '../utils/format.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { showToast } from '../components/toast.js?v=9.0.4';
 
 let active = true;
 

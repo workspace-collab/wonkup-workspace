@@ -1,22 +1,18 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.1';
-import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=9.0.1';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=9.0.4';
+import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=9.0.4';
 
-let clientPromise = null;
-
-function normalizeConfigValue(value) {
-  return typeof value === 'string' ? value.trim() : value;
-}
+const CLIENT_PROMISE_KEY = '__WONKUP_FIREBASE_CLIENT_PROMISE__';
 
 function publicFirebaseConfig() {
   const source = API_CONFIG.firebase;
   return {
-    apiKey: normalizeConfigValue(source.apiKey),
-    authDomain: normalizeConfigValue(source.authDomain),
-    projectId: normalizeConfigValue(source.projectId),
-    storageBucket: normalizeConfigValue(source.storageBucket) || undefined,
-    messagingSenderId: normalizeConfigValue(source.messagingSenderId) || undefined,
-    appId: normalizeConfigValue(source.appId),
-    databaseURL: normalizeConfigValue(source.databaseURL) || undefined
+    apiKey: source.apiKey,
+    authDomain: source.authDomain,
+    projectId: source.projectId,
+    storageBucket: source.storageBucket || undefined,
+    messagingSenderId: source.messagingSenderId || undefined,
+    appId: source.appId,
+    databaseURL: source.databaseURL || undefined
   };
 }
 
@@ -24,10 +20,19 @@ function cleanUndefined(value) {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== ''));
 }
 
-export async function getFirebaseClient() {
-  if (clientPromise) return clientPromise;
+function isAlreadyInitializedError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('initializefirestore() has already been called')
+    || message.includes('already been called with different options')
+    || message.includes('failed-precondition');
+}
 
-  clientPromise = (async () => {
+export async function getFirebaseClient() {
+  const existingPromise = globalThis[CLIENT_PROMISE_KEY];
+  if (existingPromise) return existingPromise;
+
+  let sharedPromise;
+  sharedPromise = (async () => {
     const status = firebaseConfigStatus();
     if (!status.configured) {
       throw new Error(`Firebase todavía no está configurado. Faltan: ${status.missing.join(', ')}.`);
@@ -35,9 +40,6 @@ export async function getFirebaseClient() {
 
     const sdk = await loadFirebaseSdk({ appCheck: API_CONFIG.firebase.enableAppCheck });
     const config = cleanUndefined(publicFirebaseConfig());
-    if (!/^AIza[0-9A-Za-z_-]{30,}$/.test(config.apiKey || '')) {
-      throw new Error('La API key publica de Firebase no tiene un formato valido. Revisa js/config/runtime-config.js.');
-    }
     const app = sdk.app.getApps().length
       ? sdk.app.getApp()
       : sdk.app.initializeApp(config);
@@ -68,7 +70,13 @@ export async function getFirebaseClient() {
           localCache: sdk.firestore.memoryLocalCache()
         };
 
-    const db = sdk.firestore.initializeFirestore(app, firestoreSettings);
+    let db;
+    try {
+      db = sdk.firestore.initializeFirestore(app, firestoreSettings);
+    } catch (error) {
+      if (!isAlreadyInitializedError(error)) throw error;
+      db = sdk.firestore.getFirestore(app);
+    }
 
     return {
       sdk,
@@ -80,11 +88,14 @@ export async function getFirebaseClient() {
       persistentCache: API_CONFIG.firebase.enablePersistentCache
     };
   })().catch(error => {
-    clientPromise = null;
+    if (globalThis[CLIENT_PROMISE_KEY] === sharedPromise) {
+      delete globalThis[CLIENT_PROMISE_KEY];
+    }
     throw error;
   });
 
-  return clientPromise;
+  globalThis[CLIENT_PROMISE_KEY] = sharedPromise;
+  return sharedPromise;
 }
 
 export async function waitForFirebaseAuth() {
@@ -105,5 +116,5 @@ export async function waitForFirebaseAuth() {
 }
 
 export function resetFirebaseClientForTesting() {
-  clientPromise = null;
+  delete globalThis[CLIENT_PROMISE_KEY];
 }

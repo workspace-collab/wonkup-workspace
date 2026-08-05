@@ -1,8 +1,8 @@
 // Configuracion publica del frontend. No coloques claves privadas ni secretos aqui.
-// Hotfix 9.0.3: Firebase real, modo hibrido y migracion resiliente.
+// Hotfix 9.0.4: Firebase real, modo hibrido y migracion resiliente.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
-  release: '9.0.3',
+  release: '9.0.4',
   authMode: 'hybrid',
   projectMode: 'hybrid',
   kanbanMode: 'mock',

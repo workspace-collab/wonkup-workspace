@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.1';
+import { API_CONFIG } from '../config/api-config.js?v=9.0.4';
 
 let sdkPromise = null;
 

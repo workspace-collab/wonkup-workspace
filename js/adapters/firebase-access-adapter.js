@@ -1,5 +1,5 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.1';
-import { ROLE_LABELS } from '../utils/permissions.js?v=9.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=9.0.4';
+import { ROLE_LABELS } from '../utils/permissions.js?v=9.0.4';
 
 function sessionExpiry() {
   return new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString();
@@ -101,8 +101,7 @@ function friendlyError(error) {
     'auth/invalid-email': 'El correo no tiene un formato válido.',
     'auth/user-disabled': 'La cuenta fue desactivada.',
     'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos antes de volver a ingresar.',
-    'auth/network-request-failed': 'No se pudo conectar con Firebase.',
-    'auth/api-key-not-valid': 'La aplicacion cargo una API key de Firebase invalida. Recarga la version 9.0.1.'
+    'auth/network-request-failed': 'No se pudo conectar con Firebase.'
   };
   return new Error(messages[code] || error?.message || 'No se pudo iniciar sesión.');
 }

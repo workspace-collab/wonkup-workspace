@@ -1,17 +1,17 @@
-import { FinanceService } from '../services/finance-service.js?v=9.0.0';
+import { FinanceService } from '../services/finance-service.js?v=9.0.4';
 import {
   canConfigureProjectFinance,
   canLogProjectTime,
   canManageProjectFinance,
   canViewAllProjectTime,
   canViewProjectProfitability
-} from '../utils/permissions.js?v=9.0.0';
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { escapeHtml } from '../utils/format.js?v=9.0.0';
-import { normalizeText, normalizeUrl } from '../utils/validation.js?v=9.0.0';
-import { getEffectiveIncomeStatus } from '../utils/finance-calculations.js?v=9.0.0';
-import { openModal, confirmModal } from '../components/modal.js?v=9.0.0';
-import { showToast } from '../components/toast.js?v=9.0.0';
+} from '../utils/permissions.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { escapeHtml } from '../utils/format.js?v=9.0.4';
+import { normalizeText, normalizeUrl } from '../utils/validation.js?v=9.0.4';
+import { getEffectiveIncomeStatus } from '../utils/finance-calculations.js?v=9.0.4';
+import { openModal, confirmModal } from '../components/modal.js?v=9.0.4';
+import { showToast } from '../components/toast.js?v=9.0.4';
 
 const FINANCE_VERSION = '7.0.0';
 const TAB_KEY_PREFIX = 'wonkup.e7.finance.tab.';

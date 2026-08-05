@@ -1,4 +1,4 @@
-import { ProjectService } from '../services/project-service.js?v=9.0.0';
+import { ProjectService } from '../services/project-service.js?v=9.0.4';
 import {
   canArchiveProject,
   canEditProject,
@@ -8,16 +8,16 @@ import {
   canViewFinancials,
   canAccessProjectFinance,
   isReadOnlyRole
-} from '../utils/permissions.js?v=9.0.0';
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js?v=9.0.0';
-import { isValidEmail, normalizeText, normalizeUrl } from '../utils/validation.js?v=9.0.0';
-import { renderKanban } from './kanban-view.js?v=9.0.0';
-import { renderToolkit } from './toolkit-view.js?v=9.0.0';
-import { renderDeliverables } from './deliverables-view.js?v=9.0.0';
-import { openProjectForm } from '../components/project-form.js?v=9.0.0';
-import { confirmModal, openModal } from '../components/modal.js?v=9.0.0';
-import { showToast } from '../components/toast.js?v=9.0.0';
+} from '../utils/permissions.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js?v=9.0.4';
+import { isValidEmail, normalizeText, normalizeUrl } from '../utils/validation.js?v=9.0.4';
+import { renderKanban } from './kanban-view.js?v=9.0.4';
+import { renderToolkit } from './toolkit-view.js?v=9.0.4';
+import { renderDeliverables } from './deliverables-view.js?v=9.0.4';
+import { openProjectForm } from '../components/project-form.js?v=9.0.4';
+import { confirmModal, openModal } from '../components/modal.js?v=9.0.4';
+import { showToast } from '../components/toast.js?v=9.0.4';
 
 const baseTabs = [
   ['summary', 'Resumen'],
@@ -176,7 +176,7 @@ function renderTab(slot, project, tab, session) {
     finance: async () => {
       slot.innerHTML = loadingTab('Cargando módulo financiero...');
       try {
-        const module = await import('./finance-view.js?v=9.0.0');
+        const module = await import('./finance-view.js?v=9.0.4');
         if (!slot.isConnected) return;
         module.renderFinance(slot, project, session);
       } catch (error) {

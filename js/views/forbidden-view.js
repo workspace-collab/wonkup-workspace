@@ -1,5 +1,5 @@
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { getDefaultRoute } from '../utils/permissions.js?v=9.0.0';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { getDefaultRoute } from '../utils/permissions.js?v=9.0.4';
 
 export function renderForbidden(container, session) {
   container.innerHTML = `

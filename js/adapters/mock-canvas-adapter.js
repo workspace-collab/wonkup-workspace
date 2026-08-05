@@ -1,7 +1,7 @@
-import { demoCanvasInstances } from '../../data/demo-canvases.js?v=9.0.0';
-import { getCanvasTemplate } from '../../data/canvas-templates.js?v=9.0.0';
-import { demoUsers } from '../../data/demo-users.js?v=9.0.0';
-import { canAccessProject, canDeleteCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=9.0.0';
+import { demoCanvasInstances } from '../../data/demo-canvases.js?v=9.0.4';
+import { getCanvasTemplate } from '../../data/canvas-templates.js?v=9.0.4';
+import { demoUsers } from '../../data/demo-users.js?v=9.0.4';
+import { canAccessProject, canDeleteCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=9.0.4';
 
 const STORAGE_KEY = 'wonkup.e5.canvases';
 const PRESENCE_KEY = 'wonkup.e5.canvas-presence';

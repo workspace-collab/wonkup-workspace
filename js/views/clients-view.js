@@ -1,11 +1,11 @@
-import { ProjectService } from '../services/project-service.js?v=9.0.0';
-import { canManageClients } from '../utils/permissions.js?v=9.0.0';
-import { escapeHtml } from '../utils/format.js?v=9.0.0';
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { openModal, confirmModal } from '../components/modal.js?v=9.0.0';
-import { showToast } from '../components/toast.js?v=9.0.0';
-import { normalizeText, isValidEmail } from '../utils/validation.js?v=9.0.0';
-import { DemoService } from '../services/demo-service.js?v=9.0.0';
+import { ProjectService } from '../services/project-service.js?v=9.0.4';
+import { canManageClients } from '../utils/permissions.js?v=9.0.4';
+import { escapeHtml } from '../utils/format.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { openModal, confirmModal } from '../components/modal.js?v=9.0.4';
+import { showToast } from '../components/toast.js?v=9.0.4';
+import { normalizeText, isValidEmail } from '../utils/validation.js?v=9.0.4';
+import { DemoService } from '../services/demo-service.js?v=9.0.4';
 
 export function renderClients(container, workspaceId, session) {
   const manageable = canManageClients(session);

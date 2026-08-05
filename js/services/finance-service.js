@@ -1,7 +1,7 @@
-import { API_CONFIG } from '../config/api-config.js?v=9.0.0';
-import { MockFinanceAdapter } from '../adapters/mock-finance-adapter.js?v=9.0.0';
-import { AppsScriptFinanceAdapter } from '../adapters/apps-script-finance-adapter.js?v=9.0.0';
-import { FirebaseFinanceAdapter } from '../adapters/firebase-finance-adapter.js?v=9.0.0';
+import { API_CONFIG } from '../config/api-config.js?v=9.0.4';
+import { MockFinanceAdapter } from '../adapters/mock-finance-adapter.js?v=9.0.4';
+import { AppsScriptFinanceAdapter } from '../adapters/apps-script-finance-adapter.js?v=9.0.4';
+import { FirebaseFinanceAdapter } from '../adapters/firebase-finance-adapter.js?v=9.0.4';
 
 function adapter() {
   if (API_CONFIG.financeMode === 'apps-script') return AppsScriptFinanceAdapter;

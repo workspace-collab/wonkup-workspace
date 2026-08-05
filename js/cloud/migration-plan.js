@@ -1,8 +1,8 @@
-import { demoWorkspaces } from '../../data/demo-workspaces.js?v=9.0.0';
-import { demoProjects } from '../../data/demo-projects.js?v=9.0.0';
-import { demoClients } from '../../data/demo-clients.js?v=9.0.0';
-import { demoUsers } from '../../data/demo-users.js?v=9.0.0';
-import { demoProjectMembers } from '../../data/demo-project-members.js?v=9.0.0';
+import { demoWorkspaces } from '../../data/demo-workspaces.js?v=9.0.4';
+import { demoProjects } from '../../data/demo-projects.js?v=9.0.4';
+import { demoClients } from '../../data/demo-clients.js?v=9.0.4';
+import { demoUsers } from '../../data/demo-users.js?v=9.0.4';
+import { demoProjectMembers } from '../../data/demo-project-members.js?v=9.0.4';
 
 const STORAGE_KEYS = Object.freeze({
   projects: 'wonkup.e3.projects',

@@ -1,10 +1,10 @@
-import { ProjectService } from '../services/project-service.js?v=9.0.0';
-import { canArchiveProject, canCreateProject, canEditProject } from '../utils/permissions.js?v=9.0.0';
-import { icon } from '../utils/icons.js?v=9.0.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.0';
-import { openProjectForm } from '../components/project-form.js?v=9.0.0';
-import { confirmModal } from '../components/modal.js?v=9.0.0';
-import { showToast } from '../components/toast.js?v=9.0.0';
+import { ProjectService } from '../services/project-service.js?v=9.0.4';
+import { canArchiveProject, canCreateProject, canEditProject } from '../utils/permissions.js?v=9.0.4';
+import { icon } from '../utils/icons.js?v=9.0.4';
+import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.4';
+import { openProjectForm } from '../components/project-form.js?v=9.0.4';
+import { confirmModal } from '../components/modal.js?v=9.0.4';
+import { showToast } from '../components/toast.js?v=9.0.4';
 
 const STATUS = Object.freeze({
   draft: ['Borrador', 'badge-gray'],
