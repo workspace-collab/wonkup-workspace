@@ -1,4 +1,4 @@
-import { icon } from '../utils/icons.js';
+import { icon } from '../utils/icons.js?v=9.0.0';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',

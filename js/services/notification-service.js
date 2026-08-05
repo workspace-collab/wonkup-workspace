@@ -1,5 +1,5 @@
-import { demoNotifications } from '../../data/demo-notifications.js';
-import { canAccessProject, canAccessWorkspace, canViewMaster, isReadOnlyRole } from '../utils/permissions.js';
+import { demoNotifications } from '../../data/demo-notifications.js?v=9.0.0';
+import { canAccessProject, canAccessWorkspace, canViewMaster, isReadOnlyRole } from '../utils/permissions.js?v=9.0.0';
 
 const STORAGE_PREFIX = 'wonkup.notifications.read.';
 

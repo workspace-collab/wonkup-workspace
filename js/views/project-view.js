@@ -1,4 +1,4 @@
-import { ProjectService } from '../services/project-service.js?v=8.1.0';
+import { ProjectService } from '../services/project-service.js?v=9.0.0';
 import {
   canArchiveProject,
   canEditProject,
@@ -8,16 +8,16 @@ import {
   canViewFinancials,
   canAccessProjectFinance,
   isReadOnlyRole
-} from '../utils/permissions.js?v=8.1.0';
-import { icon } from '../utils/icons.js';
-import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js';
-import { isValidEmail, normalizeText, normalizeUrl } from '../utils/validation.js';
-import { renderKanban } from './kanban-view.js';
-import { renderToolkit } from './toolkit-view.js';
-import { renderDeliverables } from './deliverables-view.js';
-import { openProjectForm } from '../components/project-form.js?v=8.1.0';
-import { confirmModal, openModal } from '../components/modal.js';
-import { showToast } from '../components/toast.js';
+} from '../utils/permissions.js?v=9.0.0';
+import { icon } from '../utils/icons.js?v=9.0.0';
+import { escapeHtml, formatDate, formatCurrency } from '../utils/format.js?v=9.0.0';
+import { isValidEmail, normalizeText, normalizeUrl } from '../utils/validation.js?v=9.0.0';
+import { renderKanban } from './kanban-view.js?v=9.0.0';
+import { renderToolkit } from './toolkit-view.js?v=9.0.0';
+import { renderDeliverables } from './deliverables-view.js?v=9.0.0';
+import { openProjectForm } from '../components/project-form.js?v=9.0.0';
+import { confirmModal, openModal } from '../components/modal.js?v=9.0.0';
+import { showToast } from '../components/toast.js?v=9.0.0';
 
 const baseTabs = [
   ['summary', 'Resumen'],
@@ -176,7 +176,7 @@ function renderTab(slot, project, tab, session) {
     finance: async () => {
       slot.innerHTML = loadingTab('Cargando módulo financiero...');
       try {
-        const module = await import('./finance-view.js?v=7.0.0');
+        const module = await import('./finance-view.js?v=9.0.0');
         if (!slot.isConnected) return;
         module.renderFinance(slot, project, session);
       } catch (error) {

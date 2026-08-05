@@ -1,14 +1,14 @@
-import { icon } from '../utils/icons.js';
-import { DemoService } from '../services/demo-service.js';
-import { AccessService } from '../services/access-service.js';
-import { NotificationService } from '../services/notification-service.js';
-import { GlobalSearchService } from '../services/global-search-service.js?v=6.0.0';
-import { getState, setState, clearSession } from '../state/store.js';
-import { showToast } from './toast.js';
-import { confirmModal } from './modal.js';
-import { escapeHtml } from '../utils/format.js';
-import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js';
-import { canCreateProject, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=8.0.0';
+import { icon } from '../utils/icons.js?v=9.0.0';
+import { DemoService } from '../services/demo-service.js?v=9.0.0';
+import { AccessService } from '../services/access-service.js?v=9.0.0';
+import { NotificationService } from '../services/notification-service.js?v=9.0.0';
+import { GlobalSearchService } from '../services/global-search-service.js?v=9.0.0';
+import { getState, setState, clearSession } from '../state/store.js?v=9.0.0';
+import { showToast } from './toast.js?v=9.0.0';
+import { confirmModal } from './modal.js?v=9.0.0';
+import { escapeHtml } from '../utils/format.js?v=9.0.0';
+import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=9.0.0';
+import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=9.0.0';
 
 const internalNavItems = [
   ['dashboard', 'Dashboard', 'home', null, true],
@@ -20,6 +20,7 @@ const internalNavItems = [
   ['clients', 'Clientes', 'user', null, true],
   ['documents', 'Documentos', 'file', null, false],
   ['reports', 'Reportes', 'chart', null, true],
+  ['cloud', 'Cloud Foundation', 'cloud', '#/master/cloud', true],
   ['settings', 'Configuración', 'settings', null, false]
 ];
 
@@ -89,7 +90,9 @@ export function renderShell(route = null) {
 
   const active = route?.view === 'canvas' ? 'toolkit' : (route?.view === 'clientPortal' ? 'clientPortal' : (route?.view || 'dashboard'));
   const readOnly = isReadOnlyRole(session);
-  const navItems = readOnly ? createReadOnlyNav(session) : internalNavItems;
+  const navItems = readOnly
+    ? createReadOnlyNav(session)
+    : internalNavItems.filter(item => item[0] !== 'cloud' || canManageCloudFoundation(session));
   const notifications = NotificationService.list(session);
   const unreadCount = notifications.filter(item => !item.read).length;
 

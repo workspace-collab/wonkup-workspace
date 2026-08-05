@@ -1,5 +1,23 @@
 # Changelog
 
+## Entrega 9 — Cloud Foundation
+
+- Se incorporó Firebase Authentication con acceso por correo y contraseña.
+- Se agregó modo híbrido para conservar los códigos demo durante la migración.
+- Se incorporó Cloud Firestore como base operativa para workspaces, clientes, personas y proyectos.
+- Se agregó adaptador Firebase para proyectos, miembros, recursos e hitos.
+- Se publicaron reglas de seguridad por UID, workspace, proyecto y rol.
+- Se añadió el módulo superadministrativo Cloud Foundation.
+- Se agregó diagnóstico de configuración, SDK, Auth, perfil, Firestore, caché y App Check.
+- Se incorporó respaldo JSON obligatorio antes de migrar.
+- Se incorporó plan de migración determinista, simulación, lotes de 400, auditoría y verificación.
+- Se agregó activación de usuarios reales por UID con mínimo privilegio.
+- Se añadió configuración de App Check con reCAPTCHA Enterprise, desactivada por defecto.
+- Se mantuvo la persistencia web en memoria por tratar datos sensibles.
+- Se agregó un bootstrap resiliente que muestra diagnóstico ante errores de módulos.
+- Se versionaron los recursos locales con `9.0.0` para evitar caché obsoleta en GitHub Pages.
+- Kanban, Canvas, Entregables y Finanzas permanecen en modo mock.
+
 ## 0.4.2 - Ajuste 4.2: responsive, accesibilidad y endurecimiento UI
 
 ### Criticos corregidos

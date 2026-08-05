@@ -1,7 +1,7 @@
-import { API_CONFIG } from '../config/api-config.js';
-import { defaultKanbanColumns } from '../../data/demo-kanban.js';
-import { demoUsers } from '../../data/demo-users.js';
-import { canAccessProject, canEditKanban } from '../utils/permissions.js';
+import { API_CONFIG } from '../config/api-config.js?v=9.0.0';
+import { defaultKanbanColumns } from '../../data/demo-kanban.js?v=9.0.0';
+import { demoUsers } from '../../data/demo-users.js?v=9.0.0';
+import { canAccessProject, canEditKanban } from '../utils/permissions.js?v=9.0.0';
 
 const SDK_VERSION = '10.12.5';
 let runtimePromise = null;

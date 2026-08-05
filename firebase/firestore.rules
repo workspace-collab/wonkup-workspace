@@ -5,127 +5,282 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function workspaceMember(workspaceId) {
-      return signedIn() && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
     }
 
-    function workspaceRole(workspaceId) {
-      return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role;
+    function hasActiveProfile() {
+      return signedIn()
+        && exists(userPath(request.auth.uid))
+        && get(userPath(request.auth.uid)).data.status == 'active';
     }
 
-    function projectMember(workspaceId, projectId) {
-      return workspaceMember(workspaceId) && (
-        workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'] ||
-        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/projects/$(projectId)/members/$(request.auth.uid))
+    function isSuperadmin() {
+      return hasActiveProfile()
+        && get(userPath(request.auth.uid)).data.role == 'superadmin';
+    }
+
+    function workspaceMemberPath(workspaceId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid);
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return isSuperadmin() || (
+        hasActiveProfile()
+        && exists(workspaceMemberPath(workspaceId))
+        && get(workspaceMemberPath(workspaceId)).data.status == 'active'
       );
     }
 
-    function internalRole(workspaceId) {
-      return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator'];
+    function workspaceRole(workspaceId) {
+      return isSuperadmin()
+        ? 'superadmin'
+        : get(workspaceMemberPath(workspaceId)).data.role;
+    }
+
+    function isWorkspaceAdmin(workspaceId) {
+      return isWorkspaceMember(workspaceId)
+        && workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'];
+    }
+
+    function isWorkspaceInternal(workspaceId) {
+      return isWorkspaceMember(workspaceId)
+        && workspaceRole(workspaceId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator'];
+    }
+
+    function projectMemberPath(workspaceId, projectId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/projects/$(projectId)/members/$(request.auth.uid);
+    }
+
+    function isDirectProjectMember(workspaceId, projectId) {
+      return hasActiveProfile()
+        && exists(projectMemberPath(workspaceId, projectId))
+        && get(projectMemberPath(workspaceId, projectId)).data.status == 'active';
     }
 
     function projectRole(workspaceId, projectId) {
-      return get(/databases/$(database)/documents/workspaces/$(workspaceId)/projects/$(projectId)/members/$(request.auth.uid)).data.role;
+      return isWorkspaceAdmin(workspaceId)
+        ? workspaceRole(workspaceId)
+        : get(projectMemberPath(workspaceId, projectId)).data.role;
     }
 
-    function financeManager(workspaceId, projectId) {
-      return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'] ||
-        projectRole(workspaceId, projectId) == 'project_lead';
+    function canReadProject(workspaceId, projectId) {
+      return isWorkspaceAdmin(workspaceId) || isDirectProjectMember(workspaceId, projectId);
     }
 
-    function financeAdmin(workspaceId) {
-      return workspaceRole(workspaceId) in ['superadmin', 'workspace_admin'];
+    function isInternalProjectUser(workspaceId, projectId) {
+      return canReadProject(workspaceId, projectId)
+        && projectRole(workspaceId, projectId) in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator'];
     }
 
-    match /workspaces/{workspaceId}/members/{userId} {
-      allow read: if signedIn() && request.auth.uid == userId;
-      allow write: if false;
+    function canLeadProject(workspaceId, projectId) {
+      return canReadProject(workspaceId, projectId)
+        && projectRole(workspaceId, projectId) in ['superadmin', 'workspace_admin', 'project_lead'];
     }
 
-    match /workspaces/{workspaceId}/projects/{projectId}/members/{userId} {
-      allow read: if signedIn() && request.auth.uid == userId;
-      allow write: if false;
+    function validWorkspaceDocument(workspaceId) {
+      return request.resource.data.id == workspaceId
+        && request.resource.data.name is string
+        && request.resource.data.status in ['active', 'inactive', 'archived'];
     }
 
-    match /workspaces/{workspaceId}/projects/{projectId}/boards/{boardId} {
-      allow read: if projectMember(workspaceId, projectId);
-      allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-      allow delete: if false;
+    function validProjectDocument(workspaceId, projectId) {
+      return request.resource.data.id == projectId
+        && request.resource.data.workspaceId == workspaceId
+        && request.resource.data.name is string
+        && request.resource.data.status in ['draft', 'planned', 'active', 'pending_client', 'on_hold', 'blocked', 'completed', 'archived'];
+    }
 
-      match /cards/{cardId} {
-        allow read: if projectMember(workspaceId, projectId);
-        allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow delete: if false;
+    function validMembership(workspaceId) {
+      return request.resource.data.workspaceId == workspaceId
+        && request.resource.data.authUid is string
+        && request.resource.data.role in ['superadmin', 'workspace_admin', 'project_lead', 'collaborator', 'client', 'guest']
+        && request.resource.data.status in ['active', 'inactive', 'pending'];
+    }
+
+    match /users/{userId} {
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSuperadmin());
+      allow create, delete: if isSuperadmin();
+      allow update: if isSuperadmin() || (
+        hasActiveProfile()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'initials', 'photoURL', 'lastSeenAt', 'updatedAt'
+        ])
+      );
+    }
+
+    match /system/{documentId} {
+      allow read, write: if isSuperadmin();
+
+      match /migrations/{migrationId} {
+        allow read, write: if isSuperadmin();
+      }
+
+      match /userActivations/{activationId} {
+        allow read, write: if isSuperadmin();
       }
     }
 
-
-    match /workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId} {
-      allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-      allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+    match /workspaces/{workspaceId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if isSuperadmin() && validWorkspaceDocument(workspaceId);
+      allow update: if isWorkspaceAdmin(workspaceId) && validWorkspaceDocument(workspaceId);
       allow delete: if false;
 
-      match /notes/{noteId} {
-        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+      match /members/{memberId} {
+        allow read: if isWorkspaceAdmin(workspaceId) || (signedIn() && request.auth.uid == memberId);
+        allow create, update: if isWorkspaceAdmin(workspaceId)
+          && validMembership(workspaceId)
+          && (request.resource.data.role != 'superadmin' || isSuperadmin());
+        allow delete: if false;
+      }
+
+      match /people/{personId} {
+        allow read: if isWorkspaceInternal(workspaceId);
+        allow create, update: if isWorkspaceMember(workspaceId)
+          && workspaceRole(workspaceId) in ['superadmin', 'workspace_admin', 'project_lead']
+          && request.resource.data.workspaceId == workspaceId
+          && request.resource.data.id == personId;
+        allow delete: if false;
+      }
+
+      match /clients/{clientId} {
+        allow read: if isWorkspaceInternal(workspaceId);
+        allow create, update: if isWorkspaceAdmin(workspaceId)
+          && request.resource.data.workspaceId == workspaceId
+          && request.resource.data.id == clientId;
+        allow delete: if false;
+      }
+
+      match /projects/{projectId} {
+        allow read: if canReadProject(workspaceId, projectId);
+        allow create: if isWorkspaceAdmin(workspaceId) && validProjectDocument(workspaceId, projectId);
+        allow update: if canLeadProject(workspaceId, projectId) && validProjectDocument(workspaceId, projectId);
         allow delete: if false;
 
-        match /comments/{commentId} {
-          allow read, create, update: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
+        match /members/{memberId} {
+          allow read: if isInternalProjectUser(workspaceId, projectId)
+            || (signedIn() && request.auth.uid == memberId);
+          allow create, update: if canLeadProject(workspaceId, projectId)
+            && request.resource.data.workspaceId == workspaceId
+            && request.resource.data.projectId == projectId
+            && request.resource.data.role in ['project_lead', 'collaborator', 'client', 'guest']
+            && request.resource.data.status in ['active', 'inactive', 'pending'];
           allow delete: if false;
         }
-      }
 
-      match /history/{eventId} {
-        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow create: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow update, delete: if false;
-      }
+        match /resources/{resourceId} {
+          allow read: if isInternalProjectUser(workspaceId, projectId)
+            || (canReadProject(workspaceId, projectId) && resource.data.visibility == 'client');
+          allow create, update: if isInternalProjectUser(workspaceId, projectId)
+            && request.resource.data.workspaceId == workspaceId
+            && request.resource.data.projectId == projectId;
+          allow delete: if false;
+        }
 
+        match /milestones/{milestoneId} {
+          allow read: if isInternalProjectUser(workspaceId, projectId)
+            || (canReadProject(workspaceId, projectId) && resource.data.visibility == 'client');
+          allow create, update: if canLeadProject(workspaceId, projectId)
+            && request.resource.data.workspaceId == workspaceId
+            && request.resource.data.projectId == projectId;
+          allow delete: if false;
+        }
 
-      match /versions/{versionId} {
-        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow create: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow update, delete: if false;
-      }
+        match /boards/{boardId} {
+          allow read: if isInternalProjectUser(workspaceId, projectId);
+          allow create, update: if isInternalProjectUser(workspaceId, projectId);
+          allow delete: if false;
 
-      match /shareLinks/{shareId} {
-        // Los enlaces públicos deben emitirse y revocarse desde un backend confiable.
-        allow read, write: if false;
+          match /cards/{cardId} {
+            allow read, create, update: if isInternalProjectUser(workspaceId, projectId);
+            allow delete: if isWorkspaceAdmin(workspaceId);
+          }
+        }
+
+        match /canvases/{canvasId} {
+          allow read, create, update: if isInternalProjectUser(workspaceId, projectId);
+          allow delete: if false;
+
+          match /notes/{noteId} {
+            allow read, create, update: if isInternalProjectUser(workspaceId, projectId);
+            allow delete: if false;
+
+            match /comments/{commentId} {
+              allow read, create, update: if isInternalProjectUser(workspaceId, projectId);
+              allow delete: if false;
+            }
+          }
+
+          match /history/{eventId} {
+            allow read, create: if isInternalProjectUser(workspaceId, projectId);
+            allow update, delete: if false;
+          }
+
+          match /versions/{versionId} {
+            allow read, create: if isInternalProjectUser(workspaceId, projectId);
+            allow update, delete: if false;
+          }
+
+          match /shareLinks/{shareId} {
+            allow read, write: if false;
+          }
+        }
+
+        match /deliverables/{deliverableId} {
+          allow read: if isInternalProjectUser(workspaceId, projectId)
+            || (canReadProject(workspaceId, projectId) && resource.data.visibility == 'client');
+          allow create, update: if isInternalProjectUser(workspaceId, projectId);
+          allow delete: if false;
+
+          match /comments/{commentId} {
+            allow read: if canReadProject(workspaceId, projectId);
+            allow create: if canReadProject(workspaceId, projectId)
+              && projectRole(workspaceId, projectId) != 'guest';
+            allow update: if isInternalProjectUser(workspaceId, projectId)
+              || (signedIn() && resource.data.authUid == request.auth.uid);
+            allow delete: if false;
+          }
+
+          match /versions/{versionId} {
+            allow read: if canReadProject(workspaceId, projectId);
+            allow create, update: if isInternalProjectUser(workspaceId, projectId);
+            allow delete: if false;
+          }
+        }
+
+        match /finance/{financeId} {
+          allow read: if isInternalProjectUser(workspaceId, projectId);
+          allow create, update: if canLeadProject(workspaceId, projectId);
+          allow delete: if false;
+
+          match /incomes/{incomeId} {
+            allow read: if isInternalProjectUser(workspaceId, projectId);
+            allow create, update: if canLeadProject(workspaceId, projectId);
+            allow delete: if false;
+          }
+
+          match /costs/{costId} {
+            allow read: if isInternalProjectUser(workspaceId, projectId);
+            allow create, update: if canLeadProject(workspaceId, projectId);
+            allow delete: if false;
+          }
+
+          match /timeEntries/{entryId} {
+            allow read: if isInternalProjectUser(workspaceId, projectId);
+            allow create: if isInternalProjectUser(workspaceId, projectId);
+            allow update: if canLeadProject(workspaceId, projectId)
+              || (signedIn() && resource.data.authUid == request.auth.uid);
+            allow delete: if false;
+          }
+
+          match /rates/{rateId} {
+            allow read, create, update: if isWorkspaceAdmin(workspaceId);
+            allow delete: if false;
+          }
+        }
       }
     }
-
-    match /workspaces/{workspaceId}/projects/{projectId}/finance/{financeId} {
-      allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-      allow create, update: if projectMember(workspaceId, projectId) && financeManager(workspaceId, projectId);
-      allow delete: if false;
-
-      match /incomes/{incomeId} {
-        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow create, update: if projectMember(workspaceId, projectId) && financeManager(workspaceId, projectId);
-        allow delete: if false;
-      }
-
-      match /costs/{costId} {
-        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow create, update: if projectMember(workspaceId, projectId) && financeManager(workspaceId, projectId);
-        allow delete: if false;
-      }
-
-      match /timeEntries/{entryId} {
-        allow read: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow create: if projectMember(workspaceId, projectId) && internalRole(workspaceId);
-        allow update, delete: if projectMember(workspaceId, projectId) && (
-          financeManager(workspaceId, projectId) ||
-          resource.data.userId == request.auth.uid
-        );
-      }
-
-      match /rates/{rateId} {
-        allow read, create, update: if projectMember(workspaceId, projectId) && financeAdmin(workspaceId);
-        allow delete: if false;
-      }
-    }
-
   }
 }

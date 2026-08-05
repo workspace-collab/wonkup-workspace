@@ -459,3 +459,91 @@ Validar:
 - [ ] Líder ve reportes operativos sin rentabilidad.
 - [ ] Colaborador ve únicamente su alcance autorizado.
 - [ ] Cliente e invitado no acceden a Reportes.
+
+# Entrega 9 — Cloud Foundation
+
+## Regresión local antes de configurar Firebase
+
+- [ ] La aplicación abre sin pantalla en blanco.
+- [ ] `WONKUP-ADMIN` conserva acceso completo.
+- [ ] Códigos de workspace, líder, cliente e invitado continúan funcionando.
+- [ ] Proyectos y altas rápidas funcionan en modo mock.
+- [ ] Kanban funciona en modo mock.
+- [ ] Canvas Engine funciona en modo mock.
+- [ ] Entregables funcionan en modo mock.
+- [ ] Finanzas y Reportes funcionan en modo mock/agregado.
+- [ ] Cloud Foundation solo aparece para superadmin.
+- [ ] Exportar respaldo descarga JSON.
+- [ ] Simular migración reporta cero rutas duplicadas.
+- [ ] Simular activación reporta solo las rutas autorizadas.
+
+## Firebase Console
+
+- [ ] Proyecto Firebase creado.
+- [ ] App Web registrada sin Firebase Hosting.
+- [ ] Firestore creado en ubicación revisada y aprobada.
+- [ ] `firebase/firestore.rules` publicado.
+- [ ] Rules Playground rechaza acceso anónimo.
+- [ ] Authentication Email/Password habilitado.
+- [ ] Política de contraseña configurada.
+- [ ] Primera cuenta administrativa creada.
+- [ ] Perfil `users/{uid}` creado con rol `superadmin` y estado `active`.
+- [ ] Dominio de GitHub Pages autorizado en Authentication.
+
+## Diagnóstico
+
+- [ ] Configuración pública correcta.
+- [ ] SDK 12.16.0 carga desde CDN.
+- [ ] Firebase App se inicializa.
+- [ ] Authentication inicia sesión.
+- [ ] Perfil Firestore es legible.
+- [ ] Documento `system/schema` es accesible o figura pendiente antes de migrar.
+- [ ] Persistencia en disco permanece desactivada.
+- [ ] App Check aparece preparado y no forzado.
+
+## Migración
+
+- [ ] Respaldo descargado y almacenado fuera del navegador.
+- [ ] Workspaces correctos seleccionados.
+- [ ] Conjuntos de datos correctos seleccionados.
+- [ ] Simulación revisada.
+- [ ] Cero rutas duplicadas.
+- [ ] Migración completada sin errores de permisos.
+- [ ] `system/schema` creado.
+- [ ] Auditoría de migración creada.
+- [ ] Verificación devuelve cantidades esperadas.
+- [ ] Repetir migración no genera documentos duplicados.
+
+## Modo híbrido
+
+- [ ] Código demo sigue leyendo datos locales.
+- [ ] Cuenta Firebase lee proyectos Firestore.
+- [ ] Crear proyecto con cuenta Firebase persiste en Firestore.
+- [ ] Editar proyecto con cuenta Firebase persiste en Firestore.
+- [ ] Cliente y persona nuevos persisten en el workspace correcto.
+- [ ] Proyecto creado desde navegador A aparece en navegador B.
+- [ ] Cambiar a `projectMode: 'mock'` restaura el comportamiento local.
+
+## Usuarios y permisos
+
+- [ ] Usuario creado previamente en Firebase Authentication.
+- [ ] UID copiado correctamente.
+- [ ] Simular permisos muestra perfil y membresías esperadas.
+- [ ] Un proyecto fuera del workspace seleccionado es rechazado.
+- [ ] Roles de proyecto requieren al menos un proyecto.
+- [ ] Activación crea auditoría.
+- [ ] Workspace admin no obtiene otros workspaces.
+- [ ] Líder no obtiene otros proyectos.
+- [ ] Colaborador no administra configuración.
+- [ ] Cliente no ve información interna ni financiera.
+- [ ] Invitado permanece en lectura limitada.
+- [ ] Cuenta sin perfil activo es rechazada.
+
+## Seguridad posterior
+
+- [ ] API key restringida a APIs de Firebase.
+- [ ] No existen claves privadas en GitHub.
+- [ ] No existe clave de Gemini en el frontend.
+- [ ] App Check se registra primero sin enforcement.
+- [ ] Métricas App Check se observan antes de forzar.
+- [ ] Persistencia web solo se habilita con confirmación de dispositivo confiable.

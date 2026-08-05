@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api-config.js';
+import { API_CONFIG } from '../config/api-config.js?v=9.0.0';
 
 export async function postAppsScript(action, payload = {}) {
   if (!API_CONFIG.appsScriptUrl) {

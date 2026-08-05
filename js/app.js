@@ -1,21 +1,22 @@
-import { createAppShell, renderShell } from './components/app-shell.js?v=8.0.0';
-import { startRouter } from './router.js?v=8.0.0';
-import { getState, subscribe, setState, setSession, clearSession } from './state/store.js';
-import { AccessService } from './services/access-service.js';
-import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=8.0.0';
-import { renderAccess } from './views/access-view.js';
-import { renderForbidden } from './views/forbidden-view.js';
-import { renderDashboard } from './views/dashboard-view.js?v=8.0.0';
-import { renderProjects } from './views/projects-view.js?v=8.1.0';
-import { renderProject } from './views/project-view.js?v=8.1.0';
-import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=6.0.0';
-import { renderKanban, cleanupKanbanView } from './views/kanban-view.js';
-import { renderPlaceholder } from './views/placeholder-view.js';
-import { renderClients } from './views/clients-view.js';
-import { renderClientPortal } from './views/client-portal-view.js?v=8.1.0';
-import { renderReports, cleanupReportsView } from './views/reports-view.js?v=8.0.0';
-import { icon } from './utils/icons.js';
+import { createAppShell, renderShell } from './components/app-shell.js?v=9.0.0';
+import { startRouter } from './router.js?v=9.0.0';
+import { getState, subscribe, setState, setSession, clearSession } from './state/store.js?v=9.0.0';
+import { AccessService } from './services/access-service.js?v=9.0.0';
+import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=9.0.0';
+import { renderAccess } from './views/access-view.js?v=9.0.0';
+import { renderForbidden } from './views/forbidden-view.js?v=9.0.0';
+import { renderDashboard } from './views/dashboard-view.js?v=9.0.0';
+import { renderProjects } from './views/projects-view.js?v=9.0.0';
+import { renderProject } from './views/project-view.js?v=9.0.0';
+import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js?v=9.0.0';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=9.0.0';
+import { renderKanban, cleanupKanbanView } from './views/kanban-view.js?v=9.0.0';
+import { renderPlaceholder } from './views/placeholder-view.js?v=9.0.0';
+import { renderClients } from './views/clients-view.js?v=9.0.0';
+import { renderClientPortal } from './views/client-portal-view.js?v=9.0.0';
+import { renderReports, cleanupReportsView } from './views/reports-view.js?v=9.0.0';
+import { renderCloudFoundation, cleanupCloudFoundationView } from './views/cloud-foundation-view.js?v=9.0.0';
+import { icon } from './utils/icons.js?v=9.0.0';
 
 const shell = createAppShell();
 let sessionExpiryTimer = null;
@@ -110,6 +111,7 @@ function cleanupActiveViews() {
   cleanupKanbanView();
   globalThis.__wonkupCleanupFinance?.();
   cleanupReportsView();
+  cleanupCloudFoundationView();
 }
 
 function handleRoute(route) {
@@ -183,6 +185,9 @@ function handleRoute(route) {
       break;
     case 'reports':
       renderReports(host, workspaceId, session);
+      break;
+    case 'cloud':
+      renderCloudFoundation(host, session);
       break;
     case 'clientPortal':
       renderClientPortal(host, route.params, session);

@@ -1,9 +1,9 @@
-import { ProjectService } from './project-service.js';
-import { FinanceService } from './finance-service.js';
-import { DeliverableService } from './deliverable-service.js';
-import { DemoService } from './demo-service.js';
-import { buildPortfolioReport, resolveReportPeriod } from '../utils/report-calculations.js';
-import { canAccessProjectFinance, isInternalUser } from '../utils/permissions.js?v=8.0.0';
+import { ProjectService } from './project-service.js?v=9.0.0';
+import { FinanceService } from './finance-service.js?v=9.0.0';
+import { DeliverableService } from './deliverable-service.js?v=9.0.0';
+import { DemoService } from './demo-service.js?v=9.0.0';
+import { buildPortfolioReport, resolveReportPeriod } from '../utils/report-calculations.js?v=9.0.0';
+import { canAccessProjectFinance, isInternalUser } from '../utils/permissions.js?v=9.0.0';
 
 async function loadFinance(projects, session) {
   const results = await Promise.all(projects.map(async project => {

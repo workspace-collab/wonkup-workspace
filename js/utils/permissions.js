@@ -10,6 +10,32 @@ export const ROLE_LABELS = Object.freeze({
 const INTERNAL_ROLES = new Set(['superadmin', 'workspace_admin', 'project_lead', 'collaborator']);
 const MANAGEMENT_ROLES = new Set(['superadmin', 'workspace_admin']);
 
+export function getWorkspaceRole(session, workspaceId = null) {
+  if (!session) return null;
+  if (session.role === 'superadmin') return 'superadmin';
+  if (workspaceId && session.workspaceRoles?.[workspaceId]) return session.workspaceRoles[workspaceId];
+  return session.role || null;
+}
+
+export function getProjectRole(session, projectId = null, workspaceId = null) {
+  if (!session) return null;
+  const workspaceRole = getWorkspaceRole(session, workspaceId);
+  if (['superadmin', 'workspace_admin'].includes(workspaceRole)) return workspaceRole;
+  if (projectId && session.projectRoles?.[projectId]) return session.projectRoles[projectId];
+  return workspaceRole;
+}
+
+export function canManageCloudFoundation(session) {
+  return session?.role === 'superadmin';
+}
+
+
+function hasAnyMappedRole(session, roles) {
+  if (!session) return false;
+  if (roles.has(session.role)) return true;
+  return Object.values(session.workspaceRoles || {}).some(role => roles.has(role));
+}
+
 function scopeIncludes(scope = [], id) {
   return scope.includes('*') || scope.includes(id);
 }
@@ -33,30 +59,37 @@ export function canAccessProject(session, projectId, workspaceId = null) {
   return scopeIncludes(session.scopes?.projectIds, projectId);
 }
 
-export function canCreateProject(session) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+export function canCreateProject(session, workspaceId = null) {
+  if (!session) return false;
+  return workspaceId
+    ? MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId))
+    : hasAnyMappedRole(session, MANAGEMENT_ROLES);
 }
 
 export function canEditProject(session, projectId, workspaceId) {
   if (!session || !canAccessProject(session, projectId, workspaceId)) return false;
-  return MANAGEMENT_ROLES.has(session.role) || session.role === 'project_lead';
+  const role = getProjectRole(session, projectId, workspaceId);
+  return MANAGEMENT_ROLES.has(role) || role === 'project_lead';
 }
 
 export function canArchiveProject(session, workspaceId) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role) && canAccessWorkspace(session, workspaceId));
+  return Boolean(session && MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId)) && canAccessWorkspace(session, workspaceId));
 }
 
 export function canManageWorkspace(session) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+  return hasAnyMappedRole(session, MANAGEMENT_ROLES);
 }
 
-export function canManageClients(session) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+export function canManageClients(session, workspaceId = null) {
+  if (!session) return false;
+  return workspaceId
+    ? MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId))
+    : hasAnyMappedRole(session, MANAGEMENT_ROLES);
 }
 
 export function canCreateWorkspaceUser(session, workspaceId) {
   if (!session || !workspaceId || !canAccessWorkspace(session, workspaceId)) return false;
-  return ['superadmin', 'workspace_admin', 'project_lead'].includes(session.role);
+  return ['superadmin', 'workspace_admin', 'project_lead'].includes(getWorkspaceRole(session, workspaceId));
 }
 
 export function canManageProjectTeam(session, projectId, workspaceId) {
@@ -64,7 +97,8 @@ export function canManageProjectTeam(session, projectId, workspaceId) {
 }
 
 export function canManageProjectResources(session, projectId, workspaceId) {
-  return canEditProject(session, projectId, workspaceId) || session?.role === 'collaborator';
+  if (!session || !canAccessProject(session, projectId, workspaceId)) return false;
+  return INTERNAL_ROLES.has(getProjectRole(session, projectId, workspaceId));
 }
 
 export function canViewReports(session) {
@@ -72,7 +106,7 @@ export function canViewReports(session) {
 }
 
 export function canViewFinancials(session) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+  return hasAnyMappedRole(session, MANAGEMENT_ROLES);
 }
 
 export function canAccessProjectFinance(session, projectId, workspaceId) {
@@ -82,12 +116,13 @@ export function canAccessProjectFinance(session, projectId, workspaceId) {
 
 export function canManageProjectFinance(session, projectId, workspaceId) {
   if (!canAccessProjectFinance(session, projectId, workspaceId)) return false;
-  return MANAGEMENT_ROLES.has(session.role) || session.role === 'project_lead';
+  const role = getProjectRole(session, projectId, workspaceId);
+  return MANAGEMENT_ROLES.has(role) || role === 'project_lead';
 }
 
 export function canConfigureProjectFinance(session, projectId, workspaceId) {
   if (!canAccessProjectFinance(session, projectId, workspaceId)) return false;
-  return MANAGEMENT_ROLES.has(session.role);
+  return MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId));
 }
 
 export function canViewProjectProfitability(session, projectId, workspaceId) {
@@ -100,7 +135,8 @@ export function canLogProjectTime(session, projectId, workspaceId) {
 
 export function canViewAllProjectTime(session, projectId, workspaceId) {
   if (!canAccessProjectFinance(session, projectId, workspaceId)) return false;
-  return MANAGEMENT_ROLES.has(session.role) || session.role === 'project_lead';
+  const role = getProjectRole(session, projectId, workspaceId);
+  return MANAGEMENT_ROLES.has(role) || role === 'project_lead';
 }
 
 export function canEditKanban(session) {
@@ -171,6 +207,7 @@ export function canAccessRoute(route, session) {
   if (route.view === 'forbidden' || route.view === 'notFound') return true;
 
   if (route.params?.workspaceId === 'all') return canViewMaster(session);
+  if (route.view === 'cloud') return canManageCloudFoundation(session);
   if (route.hash?.startsWith('#/master/')) return canViewMaster(session);
 
   if (['dashboard', 'projects', 'toolkit', 'kanban', 'clients', 'reports', 'placeholder'].includes(route.view)) {

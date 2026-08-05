@@ -248,3 +248,151 @@ Reglas:
 - El correo debe ser válido y único entre registros activos.
 - La creación no genera todavía una cuenta de Firebase Authentication ni envía invitaciones.
 - En modo mock se persiste en `localStorage`.
+
+## Entrega 9 — Cloud Foundation
+
+### AccessService
+
+```text
+login(code)
+loginWithFirebase({ email, password })
+sendPasswordReset(email)
+logout()
+getSession()
+```
+
+`authMode` acepta:
+
+- `mock`;
+- `firebase`;
+- `hybrid`.
+
+En `hybrid`, la sesión conserva `source: 'mock'` o `source: 'firebase'`.
+
+### ProjectService
+
+`projectMode` acepta:
+
+- `mock`;
+- `apps-script`;
+- `firebase`;
+- `hybrid`.
+
+En `hybrid`:
+
+```text
+session.source == firebase -> FirebaseProjectAdapter
+session.source != firebase -> MockProjectAdapter
+```
+
+El contrato funcional existente no cambia:
+
+```text
+listProjects
+getProject
+createProject
+updateProject
+archiveProject
+restoreProject
+listClients
+createClient
+updateClient
+archiveClient
+restoreClient
+listUsers
+createUser
+listMembers
+assignMember
+removeMember
+listResources
+addResource
+removeResource
+listMilestones
+addMilestone
+updateMilestone
+provisionDrive
+```
+
+### CloudFoundationService
+
+```text
+getConfiguration()
+getBootstrapProfileTemplate(input)
+getRuntimeSnippet()
+getMigrationPreview(options)
+exportLocalBackup()
+signIn(email, password)
+signOut()
+getAccount()
+runDiagnostics()
+migrate(options)
+verifyMigration(workspaceIds)
+getActivationDirectory()
+getUserActivationPreview(input)
+activateUser(input)
+```
+
+### Migración
+
+Entrada:
+
+```json
+{
+  "workspaceIds": ["w-wonkup", "w-agora"],
+  "include": {
+    "workspaces": true,
+    "projects": true,
+    "clients": true,
+    "people": true,
+    "projectMembers": true
+  }
+}
+```
+
+La ejecución:
+
+- requiere cuenta Firebase autenticada;
+- requiere `users/{uid}` activo con rol `superadmin`;
+- rechaza rutas duplicadas;
+- utiliza lotes de máximo 400 operaciones;
+- escribe con `merge: true`;
+- crea una auditoría en `system/schema/migrations/{migrationId}`.
+
+### Activación de usuario
+
+Entrada:
+
+```json
+{
+  "uid": "UID_DE_FIREBASE_AUTH",
+  "email": "persona@wonkup.pe",
+  "name": "Persona",
+  "role": "project_lead",
+  "personId": "persona-interna-opcional",
+  "allocation": 30,
+  "workspaceIds": ["w-agora"],
+  "projectIds": ["PROY-AGO-001"]
+}
+```
+
+Roles admitidos:
+
+```text
+workspace_admin
+project_lead
+collaborator
+client
+guest
+```
+
+La activación escribe:
+
+```text
+users/{uid}
+workspaces/{workspaceId}/members/{uid}
+workspaces/{workspaceId}/projects/{projectId}/members/{uid}
+workspaces/{workspaceId}/people/{personId}   // solo vínculo authUid opcional
+system/schema/userActivations/{activationId}
+```
+
+La pantalla no crea la contraseña ni la cuenta Authentication. La cuenta debe existir previamente en Firebase Console.

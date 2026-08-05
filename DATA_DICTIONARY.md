@@ -262,3 +262,81 @@ Incluye identificación del proyecto, estado, salud, avance, vencimientos, entre
 ## Fuente de verdad
 
 PortfolioReport es una proyección generada en tiempo real. No reemplaza las colecciones fuente de Proyectos, Entregables o Finanzas.
+
+# Ampliación — Entrega 9 Cloud Foundation
+
+## UserProfile
+
+Ruta: `users/{uid}`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `uid` | string | UID de Firebase Authentication |
+| `name` | string | Nombre visible |
+| `email` | string | Correo normalizado |
+| `initials` | string | Iniciales de interfaz |
+| `role` | string | Rol global o predominante |
+| `roleLabel` | string | Etiqueta localizada |
+| `status` | string | `active` o `inactive` |
+| `workspaceIds` | array<string> | Workspaces autorizados |
+| `projectIds` | array<string> | Proyectos autorizados |
+| `workspaceRoles` | map | Rol específico por workspace |
+| `projectRoles` | map | Rol específico por proyecto |
+| `personId` | string | Vínculo opcional con directorio |
+| `schemaVersion` | number | Versión de esquema, actualmente 9 |
+| `createdAt` | timestamp/string | Fecha de creación |
+| `updatedAt` | timestamp/string | Última actualización |
+
+## WorkspaceMembership
+
+Ruta: `workspaces/{workspaceId}/members/{uid}`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | string | UID usado como ID del documento |
+| `authUid` | string | UID de Authentication |
+| `userId` | string | ID opcional de la persona del directorio |
+| `workspaceId` | string | Workspace autorizado |
+| `role` | string | Rol dentro del workspace |
+| `status` | string | Estado de la membresía |
+| `schemaVersion` | number | Versión del esquema |
+
+## ProjectMembershipCloud
+
+Ruta: `workspaces/{workspaceId}/projects/{projectId}/members/{uid}`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | string | UID o identificador migrado |
+| `authUid` | string | UID real cuando ya existe cuenta |
+| `userId` | string | Persona interna vinculada |
+| `workspaceId` | string | Workspace padre |
+| `projectId` | string | Proyecto padre |
+| `role` | string | Rol dentro del proyecto |
+| `allocation` | number | Dedicación porcentual |
+| `status` | string | `active` o `inactive` |
+
+## SystemSchema
+
+Ruta: `system/schema`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `version` | number | Versión activa del esquema |
+| `name` | string | Nombre de la fundación cloud |
+| `status` | string | Estado |
+| `migratedAt` | timestamp | Última migración |
+| `migratedBy` | string | UID ejecutor |
+| `lastMigrationId` | string | Auditoría asociada |
+
+## MigrationAudit
+
+Ruta: `system/schema/migrations/{migrationId}`
+
+Registra cantidades, workspaces, fecha, ejecutor y origen de cada migración.
+
+## UserActivationAudit
+
+Ruta: `system/schema/userActivations/{activationId}`
+
+Registra UID, correo, rol, workspaces, proyectos, cantidades, fecha y ejecutor de cada activación.

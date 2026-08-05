@@ -1,12 +1,12 @@
-import { CanvasService } from '../services/canvas-service.js';
-import { ProjectService } from '../services/project-service.js';
-import { canvasTemplates } from '../../data/canvas-templates.js';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js';
-import { icon } from '../utils/icons.js';
-import { escapeHtml, formatDate } from '../utils/format.js';
-import { openModal, confirmModal } from '../components/modal.js';
-import { showToast } from '../components/toast.js';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js';
+import { CanvasService } from '../services/canvas-service.js?v=9.0.0';
+import { ProjectService } from '../services/project-service.js?v=9.0.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=9.0.0';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=9.0.0';
+import { icon } from '../utils/icons.js?v=9.0.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=9.0.0';
+import { openModal, confirmModal } from '../components/modal.js?v=9.0.0';
+import { showToast } from '../components/toast.js?v=9.0.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=9.0.0';
 
 let unsubscribeToolkit = null;
 let toolkitGeneration = 0;

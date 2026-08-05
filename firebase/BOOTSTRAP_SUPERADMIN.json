@@ -1,0 +1,16 @@
+{
+  "uid": "PEGA_AQUI_EL_UID_DE_FIREBASE_AUTH",
+  "name": "Administrador WonkUp",
+  "email": "admin@wonkup.pe",
+  "initials": "AW",
+  "role": "superadmin",
+  "roleLabel": "Superadministrador",
+  "status": "active",
+  "workspaceIds": ["*"],
+  "projectIds": ["*"],
+  "workspaceRoles": {},
+  "projectRoles": {},
+  "schemaVersion": 9,
+  "createdAt": "2026-08-05T00:00:00.000Z",
+  "updatedAt": "2026-08-05T00:00:00.000Z"
+}

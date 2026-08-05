@@ -9,6 +9,7 @@ const routes = [
   { pattern: /^#\/master\/kanban$/, view: 'kanban', params: { workspaceId: 'all' } },
   { pattern: /^#\/master\/clients$/, view: 'clients', params: { workspaceId: 'all' } },
   { pattern: /^#\/master\/reports$/, view: 'reports', params: { workspaceId: 'all' } },
+  { pattern: /^#\/master\/cloud$/, view: 'cloud', params: { workspaceId: 'all' } },
   { pattern: /^#\/master\/(calendar|team|documents|settings)$/, view: 'placeholder', keys: ['section'], params: { workspaceId: 'all' } },
   { pattern: /^#\/w\/([^/]+)\/dashboard$/, view: 'dashboard', keys: ['workspaceId'] },
   { pattern: /^#\/w\/([^/]+)\/projects$/, view: 'projects', keys: ['workspaceId'] },

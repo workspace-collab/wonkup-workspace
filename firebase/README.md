@@ -1,64 +1,56 @@
-# Firebase - Entrega 4
+# Firebase — Cloud Foundation 9
 
-El Kanban funciona por defecto en `mock`, con persistencia en `localStorage` y sincronización entre pestañas mediante `BroadcastChannel`.
+## Propósito
 
-## No activar todavía sin Access Broker
+Esta carpeta contiene los archivos que se publican manualmente desde Firebase Console, sin terminal:
 
-Para usar Firestore se requiere:
+- `firestore.rules`: modelo de autorización;
+- `firestore.indexes.json`: índices compuestos previstos;
+- `BOOTSTRAP_SUPERADMIN.json`: perfil inicial de ejemplo;
+- `RUNTIME_CONFIG_EXAMPLE.js`: configuración pública de ejemplo;
+- `USER_ACTIVATION_EXAMPLE.json`: ejemplo de asignación de permisos;
+- `realtime-database.rules.json`: reserva técnica para presencia futura; no se activa en Entrega 9.
 
-1. Crear el proyecto en Firebase Console.
-2. Activar Firestore.
-3. Publicar `firestore.rules`.
-4. Crear documentos de membresía por workspace y proyecto.
-5. Generar un Firebase Custom Token desde Google Apps Script después de validar el código de acceso.
-6. Completar `js/config/runtime-config.js`.
-7. Cambiar `kanbanMode` de `mock` a `firebase`.
+## Estado de los módulos
 
-La configuración pública de Firebase puede estar en el frontend. La clave privada de servicio nunca debe subirse a GitHub.
+| Dominio | Estado Entrega 9 |
+|---|---|
+| Authentication | Preparado para activación real |
+| Usuarios y roles | Firestore |
+| Workspaces | Migración habilitada |
+| Clientes y personas | Migración habilitada |
+| Proyectos y miembros | Adaptador Firestore habilitado |
+| Recursos e hitos | Adaptador Firestore habilitado |
+| Kanban | Continúa mock |
+| Canvas Engine | Continúa mock |
+| Entregables | Continúa mock |
+| Finanzas | Continúa mock |
 
-## Colecciones
+## Regla de seguridad principal
 
-```text
-workspaces/{workspaceId}
-  members/{userId}
-  projects/{projectId}
-    members/{userId}
-    boards/main
-      cards/{cardId}
-```
-
-Los comentarios, checklist e historial se almacenan dentro de cada documento de tarjeta durante el MVP. Si una tarjeta crece demasiado, deberán migrarse a subcolecciones.
-
-## Entrega 5 - Canvas Engine
-
-La estructura prevista para colaboración en tiempo real es:
+El UID de Firebase Authentication es la identidad de autorización. Los documentos de membresía productivos utilizan el UID como ID:
 
 ```text
-workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId}
-  notes/{noteId}
-    comments/{commentId}
-  history/{eventId}
+workspaces/{workspaceId}/members/{uid}
+workspaces/{workspaceId}/projects/{projectId}/members/{uid}
 ```
 
-La versión publicada continúa en `canvasMode: 'mock'`. No actives las reglas de Canvas hasta configurar Firebase Authentication y el broker de tokens de Apps Script. Los enlaces públicos de consulta del modo demo no representan todavía un mecanismo de seguridad productivo.
+Los registros del directorio interno usan `personId` y pueden vincularse mediante `authUid`.
 
-## Entrega 7 - Finanzas
+## Publicación sin terminal
 
-Estructura prevista:
+1. Firestore Console > Rules.
+2. Pega `firestore.rules`.
+3. Publica.
+4. Usa Rules Playground para probar los roles.
+5. No es necesario crear índices compuestos para las consultas de la Entrega 9.
 
-```text
-workspaces/{workspaceId}/projects/{projectId}/finance/summary
-  incomes/{incomeId}
-  costs/{costId}
-  timeEntries/{entryId}
-  rates/{userId}
-```
+Consulta `../FIREBASE_SIN_TERMINAL.md` para el procedimiento completo.
 
-Las reglas incluidas separan:
+## Precauciones
 
-- administración financiera;
-- registro de horas;
-- tarifas privadas;
-- acceso de líderes y colaboradores.
-
-La versión publicada continúa en `financeMode: 'mock'`.
+- No subas cuentas de servicio.
+- No uses una clave de Gemini en el frontend.
+- No actives persistencia en dispositivos compartidos.
+- No actives App Check enforcement antes de observar métricas.
+- No cambies Kanban, Canvas, Entregables o Finanzas a Firebase en esta entrega.

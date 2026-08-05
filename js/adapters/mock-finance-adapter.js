@@ -1,4 +1,4 @@
-import { demoFinanceRecords } from '../../data/demo-finance.js';
+import { demoFinanceRecords } from '../../data/demo-finance.js?v=9.0.0';
 import {
   canAccessProjectFinance,
   canConfigureProjectFinance,
@@ -6,8 +6,8 @@ import {
   canManageProjectFinance,
   canViewAllProjectTime,
   canViewProjectProfitability
-} from '../utils/permissions.js?v=7.0.0';
-import { calculateFinanceMetrics, buildFinanceAlerts } from '../utils/finance-calculations.js';
+} from '../utils/permissions.js?v=9.0.0';
+import { calculateFinanceMetrics, buildFinanceAlerts } from '../utils/finance-calculations.js?v=9.0.0';
 
 const STORAGE_KEY = 'wonkup.e7.finance';
 const CHANNEL_NAME = 'wonkup-finance';

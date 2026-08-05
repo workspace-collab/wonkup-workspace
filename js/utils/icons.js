@@ -59,6 +59,9 @@ const icons = {
   minimize: '<path d="M8 8H3V3M16 8h5V3M8 16H3v5M16 16h5v5"/>',
   sidebar: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
   download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',
+  database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+  cloud: '<path d="M17.5 19H7a5 5 0 1 1 1.1-9.9A6 6 0 0 1 19.7 11 4 4 0 0 1 17.5 19Z"/>',
+  upload: '<path d="M12 21V9M7 14l5-5 5 5"/><path d="M5 3h14"/>',
   qr: '<rect x="3" y="3" width="6" height="6"/><rect x="15" y="3" width="6" height="6"/><rect x="3" y="15" width="6" height="6"/><path d="M15 15h3v3h-3zM18 18h3v3h-3zM18 12h3M12 18h3M12 12h3v3h-3z"/>',
 };
 

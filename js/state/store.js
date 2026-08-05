@@ -1,4 +1,4 @@
-import { APP_CONFIG } from '../config/app-config.js';
+import { APP_CONFIG } from '../config/app-config.js?v=9.0.0';
 
 const listeners = new Set();
 const SESSION_KEY = 'wonkup.session';
@@ -43,7 +43,12 @@ export function getState() {
       scopes: {
         workspaceIds: [...(state.session.scopes?.workspaceIds || [])],
         projectIds: [...(state.session.scopes?.projectIds || [])]
-      }
+      },
+      workspaceRoles: { ...(state.session.workspaceRoles || {}) },
+      projectRoles: { ...(state.session.projectRoles || {}) },
+      workspaces: Array.isArray(state.session.workspaces)
+        ? state.session.workspaces.map(item => ({ ...item }))
+        : []
     } : null
   };
 }

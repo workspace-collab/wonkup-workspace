@@ -1,10 +1,10 @@
-import { demoProjects } from '../../data/demo-projects.js';
-import { demoClients } from '../../data/demo-clients.js';
-import { demoProjectMembers } from '../../data/demo-project-members.js';
-import { demoResources } from '../../data/demo-resources.js';
-import { demoMilestones } from '../../data/demo-milestones.js';
-import { demoUsers } from '../../data/demo-users.js';
-import { demoWorkspaces } from '../../data/demo-workspaces.js';
+import { demoProjects } from '../../data/demo-projects.js?v=9.0.0';
+import { demoClients } from '../../data/demo-clients.js?v=9.0.0';
+import { demoProjectMembers } from '../../data/demo-project-members.js?v=9.0.0';
+import { demoResources } from '../../data/demo-resources.js?v=9.0.0';
+import { demoMilestones } from '../../data/demo-milestones.js?v=9.0.0';
+import { demoUsers } from '../../data/demo-users.js?v=9.0.0';
+import { demoWorkspaces } from '../../data/demo-workspaces.js?v=9.0.0';
 import {
   canAccessProject,
   canAccessWorkspace,
@@ -17,7 +17,7 @@ import {
   canManageProjectTeam,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js?v=8.1.0';
+} from '../utils/permissions.js?v=9.0.0';
 
 const KEYS = Object.freeze({
   projects: 'wonkup.e3.projects',

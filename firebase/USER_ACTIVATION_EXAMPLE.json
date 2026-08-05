@@ -1,0 +1,10 @@
+{
+  "uid": "UID_COPIADO_DE_FIREBASE_AUTHENTICATION",
+  "email": "persona@wonkup.pe",
+  "name": "Nombre de la persona",
+  "role": "project_lead",
+  "personId": "ID_OPCIONAL_DEL_DIRECTORIO_INTERNO",
+  "allocation": 30,
+  "workspaceIds": ["w-agora"],
+  "projectIds": ["PROY-AGO-001"]
+}

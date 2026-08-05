@@ -1,9 +1,9 @@
-import { demoWorkspaces } from '../../data/demo-workspaces.js';
-import { demoProjects } from '../../data/demo-projects.js';
-import { demoActivities, demoTasks } from '../../data/demo-activities.js';
-import { demoKanban } from '../../data/demo-kanban.js';
-import { canvasTemplates } from '../../data/canvas-templates.js';
-import { canAccessProject, canAccessWorkspace, canViewMaster } from '../utils/permissions.js';
+import { demoWorkspaces } from '../../data/demo-workspaces.js?v=9.0.0';
+import { demoProjects } from '../../data/demo-projects.js?v=9.0.0';
+import { demoActivities, demoTasks } from '../../data/demo-activities.js?v=9.0.0';
+import { demoKanban } from '../../data/demo-kanban.js?v=9.0.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=9.0.0';
+import { canAccessProject, canAccessWorkspace, canViewMaster } from '../utils/permissions.js?v=9.0.0';
 
 function projectVisibleToSession(project, session) {
   if (!session) return false;
@@ -11,16 +11,34 @@ function projectVisibleToSession(project, session) {
   return canAccessProject(session, project.id, project.workspaceId);
 }
 
+function cloudWorkspaces(session = null) {
+  const fromSession = Array.isArray(session?.workspaces) ? session.workspaces : [];
+  const fromRuntime = Array.isArray(globalThis.__wonkupCloudWorkspaces) ? globalThis.__wonkupCloudWorkspaces : [];
+  const source = fromSession.length ? fromSession : fromRuntime;
+  return source.map(item => ({ ...item }));
+}
+
 export const DemoService = {
-  getWorkspaces: () => [...demoWorkspaces],
+  getWorkspaces: () => {
+    const cloud = cloudWorkspaces();
+    return cloud.length ? cloud : [...demoWorkspaces];
+  },
 
   getWorkspacesForSession(session) {
     if (!session) return [];
+    const cloud = cloudWorkspaces(session);
+    if (cloud.length) {
+      if (canViewMaster(session)) return cloud;
+      return cloud.filter(item => canAccessWorkspace(session, item.id));
+    }
     if (canViewMaster(session)) return [...demoWorkspaces];
     return demoWorkspaces.filter(item => canAccessWorkspace(session, item.id));
   },
 
-  getWorkspace: id => demoWorkspaces.find(item => item.id === id),
+  getWorkspace(id) {
+    const cloud = cloudWorkspaces();
+    return cloud.find(item => item.id === id) || demoWorkspaces.find(item => item.id === id);
+  },
 
   getProjects(workspaceId) {
     return workspaceId && workspaceId !== 'all'
