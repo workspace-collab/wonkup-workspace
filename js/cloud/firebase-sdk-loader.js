@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api-config.js?v=12.0.1';
+import { API_CONFIG } from '../config/api-config.js?v=12.2.0';
 
 let sdkPromise = null;
 
@@ -12,8 +12,9 @@ export function loadFirebaseSdk({ appCheck = false } = {}) {
       import(sdkUrl('app')),
       import(sdkUrl('auth')),
       import(sdkUrl('firestore')),
-      import(sdkUrl('database'))
-    ]).then(([app, auth, firestore, database]) => ({ app, auth, firestore, database }));
+      import(sdkUrl('database')),
+      import(sdkUrl('functions'))
+    ]).then(([app, auth, firestore, database, functions]) => ({ app, auth, firestore, database, functions }));
   }
 
   if (!appCheck) return sdkPromise;
@@ -27,6 +28,7 @@ export function getFirebaseSdkUrls() {
     auth: sdkUrl('auth'),
     firestore: sdkUrl('firestore'),
     database: sdkUrl('database'),
+    functions: sdkUrl('functions'),
     appCheck: sdkUrl('app-check')
   };
 }

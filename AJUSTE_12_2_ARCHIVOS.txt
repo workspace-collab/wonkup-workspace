@@ -1,0 +1,38 @@
+AJUSTE 12.2 — ARCHIVOS PRINCIPALES
+
+Nuevos:
+- functions/package.json
+- functions/index.js
+- firebase.json
+- .firebaserc
+- js/services/managed-users-service.js
+- js/views/users-admin-view.js
+- tests/user-admin-12-2.test.mjs
+- tests/users-admin-ui-12-2.py
+- tests/users-admin-ui-12-2.png
+- AJUSTE_12_2_GUIA.md
+- USER_ADMIN_ARCHITECTURE_12_2.md
+- TEST_RESULTS_12_2.md
+
+Modificados:
+- index.html
+- js/config/runtime-config.js
+- js/config/api-config.js
+- js/config/app-config.js
+- js/cloud/firebase-sdk-loader.js
+- js/cloud/firebase-client.js
+- js/components/app-shell.js
+- js/router.js
+- js/app.js
+- js/utils/permissions.js
+- js/utils/icons.js
+- js/services/cloud-foundation-service.js
+- js/views/cloud-foundation-view.js
+- css/components.css
+- firebase/firestore.rules
+- README.md
+- ROADMAP.md
+- PROJECT_STATE.md
+- CHANGELOG.md
+- API_CONTRACTS.md
+- DATA_DICTIONARY.md

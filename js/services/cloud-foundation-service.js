@@ -1,11 +1,11 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.0.1';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.1';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.0.1';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.0.1';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.0.1';
-import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.0.1';
-import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.0.1';
-import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.0.1';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.2.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.2.0';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.2.0';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.2.0';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.2.0';
+import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.2.0';
+import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.2.0';
+import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.2.0';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const FIRESTORE_RULE_SAFE_BATCH_SIZE = 4;
@@ -89,6 +89,7 @@ export const CloudFoundationService = {
       databaseURL: API_CONFIG.firebase.databaseURL || '',
       databaseConfigured: Boolean(API_CONFIG.firebase.databaseURL),
       foundationMode: API_CONFIG.foundationMode,
+      functionsRegion: API_CONFIG.functionsRegion,
       sdkVersion: API_CONFIG.firebaseSdkVersion,
       appCheckEnabled: API_CONFIG.firebase.enableAppCheck,
       persistentCacheEnabled: API_CONFIG.firebase.enablePersistentCache,
@@ -125,6 +126,7 @@ kanbanMode: 'hybrid',
 deliverableMode: 'hybrid',
 canvasMode: 'hybrid',
 foundationMode: 'connected',
+functionsRegion: 'us-central1',
 firebase: {
   apiKey: '...',
   authDomain: 'TU_PROYECTO.firebaseapp.com',
@@ -292,6 +294,13 @@ firebase: {
       push('sdk', 'Firebase Web SDK', 'ok', `SDK ${configuration.sdkVersion} cargado mediante módulos del navegador.`);
       push('app', 'Aplicación Firebase', 'ok', `App ${client.app.name} inicializada.`);
       push('realtime', 'Realtime Database', client.realtimeDb ? 'ok' : 'error', client.realtimeDb ? `Presencia Canvas conectada a ${configuration.databaseURL}.` : 'Falta databaseURL para la presencia colaborativa.');
+      try {
+        const health = client.sdk.functions.httpsCallable(client.functions, 'wonkupUserAdminHealth');
+        const response = await health({});
+        push('functions', 'Cloud Functions', 'ok', `Usuarios e invitaciones ${response.data?.release || ''} en ${configuration.functionsRegion}.`);
+      } catch (error) {
+        push('functions', 'Cloud Functions', 'warning', 'Usuarios e invitaciones aún no desplegado o sin sesión superadmin.');
+      }
       push('cache', 'Caché local', 'ok', client.persistentCache ? 'IndexedDB multiventana activado.' : 'Caché en memoria; recomendado para información sensible.');
       push('appCheck', 'App Check', configuration.appCheckEnabled ? 'ok' : 'warning', configuration.appCheckEnabled ? 'Inicializado con reCAPTCHA Enterprise.' : 'Preparado, pero aún no activado.');
 

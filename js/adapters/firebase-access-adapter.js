@@ -1,5 +1,5 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.1';
-import { ROLE_LABELS } from '../utils/permissions.js?v=12.0.1';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.2.0';
+import { ROLE_LABELS } from '../utils/permissions.js?v=12.2.0';
 
 function sessionExpiry() {
   return new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString();

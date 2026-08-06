@@ -379,3 +379,18 @@
 - Cloud Foundation crea el índice al activar nuevas cuentas.
 - Innovation Toolkit diferencia entre canvases del proyecto y canvases accesibles del workspace.
 - Se actualizó la caché del frontend a `12.0.1`.
+
+
+## 12.2.0 — Usuarios e invitaciones desde WonkUp
+
+- Se añadió la ruta exclusiva `#/master/users`.
+- Se incorporó un directorio de cuentas con estados activo, invitado e inactivo.
+- Se agregó creación de identidades mediante Cloud Functions y Firebase Admin SDK.
+- Se habilitó el correo para que cada usuario defina su propia contraseña.
+- Se incorporó edición de rol, workspaces y proyectos.
+- Se habilitaron desactivación, reactivación y reenvío de acceso.
+- Se protegieron las cuentas superadministradoras contra cambios desde el módulo.
+- Se añadió auditoría administrativa en Firestore.
+- Se conservó la activación manual por UID como contingencia.
+- Se agregó `Actualizar aplicación` al menú del perfil.
+- Se actualizó la cadena de caché a `12.2.0`.

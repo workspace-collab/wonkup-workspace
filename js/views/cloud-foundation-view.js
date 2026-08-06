@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=12.0.1';
-import { escapeHtml } from '../utils/format.js?v=12.0.1';
-import { icon } from '../utils/icons.js?v=12.0.1';
-import { showToast } from '../components/toast.js?v=12.0.1';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=12.2.0';
+import { escapeHtml } from '../utils/format.js?v=12.2.0';
+import { icon } from '../utils/icons.js?v=12.2.0';
+import { showToast } from '../components/toast.js?v=12.2.0';
 
 let active = true;
 
@@ -73,7 +73,7 @@ export async function renderCloudFoundation(container, session) {
   container.innerHTML = `
     <section class="page cloud-foundation-page">
       <header class="page-header cloud-page-header">
-        <div><span class="eyebrow">ENTREGA 12</span><h1>Cloud Foundation</h1><p>Administra Firebase sin terminal y activa el Canvas Engine colaborativo en Firestore y Realtime Database.</p></div>
+        <div><span class="eyebrow">AJUSTE 12.2</span><h1>Cloud Foundation</h1><p>Supervisa Firebase, migraciones y servicios seguros del Workspace.</p></div>
         <div class="cloud-header-badges"><span class="badge badge-neutral">SDK ${escapeHtml(configuration.sdkVersion)}</span><span class="badge ${configuration.configured ? 'badge-success' : 'badge-warning'}">${configuration.configured ? 'Configuración detectada' : 'Modo diagnóstico'}</span></div>
       </header>
 
@@ -87,6 +87,7 @@ export async function renderCloudFoundation(container, session) {
         ${architectureCard('lock', 'Firebase Authentication', configuration.authMode === 'mock' ? 'Preparado, aún inactivo' : configuration.authMode, configuration.authMode === 'mock' ? 'warning' : 'ok')}
         ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Proyectos ${configuration.projectMode} · Kanban ${configuration.kanbanMode} · Entregables ${configuration.deliverableMode} · Canvas ${configuration.canvasMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
         ${architectureCard('activity', 'Realtime Database', configuration.databaseConfigured ? 'Presencia colaborativa del Canvas' : 'Falta databaseURL', configuration.databaseConfigured ? 'ok' : 'warning')}
+        ${architectureCard('users', 'Cloud Functions', `Usuarios e invitaciones · ${configuration.functionsRegion}`, 'ok')}
         ${architectureCard('cloud', 'Apps Script', 'Drive, Gmail y Calendar en fase posterior', 'pending')}
       </section>
 
@@ -102,6 +103,7 @@ export async function renderCloudFoundation(container, session) {
               ${configItem('Entregables mode', configuration.deliverableMode, ['firebase', 'hybrid'].includes(configuration.deliverableMode))}
               ${configItem('Canvas mode', configuration.canvasMode, ['firebase', 'hybrid'].includes(configuration.canvasMode))}
               ${configItem('Realtime Database', configuration.databaseURL || 'No configurada', configuration.databaseConfigured)}
+              ${configItem('Functions region', configuration.functionsRegion, Boolean(configuration.functionsRegion))}
               ${configItem('App Check', configuration.appCheckEnabled ? 'Activado' : 'Pendiente', configuration.appCheckEnabled)}
               ${configItem('Caché persistente', configuration.persistentCacheEnabled ? 'Activada' : 'Desactivada', true)}
               ${configItem('Campos faltantes', configuration.missing.length ? configuration.missing.join(', ') : 'Ninguno', !configuration.missing.length)}
@@ -201,8 +203,8 @@ export async function renderCloudFoundation(container, session) {
           </section>
 
           <section class="panel cloud-panel" id="cloud-user-activation-panel">
-            <div class="panel-heading"><div><span class="panel-kicker">IDENTIDADES CLOUD</span><h2>Activar usuarios reales</h2><p>Primero crea el usuario en Firebase Authentication. Después pega su UID aquí para generar el perfil y sus permisos sin terminal.</p></div><span class="badge badge-neutral">Auth + Rules</span></div>
-            <div class="cloud-activation-notice">${icon('alert')}<span>Esta pantalla no crea contraseñas ni cuentas de Authentication. Solo vincula una cuenta ya creada con WonkUp Workspace.</span></div>
+            <div class="panel-heading"><div><span class="panel-kicker">CONTINGENCIA</span><h2>Activación manual por UID</h2><p>Usa este formulario solo para recuperar o vincular una identidad creada fuera del módulo principal.</p></div><a class="button button-primary" href="#/master/users">${icon('users')} Abrir Usuarios</a></div>
+            <div class="cloud-activation-notice">${icon('alert')}<span>El flujo recomendado ahora es <strong>Administración → Usuarios</strong>. Allí WonkUp crea la cuenta y envía el correo de acceso automáticamente.</span></div>
             <form class="cloud-activation-form" id="cloud-user-activation-form" novalidate>
               <div class="cloud-activation-grid">
                 <label><span>UID de Firebase *</span><input class="input" id="activation-uid" maxlength="128" placeholder="Ej. P5s...abc" required></label>

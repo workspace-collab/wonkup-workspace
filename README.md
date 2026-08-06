@@ -6,7 +6,8 @@ Centro operativo de WonkUp para la gestión de proyectos, innovación, entregabl
 
 - Entregas 0 a 11: aprobadas.
 - Entrega 11 cerrada con Hotfix 11.0.1.
-- Entrega 12 — Canvas Engine colaborativo en Firebase: código listo para despliegue y validación real.
+- Entrega 12 — Canvas Engine colaborativo en Firebase: validación real en curso.
+- Ajuste 12.2 — Usuarios e invitaciones: código listo; requiere desplegar Cloud Functions.
 
 ## Módulos funcionales
 
@@ -19,7 +20,8 @@ Centro operativo de WonkUp para la gestión de proyectos, innovación, entregabl
 - Portal del cliente y entregables híbridos en Firestore.
 - Finanzas, ingresos, costos, horas y rentabilidad.
 - Dashboard ejecutivo y reportes CSV/PDF.
-- Cloud Foundation: diagnóstico, respaldos, migraciones, verificación y activación de usuarios.
+- Usuarios e invitaciones: alta, roles, alcances, desactivación y correos desde WonkUp.
+- Cloud Foundation: diagnóstico, respaldos, migraciones, verificación y activación manual de contingencia.
 - Temas claro, oscuro y sistema.
 
 ## Configuración activa
@@ -33,7 +35,8 @@ deliverableMode: 'hybrid',
 canvasMode: 'hybrid',
 financeMode: 'mock',
 reportMode: 'aggregate',
-foundationMode: 'connected'
+foundationMode: 'connected',
+functionsRegion: 'us-central1'
 ```
 
 Las cuentas Firebase usan Firestore en Proyectos, Kanban, Entregables y Canvas. Los códigos demo conservan `localStorage`. La presencia del Canvas utiliza Realtime Database.
@@ -65,3 +68,14 @@ No coloques cuentas de servicio, contraseñas, tokens, claves privadas ni claves
 ## Hotfix vigente
 
 Para validar colaboración entre cuentas en proyectos creados directamente en Firestore, aplica `HOTFIX_12_0_1_GUIA.md`. La migración de canvases no debe repetirse.
+
+
+## Ajuste 12.2 — Administración de usuarios
+
+Consulta:
+
+- `AJUSTE_12_2_GUIA.md`
+- `USER_ADMIN_ARCHITECTURE_12_2.md`
+- `TEST_RESULTS_12_2.md`
+
+El frontend continúa en GitHub Pages. La creación administrativa de identidades se ejecuta mediante Cloud Functions y Firebase Admin SDK; por ello, el proyecto debe usar el plan Blaze.

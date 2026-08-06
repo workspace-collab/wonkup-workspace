@@ -15,6 +15,7 @@ export const API_CONFIG = Object.freeze({
   financeMode: runtimeConfig.financeMode || 'mock',
   reportMode: runtimeConfig.reportMode || 'aggregate',
   foundationMode: runtimeConfig.foundationMode || 'diagnostic',
+  functionsRegion: runtimeConfig.functionsRegion || 'us-central1',
   appsScriptUrl: runtimeConfig.appsScriptUrl || '',
   requestTimeoutMs: Number(runtimeConfig.requestTimeoutMs || 15000),
   demoCodesVisible: runtimeConfig.demoCodesVisible ?? true,

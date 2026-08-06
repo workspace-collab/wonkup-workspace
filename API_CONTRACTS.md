@@ -473,3 +473,27 @@ startPresence({ canvasId, workspaceId, projectId, session, onChange })
 - Los enlaces públicos consultan un snapshot sanitizado y no exponen subcolecciones internas.
 - `startRealtime` y `startPresence` retornan funciones de limpieza.
 
+
+
+## Ajuste 12.2 — ManagedUsersService
+
+```text
+health()
+list()
+invite({ name, email, role, workspaceIds, projectIds, allocation })
+update({ uid, name, email, role, workspaceIds, projectIds, allocation, status })
+setStatus(uid, status)
+sendInvitationEmail(email)
+```
+
+Funciones callable:
+
+```text
+wonkupUserAdminHealth
+wonkupListManagedUsers
+wonkupInviteUser
+wonkupUpdateManagedUser
+wonkupSetManagedUserStatus
+```
+
+Todas las funciones requieren un ID token válido y un documento `users/{uid}` con `role=superadmin` y `status=active`. Las operaciones privilegiadas se ejecutan con Firebase Admin SDK; el navegador nunca recibe credenciales de servicio.

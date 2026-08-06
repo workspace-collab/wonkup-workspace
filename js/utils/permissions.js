@@ -248,7 +248,7 @@ export function canAccessRoute(route, session) {
   if (route.view === 'forbidden' || route.view === 'notFound') return true;
 
   if (route.params?.workspaceId === 'all') return canViewMaster(session);
-  if (route.view === 'cloud') return canManageCloudFoundation(session);
+  if (['cloud', 'usersAdmin'].includes(route.view)) return canManageCloudFoundation(session);
   if (route.hash?.startsWith('#/master/')) return canViewMaster(session);
 
   if (route.view === 'kanban') {

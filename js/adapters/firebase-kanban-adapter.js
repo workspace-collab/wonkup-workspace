@@ -1,6 +1,6 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.1';
-import { defaultKanbanColumns } from '../../data/demo-kanban.js?v=12.0.1';
-import { getKanbanTemplate } from '../../data/kanban-templates.js?v=12.0.1';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.2.0';
+import { defaultKanbanColumns } from '../../data/demo-kanban.js?v=12.2.0';
+import { getKanbanTemplate } from '../../data/kanban-templates.js?v=12.2.0';
 import {
   canAccessProject,
   canCommentKanban,
@@ -8,7 +8,7 @@ import {
   canDeleteKanbanCard,
   canEditKanban,
   canViewKanban
-} from '../utils/permissions.js?v=12.0.1';
+} from '../utils/permissions.js?v=12.2.0';
 
 const listeners = new Set();
 const directoryCache = new Map();

@@ -1,6 +1,6 @@
-import { API_CONFIG } from '../config/api-config.js?v=12.0.1';
-import { MockDeliverableAdapter } from '../adapters/mock-deliverable-adapter.js?v=12.0.1';
-import { FirebaseDeliverableAdapter } from '../adapters/firebase-deliverable-adapter.js?v=12.0.1';
+import { API_CONFIG } from '../config/api-config.js?v=12.2.0';
+import { MockDeliverableAdapter } from '../adapters/mock-deliverable-adapter.js?v=12.2.0';
+import { FirebaseDeliverableAdapter } from '../adapters/firebase-deliverable-adapter.js?v=12.2.0';
 
 export function deliverableDataSourceForSession(session) {
   if (API_CONFIG.deliverableMode === 'firebase') return 'firebase';

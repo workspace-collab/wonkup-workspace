@@ -391,6 +391,11 @@ service cloud.firestore {
       match /userActivations/{activationId} {
         allow read, write: if isSuperadmin();
       }
+
+      match /userAdminAudit/{auditId} {
+        allow read: if isSuperadmin();
+        allow write: if false;
+      }
     }
 
     match /canvasShares/{shareId} {

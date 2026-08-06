@@ -15,6 +15,7 @@
 | Entrega 9 — Cloud Foundation | Aprobada |
 | Entrega 10 — Kanban colaborativo en Firestore | Aprobada |
 | Entrega 11 — Entregables y portal del cliente cloud | Aprobada; Hotfix 11.0.1 cerrado |
-| Entrega 12 — Canvas Engine cloud | Código listo; validación real pendiente |
+| Entrega 12 — Canvas Engine cloud | Validación real en curso; Hotfix 12.0.1 aplicado |
+| Ajuste 12.2 — Usuarios e invitaciones | Código listo; despliegue de Cloud Functions pendiente |
 | Entrega 13 — Finanzas y reportes cloud | Pendiente |
 | Entrega 14 — Integraciones Google e IA | Pendiente |

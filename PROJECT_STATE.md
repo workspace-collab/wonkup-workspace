@@ -6,11 +6,11 @@ WonkUp Workspace
 
 ## Fase actual
 
-Entrega 12 — Canvas Engine colaborativo en Firebase
+Entrega 12 — Canvas Engine colaborativo + Ajuste 12.2 de usuarios
 
 ## Estado
 
-CÓDIGO LISTO / DESPLIEGUE Y VALIDACIÓN REAL PENDIENTES
+AJUSTE 12.2 CÓDIGO LISTO / CLOUD FUNCTIONS Y VALIDACIÓN REAL PENDIENTES
 
 ## Fases cerradas
 
@@ -51,7 +51,7 @@ La Entrega 12 se cierra después de:
 
 1. publicar las reglas Firestore 12;
 2. publicar las reglas de Realtime Database;
-3. desplegar el código 12.0.1;
+3. desplegar el código 12.2.0;
 4. ejecutar respaldo, simulación, migración y verificación 12.1;
 5. validar edición simultánea entre dos navegadores;
 6. validar presencia y desconexión;
@@ -63,3 +63,15 @@ La Entrega 12 se cierra después de:
 ## Incidencia 12.0.1
 
 Durante la validación con dos cuentas se confirmó que una cuenta colaboradora no descubría canvases de un proyecto creado directamente en Firestore. El Hotfix 12.0.1 incorpora un índice de asignaciones por usuario y requiere volver a asignar al colaborador al proyecto de prueba, renovar la sesión y repetir la validación colaborativa.
+
+
+## Ajuste 12.2 — Usuarios e invitaciones
+
+- Ruta `#/master/users` exclusiva de superadministrador.
+- Creación de cuentas mediante Cloud Functions y Firebase Admin SDK.
+- Correo para que la persona defina su contraseña.
+- Listado, edición, reenvío, desactivación y reactivación.
+- Asignación de workspaces, proyectos y roles.
+- Auditoría administrativa.
+- Botón de actualización del frontend en el menú del perfil.
+- Requiere migrar el proyecto Firebase de Spark a Blaze para desplegar funciones.

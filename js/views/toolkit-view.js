@@ -1,12 +1,12 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.0.1';
-import { ProjectService } from '../services/project-service.js?v=12.0.1';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=12.0.1';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.0.1';
-import { icon } from '../utils/icons.js?v=12.0.1';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.0.1';
-import { openModal, confirmModal } from '../components/modal.js?v=12.0.1';
-import { showToast } from '../components/toast.js?v=12.0.1';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.0.1';
+import { CanvasService } from '../services/canvas-service.js?v=12.2.0';
+import { ProjectService } from '../services/project-service.js?v=12.2.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=12.2.0';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.2.0';
+import { icon } from '../utils/icons.js?v=12.2.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.2.0';
+import { openModal, confirmModal } from '../components/modal.js?v=12.2.0';
+import { showToast } from '../components/toast.js?v=12.2.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.2.0';
 
 let unsubscribeToolkit = null;
 let toolkitGeneration = 0;

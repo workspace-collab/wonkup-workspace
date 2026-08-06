@@ -520,3 +520,35 @@ Realtime Database, ruta `presence/{workspaceId}/{projectId}/{canvasId}/{uid}/{cl
 | clientId | string | Identificador de la pestaña/conexión |
 | lastChanged | number | Marca de tiempo del servidor |
 
+
+
+## Ajuste 12.2 — Auditoría de usuarios
+
+### UserProfile
+
+Nuevos campos operativos en `users/{uid}`:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| invitationState | string | Estado operativo de la invitación |
+| invitationId | string | Identificador de la invitación inicial |
+| invitedAt | ISO 8601 | Fecha de creación de la invitación |
+| invitedBy | string | UID del superadministrador |
+| updatedBy | string | UID del último administrador |
+
+### UserAdminAudit
+
+Ruta `system/schema/userAdminAudit/{auditId}`.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| action | enum | `invite`, `update`, `deactivate` o `reactivate` |
+| targetUid | string | UID afectado |
+| targetEmail | string | Correo afectado |
+| role | string | Rol resultante |
+| status | string | Estado resultante |
+| workspaceIds | array | Workspaces autorizados |
+| projectIds | array | Proyectos autorizados |
+| executedAt | timestamp | Fecha del servidor |
+| executedBy | string | UID superadministrador |
+| release | string | Versión que ejecutó la acción |
