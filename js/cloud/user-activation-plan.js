@@ -93,7 +93,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
       projectIds: clone(input.projectIds),
       workspaceRoles,
       projectRoles,
-      schemaVersion: 10,
+      schemaVersion: 12,
       createdAt: timestamp,
       updatedAt: timestamp
     }
@@ -110,7 +110,7 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
         workspaceId,
         role: input.role,
         status: 'active',
-        schemaVersion: 10,
+        schemaVersion: 12,
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -143,7 +143,23 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
         role: input.role,
         allocation: Number(rawInput.allocation || 0),
         status: 'active',
-        schemaVersion: 10,
+        schemaVersion: 12,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      }
+    });
+    operations.push({
+      group: 'projectAssignments',
+      path: `users/${input.uid}/projectAssignments/${projectId}`,
+      data: {
+        id: projectId,
+        authUid: input.uid,
+        userId: input.personId,
+        workspaceId: project.workspaceId,
+        projectId,
+        role: input.role,
+        status: 'active',
+        schemaVersion: 12,
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -161,10 +177,10 @@ export function buildUserActivationPlan(snapshot, rawInput = {}) {
     result[operation.group] = (result[operation.group] || 0) + 1;
     result.total += 1;
     return result;
-  }, { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, peopleLinks: 0, total: 0 });
+  }, { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, projectAssignments: 0, peopleLinks: 0, total: 0 });
 
   return {
-    schemaVersion: 10,
+    schemaVersion: 12,
     generatedAt: timestamp,
     input,
     counts,

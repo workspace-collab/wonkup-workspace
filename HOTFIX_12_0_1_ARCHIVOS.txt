@@ -1,0 +1,29 @@
+HOTFIX 12.0.1 — ARCHIVOS PRINCIPALES
+
+NUEVOS
+HOTFIX_12_0_1_GUIA.md
+HOTFIX_12_0_1_ARCHIVOS.txt
+TEST_RESULTS_12_0_1.md
+
+FUNCIONALES
+firebase/firestore.rules
+index.html
+js/adapters/firebase-access-adapter.js
+js/adapters/firebase-project-adapter.js
+js/cloud/user-activation-plan.js
+js/config/runtime-config.js
+js/views/cloud-foundation-view.js
+js/views/toolkit-view.js
+
+PRUEBAS
+tests/canvas-cloud-12.test.mjs
+tests/user-activation-9.test.mjs
+
+CONTROL
+CHANGELOG.md
+PROJECT_STATE.md
+README.md
+TEST_CHECKLIST.md
+
+CACHÉ
+Todos los módulos JavaScript del paquete utilizan `?v=12.0.1` para impedir que GitHub Pages reutilice módulos 12.0.0 almacenados por el navegador.

@@ -1,12 +1,12 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.0.0';
-import { ProjectService } from '../services/project-service.js?v=12.0.0';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=12.0.0';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.0.0';
-import { icon } from '../utils/icons.js?v=12.0.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.0.0';
-import { openModal, confirmModal } from '../components/modal.js?v=12.0.0';
-import { showToast } from '../components/toast.js?v=12.0.0';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.0.0';
+import { CanvasService } from '../services/canvas-service.js?v=12.0.1';
+import { ProjectService } from '../services/project-service.js?v=12.0.1';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=12.0.1';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.0.1';
+import { icon } from '../utils/icons.js?v=12.0.1';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.0.1';
+import { openModal, confirmModal } from '../components/modal.js?v=12.0.1';
+import { showToast } from '../components/toast.js?v=12.0.1';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.0.1';
 
 let unsubscribeToolkit = null;
 let toolkitGeneration = 0;
@@ -49,13 +49,18 @@ function renderToolkitContent(container, context) {
   const dataSource = CanvasService.dataSource({ session });
   const canEdit = canEditCanvas(session, projectId, workspaceId);
   const canManage = canManageCanvas(session, projectId, workspaceId);
+  const canvasScopeTitle = projectId ? 'Canvases del proyecto' : 'Canvases accesibles';
+  const emptyTitle = projectId ? 'Aún no hay canvases' : 'No hay canvases en tus proyectos autorizados';
+  const emptyDescription = projectId
+    ? 'Crea una instancia a partir de una de las plantillas metodológicas.'
+    : 'Solo se muestran los canvases de proyectos donde tu cuenta tiene una membresía activa.';
 
   root.innerHTML = `
     ${embedded ? `<div class="toolkit-embedded-head"><div><h2>Innovation Toolkit</h2><p>Canvases vinculados a este proyecto.</p></div>${canEdit ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div>` : root.querySelector('.page-header')?.outerHTML || ''}
 
     <section class="toolkit-section" aria-labelledby="canvas-instances-title">
-      <div class="section-heading"><div><h2 id="canvas-instances-title">Canvases del proyecto</h2><p>${activeInstances.length} activo${activeInstances.length === 1 ? '' : 's'}${archivedInstances.length ? ` · ${archivedInstances.length} archivado${archivedInstances.length === 1 ? '' : 's'}` : ''} · ${dataSource === 'firebase' ? 'Firestore en tiempo real' : 'Demo local'}</p></div>${dataSource === 'mock' && session?.role === 'superadmin' && !embedded ? `<button class="button button-ghost" id="reset-canvases">${icon('refresh')} Restablecer demo</button>` : ''}</div>
-      ${activeInstances.length ? `<div class="canvas-instance-grid">${activeInstances.map(instance => instanceCard(instance, projectMap[instance.projectId], session)).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('lightbulb')}</div><h2>Aún no hay canvases</h2><p>Crea una instancia a partir de una de las plantillas metodológicas.</p>${canEdit ? `<button class="button button-primary" id="empty-new-canvas">${icon('plus')} Crear primer canvas</button>` : ''}</div>`}
+      <div class="section-heading"><div><h2 id="canvas-instances-title">${canvasScopeTitle}</h2><p>${activeInstances.length} activo${activeInstances.length === 1 ? '' : 's'}${archivedInstances.length ? ` · ${archivedInstances.length} archivado${archivedInstances.length === 1 ? '' : 's'}` : ''} · ${dataSource === 'firebase' ? 'Firestore en tiempo real' : 'Demo local'}</p></div>${dataSource === 'mock' && session?.role === 'superadmin' && !embedded ? `<button class="button button-ghost" id="reset-canvases">${icon('refresh')} Restablecer demo</button>` : ''}</div>
+      ${activeInstances.length ? `<div class="canvas-instance-grid">${activeInstances.map(instance => instanceCard(instance, projectMap[instance.projectId], session)).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('lightbulb')}</div><h2>${emptyTitle}</h2><p>${emptyDescription}</p>${canEdit ? `<button class="button button-primary" id="empty-new-canvas">${icon('plus')} Crear primer canvas</button>` : ''}</div>`}
     </section>
 
     <section class="toolkit-section" aria-labelledby="canvas-templates-title">

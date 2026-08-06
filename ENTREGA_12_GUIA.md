@@ -22,7 +22,7 @@ La Entrega 11 queda cerrada y aprobada con el Hotfix 11.0.1.
 - Archivo lógico sin eliminación física.
 - Migración 12.1 desde Cloud Foundation.
 - Respaldo, simulación, confirmación doble y verificación.
-- Versión de caché `12.0.0`.
+- Versión de caché `12.0.1`.
 
 ## Instalación sin terminal
 
@@ -140,3 +140,7 @@ canvasMode: 'mock'
 ```
 
 No elimines colecciones ni vuelvas a ejecutar migraciones anteriores para revertir la interfaz.
+
+## Hotfix 12.0.1
+
+La validación con dos cuentas detectó una brecha de descubrimiento de proyectos creados directamente en Firestore. Aplica `HOTFIX_12_0_1_GUIA.md` antes de cerrar la Entrega 12. No vuelvas a ejecutar la migración 12.1.

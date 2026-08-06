@@ -350,6 +350,21 @@ service cloud.firestore {
         ])
       );
 
+      match /projectAssignments/{projectId} {
+        allow read: if hasActiveProfile() && request.auth.uid == userId;
+        allow create, update: if isSuperadmin() || (
+          hasActiveProfile()
+          && request.resource.data.id == projectId
+          && request.resource.data.projectId == projectId
+          && request.resource.data.workspaceId is string
+          && request.resource.data.authUid == userId
+          && request.resource.data.role in ['project_lead', 'collaborator', 'reviewer', 'client', 'guest']
+          && request.resource.data.status in ['active', 'inactive', 'pending']
+          && canLeadProject(request.resource.data.workspaceId, projectId)
+        );
+        allow delete: if false;
+      }
+
       match /notifications/{notificationId} {
         allow read: if hasActiveProfile() && request.auth.uid == userId;
         allow create: if hasActiveProfile()

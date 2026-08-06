@@ -51,7 +51,7 @@ La Entrega 12 se cierra después de:
 
 1. publicar las reglas Firestore 12;
 2. publicar las reglas de Realtime Database;
-3. desplegar el código 12.0.0;
+3. desplegar el código 12.0.1;
 4. ejecutar respaldo, simulación, migración y verificación 12.1;
 5. validar edición simultánea entre dos navegadores;
 6. validar presencia y desconexión;
@@ -59,3 +59,7 @@ La Entrega 12 se cierra después de:
 8. validar permisos por proyecto;
 9. confirmar que los códigos demo conservan los canvases locales;
 10. confirmar que el smoke test Canvas 5.9 no presenta regresiones.
+
+## Incidencia 12.0.1
+
+Durante la validación con dos cuentas se confirmó que una cuenta colaboradora no descubría canvases de un proyecto creado directamente en Firestore. El Hotfix 12.0.1 incorpora un índice de asignaciones por usuario y requiere volver a asignar al colaborador al proyecto de prueba, renovar la sesión y repetir la validación colaborativa.

@@ -109,3 +109,18 @@ test('Canvas permissions follow the project role rather than the global profile 
     projectRoles: { 'p-wonkup-workspace': 'project_lead' }
   }, 'p-wonkup-workspace', 'w-wonkup'), true);
 });
+
+
+test('Hotfix 12.0.1 indexes project assignments for dynamic cloud projects', () => {
+  const access = read('js/adapters/firebase-access-adapter.js');
+  const projects = read('js/adapters/firebase-project-adapter.js');
+  const activation = read('js/cloud/user-activation-plan.js');
+  const rules = read('firebase/firestore.rules');
+  assert.match(access, /getProjectAssignmentContext/);
+  assert.match(access, /projectAssignments/);
+  assert.match(projects, /users', authUid, 'projectAssignments'/);
+  assert.match(projects, /status: 'inactive'/);
+  assert.match(activation, /group: 'projectAssignments'/);
+  assert.match(rules, /match \/projectAssignments\/\{projectId\}/);
+  assert.match(rules, /canLeadProject\(request\.resource\.data\.workspaceId, projectId\)/);
+});

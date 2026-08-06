@@ -1,7 +1,7 @@
-import { API_CONFIG } from '../config/api-config.js?v=12.0.0';
-import { MockProjectAdapter } from '../adapters/mock-project-adapter.js?v=12.0.0';
-import { AppsScriptProjectAdapter } from '../adapters/apps-script-project-adapter.js?v=12.0.0';
-import { FirebaseProjectAdapter } from '../adapters/firebase-project-adapter.js?v=12.0.0';
+import { API_CONFIG } from '../config/api-config.js?v=12.0.1';
+import { MockProjectAdapter } from '../adapters/mock-project-adapter.js?v=12.0.1';
+import { AppsScriptProjectAdapter } from '../adapters/apps-script-project-adapter.js?v=12.0.1';
+import { FirebaseProjectAdapter } from '../adapters/firebase-project-adapter.js?v=12.0.1';
 
 export function projectDataSourceForSession(session) {
   if (API_CONFIG.projectMode === 'firebase') return 'firebase';

@@ -1,5 +1,5 @@
 WONKUP WORKSPACE — ENTREGA 12
-Release: 12.0.0
+Release: 12.0.1
 Fecha: 2026-08-05
 
 OBJETIVO
@@ -9,7 +9,7 @@ CONFIGURACION RTDB
 https://wonkup-workspace-default-rtdb.firebaseio.com
 
 VALIDACION LOCAL
-- 41/41 pruebas Node aprobadas.
+- 42/42 pruebas Node aprobadas.
 - Smoke test Canvas 5.9 aprobado.
 - 0 errores de pagina en Chromium.
 - Plan seed: 4 canvases, 11 notas, 24 documentos, 0 duplicados.
@@ -102,3 +102,7 @@ ARCHIVOS DE CONTROL
 - TEST_RESULTS_12.md
 - ENTREGA_12_ARCHIVOS.txt
 - WonkUp_Workspace_Entrega_12_MANIFEST.txt
+
+HOTFIX VIGENTE
+- Hotfix 12.0.1: índice dinámico de asignaciones de proyecto y acceso compartido al Canvas.
+- No requiere repetir la migración 12.1.

@@ -1,4 +1,4 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.1';
 import {
   canAccessProject,
   canAccessWorkspace,
@@ -11,7 +11,7 @@ import {
   canManageProjectTeam,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js?v=12.0.0';
+} from '../utils/permissions.js?v=12.0.1';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 
@@ -461,7 +461,8 @@ export const FirebaseProjectAdapter = {
       const timestamp = nowIso();
       const authUid = String(personSnapshot.data().authUid || '');
       const membershipId = authUid || input.userId;
-      await client.sdk.firestore.setDoc(
+      const batch = client.sdk.firestore.writeBatch(client.db);
+      batch.set(
         client.sdk.firestore.doc(client.db, 'workspaces', project.workspaceId, 'projects', project.id, 'members', membershipId),
         {
           id: membershipId,
@@ -472,12 +473,31 @@ export const FirebaseProjectAdapter = {
           role: input.role,
           allocation: Number(input.allocation || 0),
           status: 'active',
-          schemaVersion: 9,
+          schemaVersion: 12,
           createdAt: timestamp,
           updatedAt: timestamp
         },
         { merge: true }
       );
+      if (authUid) {
+        batch.set(
+          client.sdk.firestore.doc(client.db, 'users', authUid, 'projectAssignments', project.id),
+          {
+            id: project.id,
+            authUid,
+            userId: input.userId,
+            workspaceId: project.workspaceId,
+            projectId: project.id,
+            role: input.role,
+            status: 'active',
+            schemaVersion: 12,
+            createdAt: timestamp,
+            updatedAt: timestamp
+          },
+          { merge: true }
+        );
+      }
+      await batch.commit();
       return this.listMembers({ projectId, session });
     } catch (error) {
       throw friendlyError(error);
@@ -490,7 +510,19 @@ export const FirebaseProjectAdapter = {
       const project = await getProjectById(client, projectId, session);
       if (!project || !canManageProjectTeam(session, projectId, project.workspaceId)) throw new Error('Tu rol no permite administrar el equipo.');
       const reference = client.sdk.firestore.doc(client.db, 'workspaces', project.workspaceId, 'projects', project.id, 'members', memberId);
-      await client.sdk.firestore.setDoc(reference, { status: 'inactive', updatedAt: nowIso() }, { merge: true });
+      const membershipSnapshot = await client.sdk.firestore.getDoc(reference);
+      const membership = membershipSnapshot.exists() ? membershipSnapshot.data() : null;
+      const timestamp = nowIso();
+      const batch = client.sdk.firestore.writeBatch(client.db);
+      batch.set(reference, { status: 'inactive', updatedAt: timestamp }, { merge: true });
+      if (membership?.authUid) {
+        batch.set(
+          client.sdk.firestore.doc(client.db, 'users', membership.authUid, 'projectAssignments', project.id),
+          { status: 'inactive', updatedAt: timestamp },
+          { merge: true }
+        );
+      }
+      await batch.commit();
       return { removed: true };
     } catch (error) {
       throw friendlyError(error);

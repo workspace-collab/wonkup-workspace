@@ -1,5 +1,5 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.0';
-import { ROLE_LABELS } from '../utils/permissions.js?v=12.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.1';
+import { ROLE_LABELS } from '../utils/permissions.js?v=12.0.1';
 
 function sessionExpiry() {
   return new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString();
@@ -46,6 +46,20 @@ async function getWorkspaceContext(client, profile, uid) {
   return { workspaces, workspaceRoles };
 }
 
+async function getProjectAssignmentContext(client, uid) {
+  const snapshot = await client.sdk.firestore.getDocs(
+    client.sdk.firestore.collection(client.db, 'users', uid, 'projectAssignments')
+  );
+  const active = snapshot.docs
+    .map(item => ({ id: item.id, ...item.data() }))
+    .filter(item => item.status === 'active' && item.projectId && item.workspaceId);
+  return {
+    projectIds: [...new Set(active.map(item => item.projectId))],
+    projectRoles: Object.fromEntries(active.map(item => [item.projectId, item.role || 'collaborator'])),
+    projectWorkspaceIds: Object.fromEntries(active.map(item => [item.projectId, item.workspaceId]))
+  };
+}
+
 async function getProjectRoleContext(client, profile, uid, workspaceIds, projectIds) {
   const projectRoles = { ...(profile.projectRoles || {}) };
   const projectWorkspaceIds = {};
@@ -88,12 +102,21 @@ async function createSession(user) {
   const workspaceIds = role === 'superadmin'
     ? ['*']
     : workspaces.map(item => item.id);
+  const assignmentContext = role === 'superadmin'
+    ? { projectIds: [], projectRoles: {}, projectWorkspaceIds: {} }
+    : await getProjectAssignmentContext(client, user.uid);
   const projectIds = role === 'superadmin'
     ? ['*']
-    : normalizeScope(profile.projectIds).filter(id => id !== '*');
+    : [...new Set([
+        ...normalizeScope(profile.projectIds).filter(id => id !== '*'),
+        ...assignmentContext.projectIds
+      ])];
   const projectRoleContext = role === 'superadmin'
     ? { projectRoles: { ...(profile.projectRoles || {}) }, projectWorkspaceIds: {} }
-    : await getProjectRoleContext(client, profile, user.uid, workspaceIds, projectIds);
+    : await getProjectRoleContext(client, {
+        ...profile,
+        projectRoles: { ...(profile.projectRoles || {}), ...assignmentContext.projectRoles }
+      }, user.uid, workspaceIds, projectIds);
   globalThis.__wonkupCloudWorkspaces = workspaces;
 
   return {
@@ -118,8 +141,8 @@ async function createSession(user) {
       projectIds
     },
     workspaceRoles: { ...(profile.workspaceRoles || {}), ...workspaceContext.workspaceRoles },
-    projectRoles: projectRoleContext.projectRoles,
-    projectWorkspaceIds: projectRoleContext.projectWorkspaceIds,
+    projectRoles: { ...assignmentContext.projectRoles, ...projectRoleContext.projectRoles },
+    projectWorkspaceIds: { ...assignmentContext.projectWorkspaceIds, ...projectRoleContext.projectWorkspaceIds },
     workspaces
   };
 }

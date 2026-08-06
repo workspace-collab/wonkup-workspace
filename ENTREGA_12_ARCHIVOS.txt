@@ -37,4 +37,4 @@ js/views/cloud-foundation-view.js
 tests/firebase-singleton-9-0-5.test.mjs
 tests/canvas-engine-smoke.py
 
-Además, los imports JavaScript del proyecto fueron actualizados a la versión de caché 12.0.0.
+Además, los imports JavaScript del proyecto fueron actualizados a la versión de caché 12.0.1.

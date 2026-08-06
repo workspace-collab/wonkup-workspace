@@ -195,7 +195,7 @@ https://wonkup-workspace-default-rtdb.firebaseio.com
 
 ## Etapa 12 — Migrar Canvas Engine
 
-1. Sube el código 12.0.0.
+1. Sube el código 12.0.1.
 2. Publica `firebase/firestore.rules`.
 3. Publica `firebase/realtime-database.rules.json`.
 4. Ingresa con la cuenta Firebase superadministradora.

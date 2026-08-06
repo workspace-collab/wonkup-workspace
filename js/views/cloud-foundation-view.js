@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=12.0.0';
-import { escapeHtml } from '../utils/format.js?v=12.0.0';
-import { icon } from '../utils/icons.js?v=12.0.0';
-import { showToast } from '../components/toast.js?v=12.0.0';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=12.0.1';
+import { escapeHtml } from '../utils/format.js?v=12.0.1';
+import { icon } from '../utils/icons.js?v=12.0.1';
+import { showToast } from '../components/toast.js?v=12.0.1';
 
 let active = true;
 
@@ -45,8 +45,8 @@ function canvasMigrationCounts(plan) {
 }
 
 function activationCounts(plan = null) {
-  const counts = plan?.counts || { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, peopleLinks: 0, total: 0 };
-  return `<div class="cloud-activation-count"><strong>${counts.profiles}</strong><span>Perfil</span></div><div class="cloud-activation-count"><strong>${counts.workspaceMemberships}</strong><span>Workspaces</span></div><div class="cloud-activation-count"><strong>${counts.projectMemberships}</strong><span>Proyectos</span></div><div class="cloud-activation-count"><strong>${counts.peopleLinks}</strong><span>Vínculos</span></div><div class="cloud-activation-count is-total"><strong>${counts.total}</strong><span>Escrituras</span></div>`;
+  const counts = plan?.counts || { profiles: 0, workspaceMemberships: 0, projectMemberships: 0, projectAssignments: 0, peopleLinks: 0, total: 0 };
+  return `<div class="cloud-activation-count"><strong>${counts.profiles}</strong><span>Perfil</span></div><div class="cloud-activation-count"><strong>${counts.workspaceMemberships}</strong><span>Workspaces</span></div><div class="cloud-activation-count"><strong>${counts.projectMemberships}</strong><span>Proyectos</span></div><div class="cloud-activation-count"><strong>${counts.projectAssignments}</strong><span>Índices</span></div><div class="cloud-activation-count"><strong>${counts.peopleLinks}</strong><span>Vínculos</span></div><div class="cloud-activation-count is-total"><strong>${counts.total}</strong><span>Escrituras</span></div>`;
 }
 
 function activationRoleOptions() {

@@ -1,8 +1,8 @@
-import { AccessService } from '../services/access-service.js?v=12.0.0';
-import { setSession, setState } from '../state/store.js?v=12.0.0';
-import { getDefaultRoute } from '../utils/permissions.js?v=12.0.0';
-import { escapeHtml } from '../utils/format.js?v=12.0.0';
-import { icon } from '../utils/icons.js?v=12.0.0';
+import { AccessService } from '../services/access-service.js?v=12.0.1';
+import { setSession, setState } from '../state/store.js?v=12.0.1';
+import { getDefaultRoute } from '../utils/permissions.js?v=12.0.1';
+import { escapeHtml } from '../utils/format.js?v=12.0.1';
+import { icon } from '../utils/icons.js?v=12.0.1';
 
 export function renderAccess(container, options = {}) {
   const demoCodes = AccessService.getDemoCodes();

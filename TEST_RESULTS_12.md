@@ -11,8 +11,8 @@ Fecha de preparación: 2026-08-05
 Se ejecutaron todos los archivos `tests/*.test.mjs`.
 
 - Suites: 10
-- Pruebas: 41
-- Aprobadas: 41
+- Pruebas: 42
+- Aprobadas: 42
 - Fallidas: 0
 
 La nueva suite `canvas-cloud-12.test.mjs` validó:
@@ -25,6 +25,7 @@ La nueva suite `canvas-cloud-12.test.mjs` validó:
 - presencia RTDB;
 - reglas de snapshots públicos;
 - permisos por proyecto;
+- índices dinámicos de asignación por usuario;
 - controles de Cloud Foundation.
 
 ## Plan de migración local
@@ -48,7 +49,7 @@ Resultado con el seed incluido:
 - Todos los módulos de `js/` y `data/` superaron `node --check`.
 - `firebase/realtime-database.rules.json` es JSON válido.
 - Las llaves, paréntesis y corchetes de las reglas Firestore y RTDB están balanceados.
-- Todos los imports JavaScript utilizan la versión de caché `12.0.0`.
+- Todos los imports JavaScript utilizan la versión de caché `12.0.1`.
 
 ## Smoke test Canvas 5.9
 

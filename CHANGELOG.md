@@ -1,4 +1,4 @@
-## 12.0.0 — Canvas Engine colaborativo en Firebase
+## 12.0.1 — Canvas Engine colaborativo en Firebase
 
 - Se activó `canvasMode: hybrid`.
 - Las cuentas Firebase usan Cloud Firestore y los códigos demo conservan `localStorage`.
@@ -11,7 +11,7 @@
 - Se incorporó la Migración 12.1 con respaldo, simulación, confirmación y verificación.
 - Se actualizaron reglas Firestore y Realtime Database.
 - La Entrega 11 y el Hotfix 11.0.1 quedan aprobados y cerrados.
-- Caché actualizada a 12.0.0.
+- Caché actualizada a 12.0.1.
 
 ## 11.0.1 — Hotfix de permisos y sincronización de entregables
 
@@ -368,3 +368,14 @@
 - Se reforzó el vínculo de personas con cuentas Firebase por UID, persona y correo.
 - Se añadieron metadatos de creación a las tarjetas nuevas.
 - Se actualizó la cadena de caché del Kanban y la campana a 10.0.1.
+
+## 12.0.1 — Hotfix de asignaciones dinámicas y acceso compartido al Canvas
+
+- Se corrigió la visibilidad de canvases para usuarios asignados a proyectos creados directamente en Firestore.
+- Se añadió `users/{uid}/projectAssignments/{projectId}` como índice de asignaciones dinámicas.
+- La asignación de equipo escribe de forma atómica la membresía del proyecto y el índice del usuario.
+- La retirada de un miembro inactiva ambos registros.
+- La sesión Firebase combina alcances históricos e índices dinámicos antes de calcular permisos.
+- Cloud Foundation crea el índice al activar nuevas cuentas.
+- Innovation Toolkit diferencia entre canvases del proyecto y canvases accesibles del workspace.
+- Se actualizó la caché del frontend a `12.0.1`.

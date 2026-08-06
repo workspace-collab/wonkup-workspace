@@ -597,7 +597,7 @@ Validar:
 ## Instalación
 
 - [ ] Respaldo de la versión 11.0.1 conservado.
-- [ ] Código 12.0.0 publicado en GitHub Pages.
+- [ ] Código 12.0.1 publicado en GitHub Pages.
 - [ ] `firebase/firestore.rules` publicado.
 - [ ] `firebase/realtime-database.rules.json` publicado.
 - [ ] Recarga forzada realizada.

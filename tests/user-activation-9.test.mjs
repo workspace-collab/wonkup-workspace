@@ -19,10 +19,11 @@ test('builds a least-privilege user activation plan', () => {
     projectIds: ['p-1'],
     allocation: 25
   });
-  assert.equal(plan.counts.total, 4);
+  assert.equal(plan.counts.total, 5);
   assert.equal(plan.counts.profiles, 1);
   assert.equal(plan.counts.workspaceMemberships, 1);
   assert.equal(plan.counts.projectMemberships, 1);
+  assert.equal(plan.counts.projectAssignments, 1);
   assert.equal(plan.counts.peopleLinks, 1);
   assert.equal(plan.duplicates.length, 0);
   assert.deepEqual(plan.input.workspaceIds, ['w-1']);

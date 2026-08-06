@@ -61,3 +61,7 @@ Después de subir el código, publica manualmente:
 - `firebase/realtime-database.rules.json` en Realtime Database.
 
 No coloques cuentas de servicio, contraseñas, tokens, claves privadas ni claves de Gemini en el frontend.
+
+## Hotfix vigente
+
+Para validar colaboración entre cuentas en proyectos creados directamente en Firestore, aplica `HOTFIX_12_0_1_GUIA.md`. La migración de canvases no debe repetirse.
