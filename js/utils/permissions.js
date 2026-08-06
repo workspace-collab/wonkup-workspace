@@ -171,16 +171,35 @@ export function canDeleteKanbanCard(session, projectId = null, workspaceId = nul
   return MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId));
 }
 
-export function canEditCanvas(session) {
-  return Boolean(session && INTERNAL_ROLES.has(session.role));
+export function canViewCanvas(session, projectId = null, workspaceId = null) {
+  if (!session) return false;
+  if (projectId && !canAccessProject(session, projectId, workspaceId)) return false;
+  if (projectId) return INTERNAL_ROLES.has(getProjectRole(session, projectId, workspaceId));
+  return INTERNAL_ROLES.has(session.role)
+    || Object.values(session.workspaceRoles || {}).some(role => INTERNAL_ROLES.has(role))
+    || Object.values(session.projectRoles || {}).some(role => INTERNAL_ROLES.has(role));
 }
 
-export function canManageCanvas(session) {
-  return Boolean(session && ['superadmin', 'workspace_admin', 'project_lead'].includes(session.role));
+export function canEditCanvas(session, projectId = null, workspaceId = null) {
+  return canViewCanvas(session, projectId, workspaceId);
 }
 
-export function canDeleteCanvas(session) {
-  return Boolean(session && MANAGEMENT_ROLES.has(session.role));
+export function canManageCanvas(session, projectId = null, workspaceId = null) {
+  if (!session) return false;
+  const allowed = new Set(['superadmin', 'workspace_admin', 'project_lead']);
+  if (projectId) return canAccessProject(session, projectId, workspaceId)
+    && allowed.has(getProjectRole(session, projectId, workspaceId));
+  return allowed.has(session.role)
+    || Object.values(session.workspaceRoles || {}).some(role => allowed.has(role))
+    || Object.values(session.projectRoles || {}).some(role => allowed.has(role));
+}
+
+export function canDeleteCanvas(session, workspaceId = null) {
+  if (!session) return false;
+  if (workspaceId) return canAccessWorkspace(session, workspaceId)
+    && MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId));
+  return MANAGEMENT_ROLES.has(session.role)
+    || Object.values(session.workspaceRoles || {}).some(role => MANAGEMENT_ROLES.has(role));
 }
 
 

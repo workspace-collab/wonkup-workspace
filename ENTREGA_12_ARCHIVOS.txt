@@ -1,0 +1,40 @@
+ENTREGA 12 — ARCHIVOS NUEVOS
+
+CLOUD_CANVAS_ARCHITECTURE_12.md
+ENTREGA_12_GUIA.md
+ENTREGA_12_ARCHIVOS.txt
+TEST_RESULTS_12.md
+WonkUp_Workspace_Entrega_12_MANIFEST.txt
+js/cloud/canvas-migration-plan.js
+tests/canvas-cloud-12.test.mjs
+
+ARCHIVOS ACTUALIZADOS
+
+index.html
+README.md
+ROADMAP.md
+PROJECT_STATE.md
+CHANGELOG.md
+DATA_DICTIONARY.md
+API_CONTRACTS.md
+FIREBASE_SIN_TERMINAL.md
+firebase/README.md
+firebase/BOOTSTRAP_SUPERADMIN.json
+firebase/RUNTIME_CONFIG_EXAMPLE.js
+firebase/firestore.rules
+firebase/realtime-database.rules.json
+js/config/runtime-config.js
+js/cloud/firebase-sdk-loader.js
+js/cloud/firebase-client.js
+js/services/canvas-service.js
+js/services/cloud-foundation-service.js
+js/adapters/mock-canvas-adapter.js
+js/adapters/firebase-canvas-adapter.js
+js/utils/permissions.js
+js/views/canvas-view.js
+js/views/toolkit-view.js
+js/views/cloud-foundation-view.js
+tests/firebase-singleton-9-0-5.test.mjs
+tests/canvas-engine-smoke.py
+
+Además, los imports JavaScript del proyecto fueron actualizados a la versión de caché 12.0.0.

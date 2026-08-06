@@ -4,9 +4,9 @@ Centro operativo de WonkUp para la gestión de proyectos, innovación, entregabl
 
 ## Estado actual
 
-- Entregas 0 a 10: aprobadas.
-- Ajuste 8.1 y Hotfix 10.0.1: aprobados.
-- Entrega 11 — Entregables y aprobaciones en Firestore: código listo para despliegue y validación real.
+- Entregas 0 a 11: aprobadas.
+- Entrega 11 cerrada con Hotfix 11.0.1.
+- Entrega 12 — Canvas Engine colaborativo en Firebase: código listo para despliegue y validación real.
 
 ## Módulos funcionales
 
@@ -15,12 +15,11 @@ Centro operativo de WonkUp para la gestión de proyectos, innovación, entregabl
 - Proyectos, clientes, personas, recursos e hitos en Firestore para cuentas reales.
 - Altas rápidas de clientes y personas.
 - Kanban híbrido, configurable y colaborativo en tiempo real.
-- Actividad y notificaciones del Kanban.
-- Innovation Toolkit y Canvas Engine.
+- Innovation Toolkit y Canvas Engine híbrido con Firestore y presencia en Realtime Database.
 - Portal del cliente y entregables híbridos en Firestore.
 - Finanzas, ingresos, costos, horas y rentabilidad.
 - Dashboard ejecutivo y reportes CSV/PDF.
-- Cloud Foundation: diagnóstico, respaldos, migración, verificación y activación de usuarios.
+- Cloud Foundation: diagnóstico, respaldos, migraciones, verificación y activación de usuarios.
 - Temas claro, oscuro y sistema.
 
 ## Configuración activa
@@ -30,31 +29,35 @@ mode: 'mock',
 authMode: 'hybrid',
 projectMode: 'hybrid',
 kanbanMode: 'hybrid',
-canvasMode: 'mock',
 deliverableMode: 'hybrid',
+canvasMode: 'hybrid',
 financeMode: 'mock',
 reportMode: 'aggregate',
 foundationMode: 'connected'
 ```
 
-Las cuentas Firebase usan Firestore en Proyectos, Kanban y Entregables. Los códigos de demostración conservan `localStorage`.
+Las cuentas Firebase usan Firestore en Proyectos, Kanban, Entregables y Canvas. Los códigos demo conservan `localStorage`. La presencia del Canvas utiliza Realtime Database.
 
 ## Arquitectura de datos
 
-- Cloud Firestore: fuente de verdad de usuarios, workspaces, proyectos y Kanban migrado.
+- Cloud Firestore: usuarios, workspaces, proyectos, Kanban, entregables y Canvas.
+- Realtime Database: presencia efímera de participantes del Canvas.
 - Firebase Authentication: identidad real por UID.
 - Google Sheets: reportes y exportaciones, no base transaccional.
 - Apps Script: integraciones futuras con Drive, Gmail y Calendar.
-- `localStorage`: continuidad de sesiones demo y módulos aún no migrados.
+- `localStorage`: continuidad de sesiones demo y Finanzas aún no migradas.
 
-## Instalación de Entrega 11
+## Instalación de Entrega 12
 
 Consulta:
 
-- `ENTREGA_11_GUIA.md`
-- `CLOUD_DELIVERABLES_ARCHITECTURE_11.md`
-- `TEST_RESULTS_11.md`
+- `ENTREGA_12_GUIA.md`
+- `CLOUD_CANVAS_ARCHITECTURE_12.md`
+- `TEST_RESULTS_12.md`
 
-Después de subir el código, publica manualmente `firebase/firestore.rules` desde Firebase Console.
+Después de subir el código, publica manualmente:
+
+- `firebase/firestore.rules` en Firestore;
+- `firebase/realtime-database.rules.json` en Realtime Database.
 
 No coloques cuentas de servicio, contraseñas, tokens, claves privadas ni claves de Gemini en el frontend.

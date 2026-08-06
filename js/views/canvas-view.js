@@ -1,14 +1,14 @@
-import { CanvasService } from '../services/canvas-service.js?v=11.0.1';
-import { ProjectService } from '../services/project-service.js?v=11.0.1';
-import { KanbanService } from '../services/kanban-service.js?v=11.0.1';
-import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=11.0.1';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=11.0.1';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=11.0.1';
-import { icon } from '../utils/icons.js?v=11.0.1';
-import { escapeHtml, formatDate } from '../utils/format.js?v=11.0.1';
-import { openModal, confirmModal, closeModal } from '../components/modal.js?v=11.0.1';
-import { showToast } from '../components/toast.js?v=11.0.1';
-import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=11.0.1';
+import { CanvasService } from '../services/canvas-service.js?v=12.0.0';
+import { ProjectService } from '../services/project-service.js?v=12.0.0';
+import { KanbanService } from '../services/kanban-service.js?v=12.0.0';
+import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.0.0';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.0.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.0.0';
+import { icon } from '../utils/icons.js?v=12.0.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.0.0';
+import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.0.0';
+import { showToast } from '../components/toast.js?v=12.0.0';
+import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.0.0';
 
 let cleanupEditor = null;
 let workspaceController = null;
@@ -21,12 +21,20 @@ const VIEW_KEY = 'wonkup.canvas.view';
 const TIMER_KEY = 'wonkup.canvas.teamTimer';
 const IMMERSIVE_CLASS = 'canvas-immersive-mode';
 
+function canvasScope(instance, session) {
+  return {
+    workspaceId: instance.workspaceId,
+    projectId: instance.projectId,
+    session
+  };
+}
+
 export async function renderCanvas(container, params, session) {
   cleanupCanvasView();
   container.innerHTML = `<section class="page canvas-editor-page"><div class="panel"><div class="panel-body"><span class="spinner"></span> Cargando Canvas Engine...</div></div></section>`;
   try {
     const [instance, project] = await Promise.all([
-      CanvasService.getInstance({ canvasId: params.canvasId, session }),
+      CanvasService.getInstance({ canvasId: params.canvasId, workspaceId: params.workspaceId, projectId: params.projectId, session }),
       ProjectService.getProject({ projectId: params.projectId, session })
     ]);
     if (instance.projectId !== params.projectId || instance.workspaceId !== params.workspaceId) throw new Error('El canvas no corresponde al proyecto solicitado.');
@@ -58,8 +66,9 @@ function renderCanvasEditor(container, context) {
   const storedView = localStorage.getItem(`${VIEW_KEY}.${template.id}`) || localStorage.getItem(VIEW_KEY);
   const viewMode = storedView || (matchMedia('(max-width: 760px)').matches ? 'list' : 'board');
   const completion = calculateCanvasProgress(instance);
-  const canEdit = !readOnly && canEditCanvas(session);
-  const canManage = !readOnly && canManageCanvas(session);
+  const canEdit = !readOnly && canEditCanvas(session, instance.projectId, instance.workspaceId);
+  const canManage = !readOnly && canManageCanvas(session, instance.projectId, instance.workspaceId);
+  const dataSource = readOnly ? 'public' : CanvasService.dataSource({ session });
   document.body.classList.remove('canvas-focus-mode');
   container.dataset.activeCanvasId = instance.id;
   const projectBrand = normalizeCanvasBrand(project.brandColor || template.color);
@@ -89,7 +98,7 @@ function renderCanvasEditor(container, context) {
         <button class="button button-ghost ${viewMode === 'board' ? 'active' : ''}" data-canvas-view="board" type="button" aria-pressed="${viewMode === 'board'}">${icon('columns')} Canvas</button>
         <button class="button button-ghost ${viewMode === 'list' ? 'active' : ''}" data-canvas-view="list" type="button" aria-pressed="${viewMode === 'list'}">${icon('list')} Lista</button>
       </div>
-      <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${CanvasService.mode === 'mock' ? '<span class="demo-chip">Demo local</span>' : ''}</div>
+      <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${dataSource === 'mock' ? '<span class="demo-chip">Demo local</span>' : dataSource === 'firebase' ? '<span class="demo-chip">Firestore en tiempo real</span>' : ''}</div>
     </div>
 
     <div class="canvas-workspace" id="canvas-workspace">
@@ -102,7 +111,17 @@ function renderCanvasEditor(container, context) {
   bindCanvasEvents(container, context, viewMode);
 
   let stopPresence = () => {};
-  if (!readOnly && session) stopPresence = CanvasService.startPresence({ canvasId: instance.id, session, onChange: people => renderPresence(container, people) });
+  let stopRealtime = () => {};
+  if (!readOnly && session) {
+    stopPresence = CanvasService.startPresence({
+      canvasId: instance.id,
+      ...canvasScope(instance, session),
+      onChange: people => renderPresence(container, people)
+    });
+    CanvasService.startRealtime({ canvasId: instance.id, ...canvasScope(instance, session) })
+      .then(stop => { stopRealtime = typeof stop === 'function' ? stop : () => {}; })
+      .catch(error => showToast(error.message || 'No se pudo iniciar la sincronización del canvas.', { type: 'error' }));
+  }
   const unsubscribe = readOnly ? () => {} : CanvasService.subscribe(event => {
     if (event.source === 'presence' || event.source === 'local') return;
     if (event.source !== 'storage' && event.canvasId !== context.instance.id) return;
@@ -126,6 +145,7 @@ function renderCanvasEditor(container, context) {
   document.addEventListener('keydown', immersiveKeydown);
   cleanupEditor = () => {
     stopPresence();
+    stopRealtime();
     unsubscribe();
     workspaceController?.destroy();
     workspaceController = null;
@@ -301,7 +321,7 @@ function bindCanvasEvents(container, context, currentView) {
   workspaceController = workspace ? createCanvasWorkspaceController({
     workspace,
     getInstance: () => context.instance,
-    getCanEdit: () => !context.readOnly && canEditCanvas(context.session),
+    getCanEdit: () => !context.readOnly && canEditCanvas(context.session, context.instance.projectId, context.instance.workspaceId),
     getViewMode: () => currentView,
     renderNote: (note, canEdit, draggable) => noteCard(note, canEdit, draggable),
     emptyMarkup: canEdit => `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`,
@@ -314,6 +334,7 @@ function bindCanvasEvents(container, context, currentView) {
       const previous = context.instance;
       const next = await CanvasService.createNote({
         canvasId: previous.id,
+        ...canvasScope(previous, context.session),
         sectionId,
         input: { text, colorId },
         session: context.session
@@ -326,6 +347,7 @@ function bindCanvasEvents(container, context, currentView) {
     onUpdateNote: async ({ noteId, patch }) => {
       const next = await CanvasService.updateNote({
         canvasId: context.instance.id,
+        ...canvasScope(context.instance, context.session),
         noteId,
         patch,
         session: context.session
@@ -337,6 +359,7 @@ function bindCanvasEvents(container, context, currentView) {
     onDeleteNote: async ({ noteId }) => {
       const next = await CanvasService.deleteNote({
         canvasId: context.instance.id,
+        ...canvasScope(context.instance, context.session),
         noteId,
         session: context.session
       });
@@ -347,6 +370,7 @@ function bindCanvasEvents(container, context, currentView) {
     onMoveNote: async ({ noteId, toSectionId, toIndex }) => {
       const next = await CanvasService.moveNote({
         canvasId: context.instance.id,
+        ...canvasScope(context.instance, context.session),
         noteId,
         toSectionId,
         toIndex,
@@ -455,6 +479,7 @@ function openNoteForm({ context, sectionId = '', container, onSaved }) {
       const data = new FormData(form);
       const next = await CanvasService.createNote({
         canvasId: context.instance.id,
+        ...canvasScope(context.instance, session),
         sectionId: modal.root.querySelector('#canvas-note-section').value,
         input: { text, colorId: data.get('canvas-note-color') || 'sky' },
         session
@@ -516,6 +541,7 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
     try {
       const next = await CanvasService.updateNote({
         canvasId: context.instance.id,
+        ...canvasScope(context.instance, context.session),
         noteId,
         patch: {
           text,
@@ -542,7 +568,7 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
     beginCanvasMutation(container);
     blockCanvasNavigation(1600);
     try {
-      const next = await CanvasService.addComment({ canvasId: context.instance.id, noteId, text: field.value, session });
+      const next = await CanvasService.addComment({ canvasId: context.instance.id, ...canvasScope(context.instance, session), noteId, text: field.value });
       onSaved?.(next);
       modal.close({ restoreFocus: false });
       showToast('Comentario agregado.');
@@ -560,7 +586,7 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
     beginCanvasMutation(container);
     blockCanvasNavigation(1600);
     try {
-      const next = await CanvasService.deleteNote({ canvasId: context.instance.id, noteId, session });
+      const next = await CanvasService.deleteNote({ canvasId: context.instance.id, ...canvasScope(context.instance, session), noteId });
       onSaved?.(next);
       closeModal({ restoreFocus: false });
       showToast('Nota eliminada.');
@@ -626,7 +652,18 @@ async function openLinkNote({ instance, note, session, onSaved }) {
     modal.root.querySelector('#link-note-form').addEventListener('submit', async event => {
       event.preventDefault();
       try {
-        await CanvasService.linkNote({ sourceCanvasId: instance.id, sourceNoteId: note.id, targetCanvasId: targetSelect.value, targetSectionId: sectionSelect.value, session });
+        const target = targets.find(item => item.id === targetSelect.value);
+        await CanvasService.linkNote({
+          sourceCanvasId: instance.id,
+          sourceWorkspaceId: instance.workspaceId,
+          sourceProjectId: instance.projectId,
+          sourceNoteId: note.id,
+          targetCanvasId: targetSelect.value,
+          targetWorkspaceId: target?.workspaceId || instance.workspaceId,
+          targetProjectId: target?.projectId || instance.projectId,
+          targetSectionId: sectionSelect.value,
+          session
+        });
         modal.close();
         showToast('Nota vinculada al canvas de destino.');
         onSaved?.();
@@ -636,14 +673,14 @@ async function openLinkNote({ instance, note, session, onSaved }) {
 }
 
 async function openHistory({ instance, session, context, container }) {
-  const versions = await CanvasService.listVersions({ canvasId: instance.id, session });
+  const versions = await CanvasService.listVersions({ canvasId: instance.id, ...canvasScope(instance, session) });
   const isSuperadmin = session?.role === 'superadmin';
   const modal = openModal({
     title: 'Historial y versiones',
     subtitle: 'Consulta la actividad y recupera puntos de control del canvas.',
     size: 'lg',
     onClose: () => blockCanvasNavigation(900),
-    body: `<div class="history-version-layout"><section><div class="section-heading compact"><div><h3>Actividad</h3><p>Últimos ${Math.min(instance.history.length, 150)} eventos.</p></div></div><div class="canvas-history-list">${instance.history.length ? instance.history.map(entry => `<article><span class="history-icon">${icon(historyIcon(entry.type))}</span><div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.actor?.name || 'Sistema')} · ${relativeTime(entry.createdAt)}</small></div></article>`).join('') : '<p class="muted-copy">Todavía no hay actividad registrada.</p>'}</div></section><section><div class="section-heading compact"><div><h3>Versiones</h3><p>Se conservan hasta 20 snapshots locales.</p></div>${canManageCanvas(session) ? `<button class="button button-secondary" type="button" id="create-version">${icon('plus')} Punto de control</button>` : ''}</div><div class="canvas-version-feedback" id="canvas-version-feedback" role="status" aria-live="polite"></div><div class="canvas-version-list">${versions.length ? versions.map(version => `<article><div><strong>Versión ${version.version}</strong><span>${escapeHtml(version.label || 'Punto de control')}</span><small>${escapeHtml(version.actor?.name || 'Sistema')} · ${formatDateTime(version.createdAt)} · ${version.notes?.length || 0} notas</small></div>${isSuperadmin ? `<button class="button button-secondary" type="button" data-restore-version="${escapeHtml(version.id)}">${icon('restore')} Restaurar</button>` : ''}</article>`).join('') : '<p class="muted-copy">No existen versiones guardadas.</p>'}</div></section></div>`
+    body: `<div class="history-version-layout"><section><div class="section-heading compact"><div><h3>Actividad</h3><p>Últimos ${Math.min(instance.history.length, 150)} eventos.</p></div></div><div class="canvas-history-list">${instance.history.length ? instance.history.map(entry => `<article><span class="history-icon">${icon(historyIcon(entry.type))}</span><div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.actor?.name || 'Sistema')} · ${relativeTime(entry.createdAt)}</small></div></article>`).join('') : '<p class="muted-copy">Todavía no hay actividad registrada.</p>'}</div></section><section><div class="section-heading compact"><div><h3>Versiones</h3><p>Se conservan hasta 20 puntos de control del canvas.</p></div>${canManageCanvas(session, instance.projectId, instance.workspaceId) ? `<button class="button button-secondary" type="button" id="create-version">${icon('plus')} Punto de control</button>` : ''}</div><div class="canvas-version-feedback" id="canvas-version-feedback" role="status" aria-live="polite"></div><div class="canvas-version-list">${versions.length ? versions.map(version => `<article><div><strong>Versión ${version.version}</strong><span>${escapeHtml(version.label || 'Punto de control')}</span><small>${escapeHtml(version.actor?.name || 'Sistema')} · ${formatDateTime(version.createdAt)} · ${version.notes?.length || 0} notas</small></div>${isSuperadmin ? `<button class="button button-secondary" type="button" data-restore-version="${escapeHtml(version.id)}">${icon('restore')} Restaurar</button>` : ''}</article>`).join('') : '<p class="muted-copy">No existen versiones guardadas.</p>'}</div></section></div>`
   });
   modal.root.querySelector('#create-version')?.addEventListener('click', async event => {
     const button = event.currentTarget;
@@ -651,8 +688,8 @@ async function openHistory({ instance, session, context, container }) {
     button.disabled = true;
     feedback.textContent = 'Creando punto de control...';
     try {
-      await CanvasService.createVersion({ canvasId: instance.id, label: `Punto de control · ${formatDateTime(new Date().toISOString())}`, session });
-      const next = await CanvasService.getInstance({ canvasId: instance.id, session });
+      await CanvasService.createVersion({ canvasId: instance.id, ...canvasScope(instance, session), label: `Punto de control · ${formatDateTime(new Date().toISOString())}`, session });
+      const next = await CanvasService.getInstance({ canvasId: instance.id, ...canvasScope(instance, session) });
       applyCanvasInstance(container, context, next);
       modal.close({ restoreFocus: false });
       showToast('Punto de control creado.');
@@ -671,7 +708,7 @@ async function openHistory({ instance, session, context, container }) {
     feedback.textContent = 'Restaurando versión...';
     try {
       beginCanvasMutation(container);
-      const next = await CanvasService.restoreVersion({ canvasId: instance.id, snapshotId: event.currentTarget.dataset.restoreVersion, session });
+      const next = await CanvasService.restoreVersion({ canvasId: instance.id, ...canvasScope(instance, session), snapshotId: event.currentTarget.dataset.restoreVersion, session });
       applyCanvasInstance(container, context, next);
       modal.close({ restoreFocus: false });
       showToast('Versión restaurada sin salir del canvas.');
@@ -720,17 +757,18 @@ async function openShare(instance, session) {
   });
 
   const refreshTokens = async (selectedToken, ensureActive = true) => {
-    let tokens = await CanvasService.listShareTokens({ canvasId: instance.id, session });
+    let tokens = await CanvasService.listShareTokens({ canvasId: instance.id, ...canvasScope(instance, session) });
     const active = tokens.filter(token => token.active && new Date(token.expiresAt).getTime() > Date.now());
     let token = selectedToken || active[0] || null;
     if (!token && ensureActive) {
       token = await CanvasService.createShareToken({
         canvasId: instance.id,
+        ...canvasScope(instance, session),
         expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
         label: 'Enlace principal',
         session
       });
-      tokens = await CanvasService.listShareTokens({ canvasId: instance.id, session });
+      tokens = await CanvasService.listShareTokens({ canvasId: instance.id, ...canvasScope(instance, session) });
     }
     renderShareTokens(modal.root, instance, tokens, session, token, refreshTokens);
   };
@@ -755,6 +793,7 @@ async function openShare(instance, session) {
       }
       const token = await CanvasService.createShareToken({
         canvasId: instance.id,
+        ...canvasScope(instance, session),
         expiresAt,
         label: modal.root.querySelector('#share-label').value,
         session
@@ -842,7 +881,7 @@ function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
   root.querySelectorAll('[data-revoke-token]').forEach(button => button.addEventListener('click', async () => {
     if (!globalThis.confirm('El enlace dejará de abrir el canvas inmediatamente. ¿Desactivarlo?')) return;
     try {
-      await CanvasService.revokeShareToken({ canvasId: instance.id, tokenId: button.dataset.revokeToken, session });
+      await CanvasService.revokeShareToken({ canvasId: instance.id, ...canvasScope(instance, session), tokenId: button.dataset.revokeToken });
       await refreshTokens(null, false);
       showToast('Enlace desactivado.');
     } catch (error) {
@@ -879,7 +918,7 @@ function openCanvasSettings({ instance, session, context, container }) {
   modal.root.querySelector('#canvas-settings-form').addEventListener('submit', async event => {
     event.preventDefault();
     try {
-      await CanvasService.updateInstance({ canvasId: instance.id, patch: { title: modal.root.querySelector('#canvas-settings-title').value }, session });
+      await CanvasService.updateInstance({ canvasId: instance.id, ...canvasScope(instance, session), patch: { title: modal.root.querySelector('#canvas-settings-title').value }, session });
       modal.close();
       showToast('Canvas actualizado.');
       reloadCanvas(container, context);
@@ -894,7 +933,7 @@ function openCanvasSettings({ instance, session, context, container }) {
     const confirmed = await confirmModal({ title: 'Archivar canvas', message: 'El canvas se ocultará del Toolkit, pero conservará notas e historial.', confirmLabel: 'Archivar', danger: true });
     if (!confirmed) return;
     try {
-      await CanvasService.archiveInstance({ canvasId: instance.id, session });
+      await CanvasService.archiveInstance({ canvasId: instance.id, ...canvasScope(instance, session) });
       closeModal();
       showToast('Canvas archivado.');
       navigateFromCanvas(`#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`);
@@ -957,7 +996,7 @@ async function reloadCanvas(container, context) {
   const requestId = ++refreshSequence;
   const canvasId = context.instance.id;
   try {
-    const next = await CanvasService.getInstance({ canvasId, session: context.session });
+    const next = await CanvasService.getInstance({ canvasId, ...canvasScope(context.instance, context.session) });
     if (requestId !== refreshSequence || container.dataset.activeCanvasId !== canvasId) return;
     applyCanvasInstance(container, context, next);
   } catch (error) { showToast(error.message, { type: 'error' }); }

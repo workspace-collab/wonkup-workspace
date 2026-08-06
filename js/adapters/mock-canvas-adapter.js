@@ -1,7 +1,7 @@
-import { demoCanvasInstances } from '../../data/demo-canvases.js?v=11.0.1';
-import { getCanvasTemplate } from '../../data/canvas-templates.js?v=11.0.1';
-import { demoUsers } from '../../data/demo-users.js?v=11.0.1';
-import { canAccessProject, canDeleteCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=11.0.1';
+import { demoCanvasInstances } from '../../data/demo-canvases.js?v=12.0.0';
+import { getCanvasTemplate } from '../../data/canvas-templates.js?v=12.0.0';
+import { demoUsers } from '../../data/demo-users.js?v=12.0.0';
+import { canAccessProject, canDeleteCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.0.0';
 
 const STORAGE_KEY = 'wonkup.e5.canvases';
 const PRESENCE_KEY = 'wonkup.e5.canvas-presence';
@@ -103,11 +103,11 @@ function requireAccess(session, instance) {
 }
 function requireEdit(session, instance) {
   requireAccess(session, instance);
-  if (!canEditCanvas(session)) throw new Error('Tu rol no permite modificar canvases.');
+  if (!canEditCanvas(session, instance.projectId, instance.workspaceId)) throw new Error('Tu rol no permite modificar canvases.');
 }
 function requireManage(session, instance) {
   requireAccess(session, instance);
-  if (!canManageCanvas(session)) throw new Error('Tu rol no permite administrar este canvas.');
+  if (!canManageCanvas(session, instance.projectId, instance.workspaceId)) throw new Error('Tu rol no permite administrar este canvas.');
 }
 function requireSuperadmin(session, instance) {
   requireAccess(session, instance);
@@ -219,7 +219,7 @@ export const MockCanvasAdapter = {
   async createInstance({ workspaceId, projectId, templateId, title, session }) {
     await wait(130);
     if (!canAccessProject(session, projectId, workspaceId)) throw new Error('No tienes acceso al proyecto seleccionado.');
-    if (!canEditCanvas(session)) throw new Error('Tu rol no permite crear canvases.');
+    if (!canEditCanvas(session, projectId, workspaceId)) throw new Error('Tu rol no permite crear canvases.');
     const template = getCanvasTemplate(templateId);
     if (!template) throw new Error('Plantilla no encontrada.');
     const instances = readInstances();
@@ -282,7 +282,7 @@ export const MockCanvasAdapter = {
     const instances = readInstances();
     const instance = findInstance(instances, canvasId, { includeArchived: true });
     requireAccess(session, instance);
-    if (!canDeleteCanvas(session)) throw new Error('Solo un administrador puede eliminar canvases definitivamente.');
+    if (!canDeleteCanvas(session, instance.workspaceId)) throw new Error('Solo un administrador puede eliminar canvases definitivamente.');
     if (instance.status !== 'archived') throw new Error('Archiva el canvas antes de eliminarlo definitivamente.');
     writeInstances(instances.filter(item => item.id !== canvasId), { canvasId, projectId: instance.projectId, action: 'canvas:deleted' });
     return true;
@@ -512,6 +512,10 @@ export const MockCanvasAdapter = {
   subscribe(listener) {
     subscribers.add(listener);
     return () => subscribers.delete(listener);
+  },
+
+  async startRealtime() {
+    return () => {};
   },
 
   startPresence({ canvasId, session, onChange }) {

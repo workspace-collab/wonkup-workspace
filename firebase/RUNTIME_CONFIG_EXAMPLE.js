@@ -2,11 +2,11 @@
 // No agregues claves privadas, cuentas de servicio ni claves de Gemini.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
-  release: '11.0.1',
+  release: '12.0.0',
   authMode: 'hybrid',
   projectMode: 'hybrid',
   kanbanMode: 'hybrid',
-  canvasMode: 'mock',
+  canvasMode: 'hybrid',
   deliverableMode: 'hybrid',
   financeMode: 'mock',
   reportMode: 'aggregate',
@@ -22,7 +22,7 @@ globalThis.WONKUP_API_CONFIG = {
     storageBucket: 'TU_PROYECTO.firebasestorage.app',
     messagingSenderId: 'PEGA_MESSAGING_SENDER_ID',
     appId: 'PEGA_APP_ID',
-    databaseURL: '',
+    databaseURL: 'https://wonkup-workspace-default-rtdb.firebaseio.com',
     appCheckSiteKey: '',
     enableAppCheck: false,
     enablePersistentCache: false

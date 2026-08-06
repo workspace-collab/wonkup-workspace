@@ -430,3 +430,46 @@ Ruta Firestore:
 ```text
 workspaces/{workspaceId}/projects/{projectId}/deliverables/{deliverableId}
 ```
+
+## Entrega 12 — CanvasService híbrido
+
+Todas las operaciones internas reciben contexto explícito de workspace y proyecto.
+
+```text
+listInstances({ workspaceId, projectId, includeArchived, session })
+getInstance({ canvasId, workspaceId, projectId, session })
+createInstance({ workspaceId, projectId, templateId, title, session })
+updateInstance({ canvasId, workspaceId, projectId, patch, session })
+archiveInstance({ canvasId, workspaceId, projectId, session })
+restoreInstance({ canvasId, workspaceId, projectId, session })
+
+createNote({ canvasId, workspaceId, projectId, sectionId, input, session })
+updateNote({ canvasId, workspaceId, projectId, noteId, patch, session })
+moveNote({ canvasId, workspaceId, projectId, noteId, toSectionId, toIndex, session })
+deleteNote({ canvasId, workspaceId, projectId, noteId, session })
+addComment({ canvasId, workspaceId, projectId, noteId, text, session })
+
+createShareToken({ canvasId, workspaceId, projectId, expiresAt, label, session })
+listShareTokens({ canvasId, workspaceId, projectId, session })
+revokeShareToken({ canvasId, workspaceId, projectId, tokenId, session })
+getSharedInstance({ token })
+
+listVersions({ canvasId, workspaceId, projectId, session })
+createVersion({ canvasId, workspaceId, projectId, label, session })
+restoreVersion({ canvasId, workspaceId, projectId, snapshotId, session })
+
+startRealtime({ canvasId, workspaceId, projectId, session })
+startPresence({ canvasId, workspaceId, projectId, session, onChange })
+```
+
+### Reglas operativas
+
+- `canvasMode: hybrid` selecciona Firestore solo para sesiones Firebase.
+- Los códigos demo siempre usan el adaptador local.
+- Las notas se archivan lógicamente; no se eliminan físicamente.
+- Crear una instancia y editar notas requiere un rol interno del proyecto. Archivar, restaurar, compartir y crear puntos de control requiere rol de administración del proyecto.
+- Editar notas y comentar requiere un rol interno del proyecto.
+- Restaurar una versión requiere `superadmin`.
+- Los enlaces públicos consultan un snapshot sanitizado y no exponen subcolecciones internas.
+- `startRealtime` y `startPresence` retornan funciones de limpieza.
+

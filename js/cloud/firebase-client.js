@@ -1,5 +1,5 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=11.0.1';
-import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=11.0.1';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.0.0';
+import { loadFirebaseSdk } from './firebase-sdk-loader.js?v=12.0.0';
 
 const CLIENT_PROMISE_KEY = '__WONKUP_FIREBASE_CLIENT_PROMISE__';
 
@@ -56,6 +56,9 @@ export async function getFirebaseClient() {
     }
 
     const auth = sdk.auth.getAuth(app);
+    const realtimeDb = API_CONFIG.firebase.databaseURL
+      ? sdk.database.getDatabase(app, API_CONFIG.firebase.databaseURL)
+      : null;
     await sdk.auth.setPersistence(auth, sdk.auth.browserLocalPersistence);
 
     const firestoreSettings = API_CONFIG.firebase.enablePersistentCache
@@ -83,6 +86,7 @@ export async function getFirebaseClient() {
       app,
       auth,
       db,
+      realtimeDb,
       appCheck,
       config,
       persistentCache: API_CONFIG.firebase.enablePersistentCache

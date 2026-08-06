@@ -591,3 +591,52 @@ Validar:
 - [ ] Kanban Cloud continúa funcionando.
 - [ ] Código demo conserva entregables locales.
 - [ ] Canvas y Finanzas continúan en modo local.
+
+# Entrega 12 — Checklist de validación real
+
+## Instalación
+
+- [ ] Respaldo de la versión 11.0.1 conservado.
+- [ ] Código 12.0.0 publicado en GitHub Pages.
+- [ ] `firebase/firestore.rules` publicado.
+- [ ] `firebase/realtime-database.rules.json` publicado.
+- [ ] Recarga forzada realizada.
+
+## Cloud Foundation
+
+- [ ] Diagnóstico Firebase correcto.
+- [ ] Realtime Database detectada.
+- [ ] Respaldo Canvas descargado.
+- [ ] Simulación 12.1 sin rutas duplicadas.
+- [ ] Migración completada.
+- [ ] Verificación con conteos esperados.
+
+## Colaboración
+
+- [ ] Nota creada desde navegador A aparece en navegador B.
+- [ ] Edición de texto y color se sincroniza.
+- [ ] Movimiento de sección se sincroniza.
+- [ ] Comentario se sincroniza.
+- [ ] Presencia muestra ambas cuentas.
+- [ ] Cerrar una pestaña retira su presencia.
+
+## Enlaces
+
+- [ ] Enlace vigente abre en ventana privada.
+- [ ] No se exponen comentarios ni historial.
+- [ ] Enlace revocado deja de abrir.
+- [ ] Enlace vencido deja de abrir.
+
+## Roles
+
+- [ ] Superadministrador restaura versiones.
+- [ ] Administrador y líder administran el Canvas.
+- [ ] Colaborador edita notas sin administrar enlaces o versiones.
+- [ ] Revisor no accede al Canvas interno.
+- [ ] Cliente e invitado solo acceden por enlace público.
+
+## Demo y regresión
+
+- [ ] Código demo conserva `localStorage`.
+- [ ] Canvas 5.9 funciona sin regresiones.
+- [ ] Kanban y Entregables continúan operativos.

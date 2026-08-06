@@ -452,3 +452,71 @@ workspaces/{workspaceId}/projects/{projectId}/deliverables/{deliverableId}
 
 - Cuenta Firebase: Cloud Firestore.
 - Código demo: `localStorage` mediante `MockDeliverableAdapter`.
+
+## Entrega 12 — Canvas Engine Cloud
+
+### Canvas
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | string | Identificador estable |
+| workspaceId | string | Workspace propietario |
+| projectId | string | Proyecto propietario |
+| templateId | string | Plantilla aplicada |
+| title | string | Nombre visible |
+| status | enum | `active` o `archived` |
+| createdBy | string | Identificador interno del creador |
+| createdByUid | string | UID Firebase del creador |
+| createdAt | ISO 8601 | Fecha de creación |
+| updatedAt | ISO 8601 | Última actualización |
+| updatedBy | string | UID que realizó el último cambio |
+| version | integer | Versión operativa |
+| noteCount | integer | Notas activas |
+| activeSectionCount | integer | Secciones con notas activas |
+| historyCount | integer | Eventos de historial |
+| versionCount | integer | Puntos de control |
+| shareCount | integer | Enlaces activos |
+| archivedAt | ISO 8601 | Fecha de archivo lógico |
+| archivedBy | string | Actor que archivó |
+| schemaVersion | integer | Versión de esquema, actualmente 12 |
+
+### CanvasNote Cloud
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | string | Identificador de la nota |
+| canvasId | string | Canvas propietario |
+| workspaceId | string | Workspace propietario |
+| projectId | string | Proyecto propietario |
+| sectionId | string | Sección de la plantilla |
+| text | string | Contenido, máximo 1200 caracteres |
+| colorId | string | Preset de color |
+| colorHex | string | Color personalizado opcional |
+| authorId | string | Identificador interno del autor |
+| authorUid | string | UID Firebase del autor |
+| authorName | string | Nombre visible del autor |
+| position | number | Posición ordenable dentro de la sección |
+| commentCount | integer | Comentarios registrados |
+| sourceCanvasId | string | Canvas de origen de una nota vinculada |
+| sourceNoteId | string | Nota de origen |
+| archived | boolean | Archivo lógico |
+| archivedAt | ISO 8601 | Fecha de archivo |
+| archivedBy | string | Actor que archivó |
+
+### CanvasPublicShare
+
+Colección `canvasShares/{code}`. Contiene únicamente datos sanitizados para lectura pública: título, plantilla, versión, contadores, notas visibles, vencimiento y estado. No contiene comentarios, historial, miembros, UID ni permisos internos.
+
+### CanvasPresence
+
+Realtime Database, ruta `presence/{workspaceId}/{projectId}/{canvasId}/{uid}/{clientId}`.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| authUid | string | UID autenticado, debe coincidir con la ruta |
+| userId | string | Identificador interno del usuario |
+| userName | string | Nombre visible |
+| initials | string | Iniciales |
+| clientId | string | Identificador de la pestaña/conexión |
+| lastChanged | number | Marca de tiempo del servidor |
+

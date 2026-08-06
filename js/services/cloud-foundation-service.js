@@ -1,10 +1,11 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=11.0.1';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=11.0.1';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=11.0.1';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=11.0.1';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=11.0.1';
-import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=11.0.1';
-import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=11.0.1';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.0.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.0.0';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.0.0';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.0.0';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.0.0';
+import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.0.0';
+import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.0.0';
+import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.0.0';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const FIRESTORE_RULE_SAFE_BATCH_SIZE = 4;
@@ -84,6 +85,9 @@ export const CloudFoundationService = {
       projectMode: API_CONFIG.projectMode,
       kanbanMode: API_CONFIG.kanbanMode,
       deliverableMode: API_CONFIG.deliverableMode,
+      canvasMode: API_CONFIG.canvasMode,
+      databaseURL: API_CONFIG.firebase.databaseURL || '',
+      databaseConfigured: Boolean(API_CONFIG.firebase.databaseURL),
       foundationMode: API_CONFIG.foundationMode,
       sdkVersion: API_CONFIG.firebaseSdkVersion,
       appCheckEnabled: API_CONFIG.firebase.enableAppCheck,
@@ -107,7 +111,7 @@ export const CloudFoundationService = {
         projectIds: ['*'],
         workspaceRoles: {},
         projectRoles: {},
-        schemaVersion: 11,
+        schemaVersion: 12,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -115,7 +119,24 @@ export const CloudFoundationService = {
   },
 
   getRuntimeSnippet() {
-    return `authMode: 'hybrid',\nprojectMode: 'hybrid',\nkanbanMode: 'hybrid',\nfoundationMode: 'connected',\nfirebase: {\n  apiKey: '...',\n  authDomain: 'TU_PROYECTO.firebaseapp.com',\n  projectId: 'TU_PROYECTO',\n  storageBucket: 'TU_PROYECTO.firebasestorage.app',\n  messagingSenderId: '...',\n  appId: '...',\n  databaseURL: '',\n  appCheckSiteKey: '',\n  enableAppCheck: false,\n  enablePersistentCache: false\n}`;
+    return `authMode: 'hybrid',
+projectMode: 'hybrid',
+kanbanMode: 'hybrid',
+deliverableMode: 'hybrid',
+canvasMode: 'hybrid',
+foundationMode: 'connected',
+firebase: {
+  apiKey: '...',
+  authDomain: 'TU_PROYECTO.firebaseapp.com',
+  projectId: 'TU_PROYECTO',
+  storageBucket: 'TU_PROYECTO.firebasestorage.app',
+  messagingSenderId: '...',
+  appId: '...',
+  databaseURL: 'https://TU_PROYECTO-default-rtdb.firebaseio.com',
+  appCheckSiteKey: '',
+  enableAppCheck: false,
+  enablePersistentCache: false
+}`;
   },
 
   getMigrationPreview(options = {}) {
@@ -129,6 +150,11 @@ export const CloudFoundationService = {
 
   getDeliverableMigrationPreview(options = {}) {
     return buildDeliverableMigrationPlan(getLocalDeliverableSnapshot(), options);
+  },
+
+
+  getCanvasMigrationPreview(options = {}) {
+    return buildCanvasMigrationPlan(getLocalCanvasSnapshot(), options);
   },
 
   getActivationDirectory() {
@@ -201,6 +227,13 @@ export const CloudFoundationService = {
     return snapshot;
   },
 
+
+  exportCanvasBackup() {
+    const snapshot = getLocalCanvasSnapshot();
+    downloadJson(`wonkup-backup-canvases-${new Date().toISOString().slice(0, 10)}.json`, snapshot);
+    return snapshot;
+  },
+
   async signIn(email, password) {
     try {
       const { auth, sdk } = await getFirebaseClient();
@@ -258,6 +291,7 @@ export const CloudFoundationService = {
       const client = await getFirebaseClient();
       push('sdk', 'Firebase Web SDK', 'ok', `SDK ${configuration.sdkVersion} cargado mediante módulos del navegador.`);
       push('app', 'Aplicación Firebase', 'ok', `App ${client.app.name} inicializada.`);
+      push('realtime', 'Realtime Database', client.realtimeDb ? 'ok' : 'error', client.realtimeDb ? `Presencia Canvas conectada a ${configuration.databaseURL}.` : 'Falta databaseURL para la presencia colaborativa.');
       push('cache', 'Caché local', 'ok', client.persistentCache ? 'IndexedDB multiventana activado.' : 'Caché en memoria; recomendado para información sensible.');
       push('appCheck', 'App Check', configuration.appCheckEnabled ? 'ok' : 'warning', configuration.appCheckEnabled ? 'Inicializado con reCAPTCHA Enterprise.' : 'Preparado, pero aún no activado.');
 
@@ -458,6 +492,131 @@ export const CloudFoundationService = {
       });
       await batch.commit();
       return { ok: true, migrationId, committed: committed + 2, plan: clone(plan) };
+    } catch (error) {
+      throw new Error(messageFromFirebaseError(error));
+    }
+  },
+
+  async migrateCanvas(options = {}) {
+    try {
+      const client = await getFirebaseClient();
+      const account = await this.getAccount();
+      if (!account?.profile) throw new Error('Inicia sesión con el superadministrador de Firebase.');
+      if (account.profile.status !== 'active' || account.profile.role !== 'superadmin') {
+        throw new Error('La migración del Canvas Engine requiere un perfil superadmin activo.');
+      }
+      const plan = this.getCanvasMigrationPreview(options);
+      if (plan.duplicates.length) throw new Error('El plan de canvases contiene rutas duplicadas.');
+      if (!plan.operations.length) throw new Error('No se encontraron canvases locales para migrar.');
+
+      const migrationId = `canvas-migration-${Date.now()}`;
+      const metadata = { migratedAt: new Date().toISOString(), migratedBy: account.uid, migrationId };
+      const timestampGroups = new Set(['shareLinks', 'publicShares']);
+      const operations = plan.operations.map(operation => {
+        if (!timestampGroups.has(operation.group)) return operation;
+        const expiresAt = new Date(operation.data.expiresAt || '');
+        if (!Number.isFinite(expiresAt.getTime())) throw new Error(`Vencimiento inválido en ${operation.path}.`);
+        return {
+          ...operation,
+          data: {
+            ...operation.data,
+            expiresAt: client.sdk.firestore.Timestamp.fromDate(expiresAt)
+          }
+        };
+      });
+      const grouped = operations.reduce((result, operation) => {
+        (result[operation.group] ||= []).push(operation);
+        return result;
+      }, {});
+      const stages = [
+        ['canvases', 'Canvases'],
+        ['notes', 'Notas de canvas'],
+        ['comments', 'Comentarios de canvas'],
+        ['history', 'Historial de canvas'],
+        ['versions', 'Versiones de canvas'],
+        ['shareLinks', 'Enlaces internos de canvas'],
+        ['publicShares', 'Snapshots públicos de canvas']
+      ];
+      let committed = 0;
+      for (const [group, stage] of stages) {
+        committed += await commitInChunks(client, grouped[group] || [], metadata, { stage });
+      }
+
+      const batch = client.sdk.firestore.writeBatch(client.db);
+      batch.set(client.sdk.firestore.doc(client.db, 'system', 'schema'), {
+        version: 12,
+        canvasSchemaVersion: 12,
+        canvasMode: 'hybrid',
+        canvasMigratedAt: client.sdk.firestore.serverTimestamp(),
+        canvasMigratedBy: account.uid,
+        lastCanvasMigrationId: migrationId
+      }, { merge: true });
+      batch.set(client.sdk.firestore.doc(client.db, 'system', 'schema', 'migrations', migrationId), {
+        id: migrationId,
+        module: 'canvas',
+        schemaVersion: 12,
+        counts: plan.counts,
+        workspaceIds: plan.selectedWorkspaceIds,
+        projectIds: plan.selectedProjectIds,
+        executedAt: client.sdk.firestore.serverTimestamp(),
+        executedBy: account.uid,
+        source: 'github-pages-browser'
+      });
+      await batch.commit();
+      return { ok: true, migrationId, committed: committed + 2, plan: clone(plan) };
+    } catch (error) {
+      throw new Error(messageFromFirebaseError(error));
+    }
+  },
+
+  async verifyCanvasMigration(workspaceIds = []) {
+    try {
+      const client = await getFirebaseClient();
+      const account = await this.getAccount();
+      if (!account?.profile) throw new Error('Inicia sesión y verifica el perfil de acceso.');
+      let ids = workspaceIds.filter(Boolean);
+      if (!ids.length && account.profile.role === 'superadmin') {
+        const snapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(client.db, 'workspaces'));
+        ids = snapshot.docs.map(item => item.id);
+      }
+      const report = [];
+      for (const workspaceId of ids) {
+        const workspaceSnapshot = await client.sdk.firestore.getDoc(client.sdk.firestore.doc(client.db, 'workspaces', workspaceId));
+        const projectsSnapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(client.db, 'workspaces', workspaceId, 'projects'));
+        const totals = { canvases: 0, notes: 0, comments: 0, history: 0, versions: 0, shareLinks: 0 };
+        const projects = [];
+        for (const projectDoc of projectsSnapshot.docs) {
+          const canvasesSnapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(client.db, 'workspaces', workspaceId, 'projects', projectDoc.id, 'canvases'));
+          if (!canvasesSnapshot.size) continue;
+          const projectCounts = { canvases: canvasesSnapshot.size, notes: 0, comments: 0, history: 0, versions: 0, shareLinks: 0 };
+          for (const canvasDoc of canvasesSnapshot.docs) {
+            const base = canvasDoc.ref;
+            const [notesSnapshot, historySnapshot, versionsSnapshot, sharesSnapshot] = await Promise.all([
+              client.sdk.firestore.getDocs(client.sdk.firestore.collection(base, 'notes')),
+              client.sdk.firestore.getDocs(client.sdk.firestore.collection(base, 'history')),
+              client.sdk.firestore.getDocs(client.sdk.firestore.collection(base, 'versions')),
+              client.sdk.firestore.getDocs(client.sdk.firestore.collection(base, 'shareLinks'))
+            ]);
+            projectCounts.notes += notesSnapshot.size;
+            projectCounts.history += historySnapshot.size;
+            projectCounts.versions += versionsSnapshot.size;
+            projectCounts.shareLinks += sharesSnapshot.size;
+            for (const noteDoc of notesSnapshot.docs) {
+              const commentsSnapshot = await client.sdk.firestore.getDocs(client.sdk.firestore.collection(noteDoc.ref, 'comments'));
+              projectCounts.comments += commentsSnapshot.size;
+            }
+          }
+          Object.keys(totals).forEach(key => { totals[key] += projectCounts[key]; });
+          projects.push({ projectId: projectDoc.id, projectName: projectDoc.data().name || projectDoc.id, ...projectCounts });
+        }
+        report.push({
+          workspaceId,
+          workspaceName: workspaceSnapshot.exists() ? workspaceSnapshot.data().name : workspaceId,
+          ...totals,
+          projects
+        });
+      }
+      return report;
     } catch (error) {
       throw new Error(messageFromFirebaseError(error));
     }

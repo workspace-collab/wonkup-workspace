@@ -1,3 +1,18 @@
+## 12.0.0 — Canvas Engine colaborativo en Firebase
+
+- Se activó `canvasMode: hybrid`.
+- Las cuentas Firebase usan Cloud Firestore y los códigos demo conservan `localStorage`.
+- Se implementó `FirebaseCanvasAdapter` para canvases, notas, comentarios, historial, versiones y enlaces.
+- Se incorporó sincronización en tiempo real con `onSnapshot`.
+- Se habilitó presencia por pestaña en Realtime Database.
+- Se añadieron snapshots públicos sanitizados con vencimiento y revocación.
+- Los permisos del Canvas usan la membresía específica del proyecto.
+- La eliminación física fue reemplazada por archivo lógico y trazabilidad.
+- Se incorporó la Migración 12.1 con respaldo, simulación, confirmación y verificación.
+- Se actualizaron reglas Firestore y Realtime Database.
+- La Entrega 11 y el Hotfix 11.0.1 quedan aprobados y cerrados.
+- Caché actualizada a 12.0.0.
+
 ## 11.0.1 — Hotfix de permisos y sincronización de entregables
 
 - Los permisos usan el rol específico de cada proyecto.

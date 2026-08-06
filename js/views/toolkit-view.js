@@ -1,12 +1,12 @@
-import { CanvasService } from '../services/canvas-service.js?v=11.0.1';
-import { ProjectService } from '../services/project-service.js?v=11.0.1';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=11.0.1';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=11.0.1';
-import { icon } from '../utils/icons.js?v=11.0.1';
-import { escapeHtml, formatDate } from '../utils/format.js?v=11.0.1';
-import { openModal, confirmModal } from '../components/modal.js?v=11.0.1';
-import { showToast } from '../components/toast.js?v=11.0.1';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=11.0.1';
+import { CanvasService } from '../services/canvas-service.js?v=12.0.0';
+import { ProjectService } from '../services/project-service.js?v=12.0.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=12.0.0';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.0.0';
+import { icon } from '../utils/icons.js?v=12.0.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.0.0';
+import { openModal, confirmModal } from '../components/modal.js?v=12.0.0';
+import { showToast } from '../components/toast.js?v=12.0.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.0.0';
 
 let unsubscribeToolkit = null;
 let toolkitGeneration = 0;
@@ -16,13 +16,13 @@ export async function renderToolkit(container, workspaceId, projectId = null, em
   unsubscribeToolkit?.();
   unsubscribeToolkit = null;
   container.innerHTML = `<section class="${embedded ? 'toolkit-embedded' : 'page'}" ${embedded ? '' : 'aria-labelledby="toolkit-title"'}>
-    ${embedded ? '' : `<div class="page-header"><div><span class="page-kicker">Innovación aplicada</span><h1 id="toolkit-title">Innovation Toolkit</h1><p>Comprende, valida, prioriza y presenta proyectos mediante un motor común de canvases.</p></div><div class="page-header-actions">${canEditCanvas(session) ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div></div>`}
+    ${embedded ? '' : `<div class="page-header"><div><span class="page-kicker">Innovación aplicada</span><h1 id="toolkit-title">Innovation Toolkit</h1><p>Comprende, valida, prioriza y presenta proyectos mediante un motor común de canvases.</p></div><div class="page-header-actions">${canEditCanvas(session, projectId, workspaceId) ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div></div>`}
     <div class="panel toolkit-loading"><div class="panel-body"><span class="spinner"></span> Cargando herramientas y canvases...</div></div>
   </section>`;
 
   try {
     const [instances, projects] = await Promise.all([
-      CanvasService.listInstances({ workspaceId, projectId, session, includeArchived: canManageCanvas(session) }),
+      CanvasService.listInstances({ workspaceId, projectId, session, includeArchived: canManageCanvas(session, projectId, workspaceId) }),
       ProjectService.listProjects({ workspaceId, session, includeArchived: false })
     ]);
     if (generation !== toolkitGeneration || !container.isConnected) return;
@@ -46,26 +46,29 @@ function renderToolkitContent(container, context) {
   const activeInstances = instances.filter(item => item.status !== 'archived');
   const archivedInstances = instances.filter(item => item.status === 'archived');
   const projectMap = Object.fromEntries(projects.map(project => [project.id, project]));
+  const dataSource = CanvasService.dataSource({ session });
+  const canEdit = canEditCanvas(session, projectId, workspaceId);
+  const canManage = canManageCanvas(session, projectId, workspaceId);
 
   root.innerHTML = `
-    ${embedded ? `<div class="toolkit-embedded-head"><div><h2>Innovation Toolkit</h2><p>Canvases vinculados a este proyecto.</p></div>${canEditCanvas(session) ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div>` : root.querySelector('.page-header')?.outerHTML || ''}
+    ${embedded ? `<div class="toolkit-embedded-head"><div><h2>Innovation Toolkit</h2><p>Canvases vinculados a este proyecto.</p></div>${canEdit ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div>` : root.querySelector('.page-header')?.outerHTML || ''}
 
     <section class="toolkit-section" aria-labelledby="canvas-instances-title">
-      <div class="section-heading"><div><h2 id="canvas-instances-title">Canvases del proyecto</h2><p>${activeInstances.length} activo${activeInstances.length === 1 ? '' : 's'}${archivedInstances.length ? ` · ${archivedInstances.length} archivado${archivedInstances.length === 1 ? '' : 's'}` : ''}</p></div>${session?.role === 'superadmin' && !embedded ? `<button class="button button-ghost" id="reset-canvases">${icon('refresh')} Restablecer demo</button>` : ''}</div>
-      ${activeInstances.length ? `<div class="canvas-instance-grid">${activeInstances.map(instance => instanceCard(instance, projectMap[instance.projectId], session)).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('lightbulb')}</div><h2>Aún no hay canvases</h2><p>Crea una instancia a partir de una de las plantillas metodológicas.</p>${canEditCanvas(session) ? `<button class="button button-primary" id="empty-new-canvas">${icon('plus')} Crear primer canvas</button>` : ''}</div>`}
+      <div class="section-heading"><div><h2 id="canvas-instances-title">Canvases del proyecto</h2><p>${activeInstances.length} activo${activeInstances.length === 1 ? '' : 's'}${archivedInstances.length ? ` · ${archivedInstances.length} archivado${archivedInstances.length === 1 ? '' : 's'}` : ''} · ${dataSource === 'firebase' ? 'Firestore en tiempo real' : 'Demo local'}</p></div>${dataSource === 'mock' && session?.role === 'superadmin' && !embedded ? `<button class="button button-ghost" id="reset-canvases">${icon('refresh')} Restablecer demo</button>` : ''}</div>
+      ${activeInstances.length ? `<div class="canvas-instance-grid">${activeInstances.map(instance => instanceCard(instance, projectMap[instance.projectId], session)).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('lightbulb')}</div><h2>Aún no hay canvases</h2><p>Crea una instancia a partir de una de las plantillas metodológicas.</p>${canEdit ? `<button class="button button-primary" id="empty-new-canvas">${icon('plus')} Crear primer canvas</button>` : ''}</div>`}
     </section>
 
     <section class="toolkit-section" aria-labelledby="canvas-templates-title">
       <div class="section-heading"><div><h2 id="canvas-templates-title">Plantillas metodológicas</h2><p>Un mismo Canvas Engine, seis herramientas especializadas.</p></div></div>
-      <div class="toolkit-grid">${canvasTemplates.map(template => templateCard(template, canEditCanvas(session))).join('')}</div>
+      <div class="toolkit-grid">${canvasTemplates.map(template => templateCard(template, canEdit)).join('')}</div>
     </section>
 
-    ${archivedInstances.length ? `<details class="panel archived-canvases"><summary>Canvases archivados (${archivedInstances.length})</summary><div class="panel-body canvas-instance-grid">${archivedInstances.map(instance => archivedCard(instance, projectMap[instance.projectId], session)).join('')}</div></details>` : ''}
+    ${archivedInstances.length ? `<details class="panel archived-canvases"><summary>Canvases archivados (${archivedInstances.length})</summary><div class="panel-body canvas-instance-grid">${archivedInstances.map(instance => archivedCard(instance, projectMap[instance.projectId], session, dataSource)).join('')}</div></details>` : ''}
   `;
 
   const create = templateId => openCreateCanvas({ workspaceId, projectId, projects, templateId, session, onCreated: instance => { location.hash = canvasHref(instance); } });
   root.querySelector('#new-canvas')?.addEventListener('click', () => create(''));
-  if (sessionStorage.getItem('wonkup.intent.newCanvas') === '1' && canEditCanvas(session)) {
+  if (sessionStorage.getItem('wonkup.intent.newCanvas') === '1' && canEdit) {
     sessionStorage.removeItem('wonkup.intent.newCanvas');
     requestAnimationFrame(() => create(''));
   }
@@ -73,7 +76,12 @@ function renderToolkitContent(container, context) {
   root.querySelectorAll('[data-create-template]').forEach(button => button.addEventListener('click', () => create(button.dataset.createTemplate)));
   root.querySelectorAll('[data-restore-canvas]').forEach(button => button.addEventListener('click', async () => {
     try {
-      await CanvasService.restoreInstance({ canvasId: button.dataset.restoreCanvas, session });
+      await CanvasService.restoreInstance({
+        canvasId: button.dataset.restoreCanvas,
+        workspaceId: button.dataset.workspaceId,
+        projectId: button.dataset.projectId,
+        session
+      });
       showToast('Canvas restaurado.');
       renderToolkit(container, workspaceId, projectId, embedded, session);
     } catch (error) { showToast(error.message, { type: 'error' }); }
@@ -82,7 +90,12 @@ function renderToolkitContent(container, context) {
     const confirmed = await confirmModal({ title: 'Eliminar canvas definitivamente', message: 'Esta acción elimina notas, comentarios e historial y no se puede deshacer.', confirmLabel: 'Eliminar', danger: true });
     if (!confirmed) return;
     try {
-      await CanvasService.deleteInstance({ canvasId: button.dataset.deleteCanvas, session });
+      await CanvasService.deleteInstance({
+        canvasId: button.dataset.deleteCanvas,
+        workspaceId: button.dataset.workspaceId,
+        projectId: button.dataset.projectId,
+        session
+      });
       showToast('Canvas eliminado.');
       renderToolkit(container, workspaceId, projectId, embedded, session);
     } catch (error) { showToast(error.message, { type: 'error' }); }
@@ -108,8 +121,11 @@ function instanceCard(instance, project, session) {
   </article>`;
 }
 
-function archivedCard(instance, project, session) {
-  return `<article class="canvas-instance-card canvas-archived"><div class="canvas-instance-top"><span class="canvas-template-icon">${icon(instance.template?.icon || 'archive')}</span><span class="status-badge">Archivado</span></div><h3>${escapeHtml(instance.title)}</h3><p>${escapeHtml(project?.name || 'Proyecto')} · ${formatDate(instance.archivedAt)}</p><div class="canvas-instance-footer"><button class="button button-secondary" data-restore-canvas="${escapeHtml(instance.id)}">${icon('restore')} Restaurar</button>${session?.role === 'superadmin' || session?.role === 'workspace_admin' ? `<button class="button button-danger" data-delete-canvas="${escapeHtml(instance.id)}">${icon('trash')} Eliminar</button>` : ''}</div></article>`;
+function archivedCard(instance, project, session, dataSource) {
+  const scope = `data-workspace-id="${escapeHtml(instance.workspaceId)}" data-project-id="${escapeHtml(instance.projectId)}"`;
+  const canRestore = canManageCanvas(session, instance.projectId, instance.workspaceId);
+  const canDelete = dataSource === 'mock' && (session?.role === 'superadmin' || session?.role === 'workspace_admin');
+  return `<article class="canvas-instance-card canvas-archived"><div class="canvas-instance-top"><span class="canvas-template-icon">${icon(instance.template?.icon || 'archive')}</span><span class="status-badge">Archivado</span></div><h3>${escapeHtml(instance.title)}</h3><p>${escapeHtml(project?.name || 'Proyecto')} · ${formatDate(instance.archivedAt)}</p><div class="canvas-instance-footer">${canRestore ? `<button class="button button-secondary" data-restore-canvas="${escapeHtml(instance.id)}" ${scope}>${icon('restore')} Restaurar</button>` : ''}${canDelete ? `<button class="button button-danger" data-delete-canvas="${escapeHtml(instance.id)}" ${scope}>${icon('trash')} Eliminar</button>` : ''}</div></article>`;
 }
 
 function templateCard(template, editable) {

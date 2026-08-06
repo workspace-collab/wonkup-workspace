@@ -1,11 +1,11 @@
-import { DemoService } from '../services/demo-service.js?v=11.0.1';
-import { ProjectService } from '../services/project-service.js?v=11.0.1';
-import { getState } from '../state/store.js?v=11.0.1';
-import { escapeHtml } from '../utils/format.js?v=11.0.1';
-import { isValidEmail, normalizeAssetUrl, normalizeProjectInput, normalizeText, normalizeUrl, validateProjectInput } from '../utils/validation.js?v=11.0.1';
-import { canManageClients } from '../utils/permissions.js?v=11.0.1';
-import { openModal } from './modal.js?v=11.0.1';
-import { showToast } from './toast.js?v=11.0.1';
+import { DemoService } from '../services/demo-service.js?v=12.0.0';
+import { ProjectService } from '../services/project-service.js?v=12.0.0';
+import { getState } from '../state/store.js?v=12.0.0';
+import { escapeHtml } from '../utils/format.js?v=12.0.0';
+import { isValidEmail, normalizeAssetUrl, normalizeProjectInput, normalizeText, normalizeUrl, validateProjectInput } from '../utils/validation.js?v=12.0.0';
+import { canManageClients } from '../utils/permissions.js?v=12.0.0';
+import { openModal } from './modal.js?v=12.0.0';
+import { showToast } from './toast.js?v=12.0.0';
 
 const STATUS_OPTIONS = [
   ['draft', 'Borrador'],

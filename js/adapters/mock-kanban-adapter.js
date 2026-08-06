@@ -1,12 +1,12 @@
-import { demoKanbanBoards, defaultKanbanColumns } from '../../data/demo-kanban.js?v=11.0.1';
-import { getKanbanTemplate } from '../../data/kanban-templates.js?v=11.0.1';
-import { demoUsers } from '../../data/demo-users.js?v=11.0.1';
+import { demoKanbanBoards, defaultKanbanColumns } from '../../data/demo-kanban.js?v=12.0.0';
+import { getKanbanTemplate } from '../../data/kanban-templates.js?v=12.0.0';
+import { demoUsers } from '../../data/demo-users.js?v=12.0.0';
 import {
   canAccessProject,
   canConfigureKanban,
   canDeleteKanbanCard,
   canEditKanban
-} from '../utils/permissions.js?v=11.0.1';
+} from '../utils/permissions.js?v=12.0.0';
 
 const STORAGE_KEY = 'wonkup.e4.1.kanban';
 const LEGACY_STORAGE_KEY = 'wonkup.e4.kanban';

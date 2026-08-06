@@ -67,7 +67,7 @@ role = superadmin
 status = active
 workspaceIds = ["*"]
 projectIds = ["*"]
-schemaVersion = 9
+schemaVersion = 12
 ```
 
 ## Etapa 6 — Configurar WonkUp en modo diagnóstico
@@ -129,13 +129,16 @@ Cuando la verificación sea correcta, cambia:
 ```javascript
 authMode: 'hybrid',
 projectMode: 'hybrid',
+kanbanMode: 'hybrid',
+deliverableMode: 'hybrid',
+canvasMode: 'hybrid',
 foundationMode: 'connected'
 ```
 
 Comportamiento:
 
 - acceso por código: datos locales;
-- acceso por cuenta Firebase: proyectos Firestore.
+- acceso por cuenta Firebase: Proyectos, Kanban, Entregables y Canvas en Firestore; presencia Canvas en Realtime Database.
 
 Prueba el mismo usuario Firebase desde dos navegadores o dispositivos. Crea o edita un proyecto en uno y confirma el cambio en el otro después de recargar.
 
@@ -175,3 +178,44 @@ foundationMode: 'diagnostic'
 ```
 
 La aplicación vuelve a los datos locales. Los documentos ya migrados permanecen en Firestore y pueden revisarse sin afectar el modo mock.
+
+## Etapa 11 — Activar Realtime Database para la Entrega 12
+
+1. Abre Firebase Console → Realtime Database.
+2. Crea la base en modo bloqueado.
+3. La instancia operativa de WonkUp es:
+
+```text
+https://wonkup-workspace-default-rtdb.firebaseio.com
+```
+
+4. Abre **Reglas**.
+5. Copia `firebase/realtime-database.rules.json` y publica.
+6. No agregues nodos manualmente en **Datos**.
+
+## Etapa 12 — Migrar Canvas Engine
+
+1. Sube el código 12.0.0.
+2. Publica `firebase/firestore.rules`.
+3. Publica `firebase/realtime-database.rules.json`.
+4. Ingresa con la cuenta Firebase superadministradora.
+5. Cloud Foundation → **Probar conexión**.
+6. Confirma Firestore y Realtime Database.
+7. En **Migración 12.1**:
+   - exporta el respaldo de canvases;
+   - selecciona workspaces;
+   - simula la migración;
+   - comprueba cero rutas duplicadas;
+   - ejecuta y confirma;
+   - verifica los conteos.
+8. Prueba un mismo canvas desde dos navegadores.
+9. Prueba un enlace público en ventana privada y luego revócalo.
+
+### Reversión del Canvas
+
+```javascript
+canvasMode: 'mock'
+```
+
+Esta reversión cambia la fuente visible, pero no elimina los documentos migrados.
+
