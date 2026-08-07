@@ -1,4 +1,4 @@
-import { postAppsScript } from './apps-script-adapter.js?v=12.4.0';
+import { postAppsScript } from './apps-script-adapter.js?v=12.5.0';
 
 function withSession(session, payload = {}) {
   return { sessionToken: session?.token, ...payload };

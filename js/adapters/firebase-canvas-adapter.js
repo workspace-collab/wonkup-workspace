@@ -1,5 +1,5 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.4.0';
-import { getCanvasTemplate } from '../../data/canvas-templates.js?v=12.4.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.5.0';
+import { getCanvasTemplate } from '../../data/canvas-templates.js?v=12.5.0';
 import {
   canAccessProject,
   canDeleteCanvas,
@@ -8,7 +8,7 @@ import {
   canEditCanvas,
   canManageCanvas,
   getWorkspaceRole
-} from '../utils/permissions.js?v=12.4.0';
+} from '../utils/permissions.js?v=12.5.0';
 
 const listeners = new Set();
 const locationCache = new Map();

@@ -1,4 +1,4 @@
-import { getFirebaseClient } from '../cloud/firebase-client.js?v=12.4.0';
+import { getFirebaseClient } from '../cloud/firebase-client.js?v=12.5.0';
 
 function friendlyError(error) {
   const code = String(error?.code || '');
@@ -13,6 +13,18 @@ async function callCoach(data) {
   try {
     const client = await getFirebaseClient();
     const callable = client.sdk.functions.httpsCallable(client.functions, 'wonkupCanvasAiCoach');
+    const response = await callable(data);
+    return response.data;
+  } catch (error) {
+    throw friendlyError(error);
+  }
+}
+
+
+async function callAcceptance(data) {
+  try {
+    const client = await getFirebaseClient();
+    const callable = client.sdk.functions.httpsCallable(client.functions, 'wonkupRecordAiAcceptance');
     const response = await callable(data);
     return response.data;
   } catch (error) {
@@ -53,5 +65,10 @@ export const AiCoachService = {
       canvasId: instance.id,
       sectionId
     });
+  },
+
+  async recordAcceptance(interactionId, acceptedCount) {
+    if (!interactionId) return { ok: false, skipped: true };
+    return callAcceptance({ interactionId, acceptedCount });
   }
 };

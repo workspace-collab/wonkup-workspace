@@ -1,8 +1,8 @@
-import { AccessService } from '../services/access-service.js?v=12.4.0';
-import { setSession, setState } from '../state/store.js?v=12.4.0';
-import { getDefaultRoute } from '../utils/permissions.js?v=12.4.0';
-import { escapeHtml } from '../utils/format.js?v=12.4.0';
-import { icon } from '../utils/icons.js?v=12.4.0';
+import { AccessService } from '../services/access-service.js?v=12.5.0';
+import { setSession, setState } from '../state/store.js?v=12.5.0';
+import { getDefaultRoute } from '../utils/permissions.js?v=12.5.0';
+import { escapeHtml } from '../utils/format.js?v=12.5.0';
+import { icon } from '../utils/icons.js?v=12.5.0';
 
 export function renderAccess(container, options = {}) {
   const demoCodes = AccessService.getDemoCodes();
@@ -14,7 +14,7 @@ export function renderAccess(container, options = {}) {
   const reason = options.reason === 'expired'
     ? '<div class="auth-alert" role="alert">Tu sesión terminó. Ingresa nuevamente para continuar.</div>'
     : options.reason === 'share'
-      ? '<div class="auth-alert" role="status">Ingresa con la cuenta autorizada para abrir el Canvas compartido.</div>'
+      ? '<div class="auth-alert" role="status">Ingresa con la cuenta autorizada para abrir el lienzo compartido.</div>'
       : '';
 
   container.innerHTML = `

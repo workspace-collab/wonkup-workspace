@@ -1,11 +1,11 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.4.0';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.4.0';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.4.0';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.4.0';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.4.0';
-import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.4.0';
-import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.4.0';
-import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.4.0';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.5.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.5.0';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.5.0';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.5.0';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.5.0';
+import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.5.0';
+import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.5.0';
+import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.5.0';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const FIRESTORE_RULE_SAFE_BATCH_SIZE = 4;
@@ -293,7 +293,7 @@ firebase: {
       const client = await getFirebaseClient();
       push('sdk', 'Firebase Web SDK', 'ok', `SDK ${configuration.sdkVersion} cargado mediante módulos del navegador.`);
       push('app', 'Aplicación Firebase', 'ok', `App ${client.app.name} inicializada.`);
-      push('realtime', 'Realtime Database', client.realtimeDb ? 'ok' : 'error', client.realtimeDb ? `Presencia Canvas conectada a ${configuration.databaseURL}.` : 'Falta databaseURL para la presencia colaborativa.');
+      push('realtime', 'Realtime Database', client.realtimeDb ? 'ok' : 'error', client.realtimeDb ? `Presencia de Lienzos conectada a ${configuration.databaseURL}.` : 'Falta databaseURL para la presencia colaborativa.');
       try {
         const health = client.sdk.functions.httpsCallable(client.functions, 'wonkupUserAdminHealth');
         const response = await health({});
@@ -512,11 +512,11 @@ firebase: {
       const account = await this.getAccount();
       if (!account?.profile) throw new Error('Inicia sesión con el superadministrador de Firebase.');
       if (account.profile.status !== 'active' || account.profile.role !== 'superadmin') {
-        throw new Error('La migración del Canvas Engine requiere un perfil superadmin activo.');
+        throw new Error('La migración del Motor de Lienzos requiere un perfil superadmin activo.');
       }
       const plan = this.getCanvasMigrationPreview(options);
-      if (plan.duplicates.length) throw new Error('El plan de canvases contiene rutas duplicadas.');
-      if (!plan.operations.length) throw new Error('No se encontraron canvases locales para migrar.');
+      if (plan.duplicates.length) throw new Error('El plan de lienzos contiene rutas duplicadas.');
+      if (!plan.operations.length) throw new Error('No se encontraron lienzos locales para migrar.');
 
       const migrationId = `canvas-migration-${Date.now()}`;
       const metadata = { migratedAt: new Date().toISOString(), migratedBy: account.uid, migrationId };
@@ -538,7 +538,7 @@ firebase: {
         return result;
       }, {});
       const stages = [
-        ['canvases', 'Canvases'],
+        ['canvases', 'Lienzos'],
         ['notes', 'Notas de canvas'],
         ['comments', 'Comentarios de canvas'],
         ['history', 'Historial de canvas'],

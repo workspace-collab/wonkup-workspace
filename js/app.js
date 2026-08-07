@@ -1,23 +1,24 @@
-import { createAppShell, renderShell } from './components/app-shell.js?v=12.4.0';
-import { startRouter } from './router.js?v=12.4.0';
-import { getState, subscribe, setState, setSession, clearSession } from './state/store.js?v=12.4.0';
-import { AccessService } from './services/access-service.js?v=12.4.0';
-import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=12.4.0';
-import { renderAccess } from './views/access-view.js?v=12.4.0';
-import { renderForbidden } from './views/forbidden-view.js?v=12.4.0';
-import { renderDashboard } from './views/dashboard-view.js?v=12.4.0';
-import { renderProjects } from './views/projects-view.js?v=12.4.0';
-import { renderProject } from './views/project-view.js?v=12.4.0';
-import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js?v=12.4.0';
-import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=12.4.0';
-import { renderKanban, cleanupKanbanView } from './views/kanban-view.js?v=12.4.0';
-import { renderPlaceholder } from './views/placeholder-view.js?v=12.4.0';
-import { renderClients } from './views/clients-view.js?v=12.4.0';
-import { renderClientPortal } from './views/client-portal-view.js?v=12.4.0';
-import { renderReports, cleanupReportsView } from './views/reports-view.js?v=12.4.0';
-import { renderCloudFoundation, cleanupCloudFoundationView } from './views/cloud-foundation-view.js?v=12.4.0';
-import { renderUsersAdmin, cleanupUsersAdminView } from './views/users-admin-view.js?v=12.4.0';
-import { icon } from './utils/icons.js?v=12.4.0';
+import { createAppShell, renderShell } from './components/app-shell.js?v=12.5.0';
+import { startRouter } from './router.js?v=12.5.0';
+import { getState, subscribe, setState, setSession, clearSession } from './state/store.js?v=12.5.0';
+import { AccessService } from './services/access-service.js?v=12.5.0';
+import { canAccessRoute, canAccessWorkspace, getDefaultRoute } from './utils/permissions.js?v=12.5.0';
+import { renderAccess } from './views/access-view.js?v=12.5.0';
+import { renderForbidden } from './views/forbidden-view.js?v=12.5.0';
+import { renderDashboard } from './views/dashboard-view.js?v=12.5.0';
+import { renderProjects } from './views/projects-view.js?v=12.5.0';
+import { renderProject } from './views/project-view.js?v=12.5.0';
+import { renderToolkit, cleanupToolkitView } from './views/toolkit-view.js?v=12.5.0';
+import { renderCanvas, renderSharedCanvas, cleanupCanvasView } from './views/canvas-view.js?v=12.5.0';
+import { renderKanban, cleanupKanbanView } from './views/kanban-view.js?v=12.5.0';
+import { renderPlaceholder } from './views/placeholder-view.js?v=12.5.0';
+import { renderClients } from './views/clients-view.js?v=12.5.0';
+import { renderClientPortal } from './views/client-portal-view.js?v=12.5.0';
+import { renderReports, cleanupReportsView } from './views/reports-view.js?v=12.5.0';
+import { renderCloudFoundation, cleanupCloudFoundationView } from './views/cloud-foundation-view.js?v=12.5.0';
+import { renderUsersAdmin, cleanupUsersAdminView } from './views/users-admin-view.js?v=12.5.0';
+import { renderAiAdmin, cleanupAiAdminView } from './views/ai-admin-view.js?v=12.5.0';
+import { icon } from './utils/icons.js?v=12.5.0';
 
 const shell = createAppShell();
 let sessionExpiryTimer = null;
@@ -114,6 +115,7 @@ function cleanupActiveViews() {
   cleanupReportsView();
   cleanupCloudFoundationView();
   cleanupUsersAdminView();
+  cleanupAiAdminView();
 }
 
 function handleRoute(route) {
@@ -190,6 +192,9 @@ function handleRoute(route) {
       break;
     case 'usersAdmin':
       renderUsersAdmin(host, session);
+      break;
+    case 'aiAdmin':
+      renderAiAdmin(host, session);
       break;
     case 'cloud':
       renderCloudFoundation(host, session);

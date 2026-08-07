@@ -1,7 +1,7 @@
-import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=12.4.0';
-import { escapeHtml } from '../utils/format.js?v=12.4.0';
-import { icon } from '../utils/icons.js?v=12.4.0';
-import { showToast } from '../components/toast.js?v=12.4.0';
+import { CloudFoundationService } from '../services/cloud-foundation-service.js?v=12.5.0';
+import { escapeHtml } from '../utils/format.js?v=12.5.0';
+import { icon } from '../utils/icons.js?v=12.5.0';
+import { showToast } from '../components/toast.js?v=12.5.0';
 
 let active = true;
 
@@ -41,7 +41,7 @@ function deliverableMigrationCounts(plan) {
 
 function canvasMigrationCounts(plan) {
   const counts = plan?.counts || { canvases: 0, notes: 0, comments: 0, versions: 0, shareLinks: 0, total: 0 };
-  return `<div class="cloud-count"><strong>${counts.canvases}</strong><span>Canvases</span></div><div class="cloud-count"><strong>${counts.notes}</strong><span>Notas</span></div><div class="cloud-count"><strong>${counts.comments}</strong><span>Comentarios</span></div><div class="cloud-count"><strong>${counts.versions}</strong><span>Versiones</span></div><div class="cloud-count"><strong>${counts.shareLinks}</strong><span>Enlaces</span></div><div class="cloud-count cloud-count-total"><strong>${counts.total}</strong><span>Documentos</span></div>`;
+  return `<div class="cloud-count"><strong>${counts.canvases}</strong><span>Lienzos</span></div><div class="cloud-count"><strong>${counts.notes}</strong><span>Notas</span></div><div class="cloud-count"><strong>${counts.comments}</strong><span>Comentarios</span></div><div class="cloud-count"><strong>${counts.versions}</strong><span>Versiones</span></div><div class="cloud-count"><strong>${counts.shareLinks}</strong><span>Enlaces</span></div><div class="cloud-count cloud-count-total"><strong>${counts.total}</strong><span>Documentos</span></div>`;
 }
 
 function activationCounts(plan = null) {
@@ -79,14 +79,14 @@ export async function renderCloudFoundation(container, session) {
 
       <div class="cloud-safety-banner">
         <span>${icon('shield')}</span>
-        <div><strong>Migración controlada y reversible</strong><p>Proyectos, Kanban, Entregables y Canvas operan en modo híbrido para cuentas Firebase. Los códigos demo conservan localStorage y Finanzas permanece local.</p></div>
+        <div><strong>Migración controlada y reversible</strong><p>Proyectos, Kanban, Entregables y Lienzos operan en modo híbrido para cuentas Firebase. Los códigos demo conservan localStorage y Finanzas permanece local.</p></div>
       </div>
 
       <section class="cloud-architecture-grid" aria-label="Arquitectura objetivo">
         ${architectureCard('monitor', 'GitHub Pages', 'Frontend estático', 'ok')}
         ${architectureCard('lock', 'Firebase Authentication', configuration.authMode === 'mock' ? 'Preparado, aún inactivo' : configuration.authMode, configuration.authMode === 'mock' ? 'warning' : 'ok')}
-        ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Proyectos ${configuration.projectMode} · Kanban ${configuration.kanbanMode} · Entregables ${configuration.deliverableMode} · Canvas ${configuration.canvasMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
-        ${architectureCard('activity', 'Realtime Database', configuration.databaseConfigured ? 'Presencia colaborativa del Canvas' : 'Falta databaseURL', configuration.databaseConfigured ? 'ok' : 'warning')}
+        ${architectureCard('database', 'Cloud Firestore', ['firebase', 'hybrid'].includes(configuration.projectMode) ? `Proyectos ${configuration.projectMode} · Kanban ${configuration.kanbanMode} · Entregables ${configuration.deliverableMode} · Lienzos ${configuration.canvasMode}` : 'Preparado para migración', ['firebase', 'hybrid'].includes(configuration.projectMode) ? 'ok' : 'warning')}
+        ${architectureCard('activity', 'Realtime Database', configuration.databaseConfigured ? 'Presencia colaborativa del lienzo' : 'Falta databaseURL', configuration.databaseConfigured ? 'ok' : 'warning')}
         ${architectureCard('users', 'Cloud Functions', `Usuarios e invitaciones · ${configuration.functionsRegion}`, 'ok')}
         ${architectureCard('cloud', 'Apps Script', 'Drive, Gmail y Calendar en fase posterior', 'pending')}
       </section>
@@ -101,7 +101,7 @@ export async function renderCloudFoundation(container, session) {
               ${configItem('Project mode', configuration.projectMode, ['firebase', 'hybrid'].includes(configuration.projectMode))}
               ${configItem('Kanban mode', configuration.kanbanMode, ['firebase', 'hybrid'].includes(configuration.kanbanMode))}
               ${configItem('Entregables mode', configuration.deliverableMode, ['firebase', 'hybrid'].includes(configuration.deliverableMode))}
-              ${configItem('Canvas mode', configuration.canvasMode, ['firebase', 'hybrid'].includes(configuration.canvasMode))}
+              ${configItem('Modo Lienzos', configuration.canvasMode, ['firebase', 'hybrid'].includes(configuration.canvasMode))}
               ${configItem('Realtime Database', configuration.databaseURL || 'No configurada', configuration.databaseConfigured)}
               ${configItem('Functions region', configuration.functionsRegion, Boolean(configuration.functionsRegion))}
               ${configItem('App Check', configuration.appCheckEnabled ? 'Activado' : 'Pendiente', configuration.appCheckEnabled)}
@@ -185,19 +185,19 @@ export async function renderCloudFoundation(container, session) {
           </section>
 
           <section class="panel cloud-panel" id="cloud-canvas-migration-panel">
-            <div class="panel-heading"><div><span class="panel-kicker">MIGRACIÓN 12.1</span><h2>Canvas Engine colaborativo</h2><p>Migra canvases, notas, comentarios, historial, versiones y enlaces sanitizados a Firestore.</p></div><span class="badge badge-neutral">Schema v12</span></div>
-            <div class="cloud-backup-row"><div><strong>1. Respaldo de canvases</strong><span>Descarga los canvases almacenados en este navegador antes de migrar.</span></div><button class="button button-secondary" id="export-canvas-backup" type="button">${icon('download')} Exportar canvases</button></div>
+            <div class="panel-heading"><div><span class="panel-kicker">MIGRACIÓN 12.1</span><h2>Motor de Lienzos colaborativo</h2><p>Migra lienzos, notas, comentarios, historial, versiones y enlaces sanitizados a Firestore.</p></div><span class="badge badge-neutral">Schema v12</span></div>
+            <div class="cloud-backup-row"><div><strong>1. Respaldo de lienzos</strong><span>Descarga los lienzos almacenados en este navegador antes de migrar.</span></div><button class="button button-secondary" id="export-canvas-backup" type="button">${icon('download')} Exportar lienzos</button></div>
             <div class="cloud-migration-section">
               <strong>2. Workspaces con proyectos</strong>
               <div class="cloud-workspace-options">
-                ${canvasPreview.selectedWorkspaceIds.map(workspaceId => `<label class="cloud-check-card"><input type="checkbox" data-canvas-workspace value="${escapeHtml(workspaceId)}" checked><span><strong>${escapeHtml(workspaceId)}</strong><small>Buscar canvases locales</small></span></label>`).join('')}
+                ${canvasPreview.selectedWorkspaceIds.map(workspaceId => `<label class="cloud-check-card"><input type="checkbox" data-canvas-workspace value="${escapeHtml(workspaceId)}" checked><span><strong>${escapeHtml(workspaceId)}</strong><small>Buscar lienzos locales</small></span></label>`).join('')}
               </div>
             </div>
             <div class="cloud-count-grid" id="canvas-migration-counts">${canvasMigrationCounts(canvasPreview)}</div>
             <div class="cloud-migration-actions">
-              <button class="button button-secondary" id="preview-canvas-migration" type="button">${icon('eye')} Simular canvases</button>
-              <button class="button button-primary" id="execute-canvas-migration" type="button">${icon('upload')} Migrar canvases</button>
-              <button class="button button-secondary" id="verify-canvas-migration" type="button">${icon('check')} Verificar canvases</button>
+              <button class="button button-secondary" id="preview-canvas-migration" type="button">${icon('eye')} Simular lienzos</button>
+              <button class="button button-primary" id="execute-canvas-migration" type="button">${icon('upload')} Migrar lienzos</button>
+              <button class="button button-secondary" id="verify-canvas-migration" type="button">${icon('check')} Verificar lienzos</button>
             </div>
             <div class="cloud-operation-result hidden" id="canvas-operation-result" role="status"></div>
           </section>
@@ -235,7 +235,7 @@ export async function renderCloudFoundation(container, session) {
               <li><span>4</span><div><strong>Publicar reglas</strong><small>Copiar firebase/firestore.rules en la consola.</small></div></li>
               <li><span>5</span><div><strong>Crear superadministrador</strong><small>Authentication + documento users/UID.</small></div></li>
               <li><span>6</span><div><strong>Respaldar y migrar</strong><small>Usar esta misma pantalla.</small></div></li>
-              <li><span>7</span><div><strong>Activar modo híbrido</strong><small>Las cuentas Firebase usan Firestore; los códigos demo conservan localStorage.</small></div></li><li><span>8</span><div><strong>Migrar Kanban</strong><small>Tableros y tarjetas sincronizados en tiempo real.</small></div></li><li><span>9</span><div><strong>Migrar entregables</strong><small>Versiones, comentarios y aprobaciones compartidas.</small></div></li><li><span>10</span><div><strong>Migrar Canvas</strong><small>Notas, versiones, enlaces y presencia colaborativa.</small></div></li>
+              <li><span>7</span><div><strong>Activar modo híbrido</strong><small>Las cuentas Firebase usan Firestore; los códigos demo conservan localStorage.</small></div></li><li><span>8</span><div><strong>Migrar Kanban</strong><small>Tableros y tarjetas sincronizados en tiempo real.</small></div></li><li><span>9</span><div><strong>Migrar entregables</strong><small>Versiones, comentarios y aprobaciones compartidas.</small></div></li><li><span>10</span><div><strong>Migrar Lienzos</strong><small>Notas, versiones, enlaces y presencia colaborativa.</small></div></li>
             </ol>
           </section>
 
@@ -295,7 +295,7 @@ function renderCanvasPlan(container, plan) {
   container.querySelector('#canvas-migration-counts').innerHTML = canvasMigrationCounts(plan);
   const result = container.querySelector('#canvas-operation-result');
   result.classList.remove('hidden', 'is-error', 'is-success');
-  result.innerHTML = `<strong>Simulación de Canvas preparada</strong><span>${plan.counts.canvases} canvas(es), ${plan.counts.notes} nota(s), ${plan.counts.comments} comentario(s), ${plan.counts.versions} versión(es) y ${plan.counts.total} documentos. ${plan.duplicates.length ? `${plan.duplicates.length} rutas duplicadas detectadas.` : 'No se detectaron rutas duplicadas.'}</span>`;
+  result.innerHTML = `<strong>Simulación de Lienzos preparada</strong><span>${plan.counts.canvases} lienzo(s), ${plan.counts.notes} nota(s), ${plan.counts.comments} comentario(s), ${plan.counts.versions} versión(es) y ${plan.counts.total} documentos. ${plan.duplicates.length ? `${plan.duplicates.length} rutas duplicadas detectadas.` : 'No se detectaron rutas duplicadas.'}</span>`;
 }
 
 function renderKanbanPlan(container, plan) {
@@ -578,7 +578,7 @@ function bindCloudEvents(container) {
   container.querySelector('#preview-canvas-migration')?.addEventListener('click', refreshCanvasPreview);
   container.querySelector('#export-canvas-backup')?.addEventListener('click', () => {
     CloudFoundationService.exportCanvasBackup();
-    showToast('Respaldo de canvases descargado.');
+    showToast('Respaldo de lienzos descargado.');
   });
   container.querySelector('#execute-canvas-migration')?.addEventListener('click', async event => {
     const button = event.currentTarget;
@@ -588,18 +588,18 @@ function bindCloudEvents(container) {
     if (!plan.counts.total) {
       result.classList.remove('hidden', 'is-success');
       result.classList.add('is-error');
-      result.innerHTML = '<strong>No hay canvases para migrar</strong><span>Abre el Toolkit con un código demo o selecciona otro workspace.</span>';
+      result.innerHTML = '<strong>No hay lienzos para migrar</strong><span>Abre el Toolkit con un código demo o selecciona otro workspace.</span>';
       return;
     }
     if (button.dataset.confirmCanvas !== 'true') {
       button.dataset.confirmCanvas = 'true';
-      button.innerHTML = `${icon('alert')} Confirmar canvases`;
+      button.innerHTML = `${icon('alert')} Confirmar lienzos`;
       result.classList.remove('hidden', 'is-error', 'is-success');
-      result.innerHTML = `<strong>Confirmación requerida</strong><span>Pulsa nuevamente para escribir ${plan.counts.total} documentos Canvas con merge.</span>`;
+      result.innerHTML = `<strong>Confirmación requerida</strong><span>Pulsa nuevamente para escribir ${plan.counts.total} documentos de Lienzos con merge.</span>`;
       clearTimeout(button._confirmationTimer);
       button._confirmationTimer = setTimeout(() => {
         delete button.dataset.confirmCanvas;
-        button.innerHTML = `${icon('upload')} Migrar canvases`;
+        button.innerHTML = `${icon('upload')} Migrar lienzos`;
       }, 20000);
       return;
     }
@@ -608,21 +608,21 @@ function bindCloudEvents(container) {
     button.disabled = true;
     button.innerHTML = '<span class="spinner"></span> Migrando...';
     result.classList.remove('hidden', 'is-error', 'is-success');
-    result.innerHTML = `<strong>Migración Canvas en curso</strong><span>Escribiendo ${plan.counts.canvases} canvases y ${plan.counts.notes} notas.</span>`;
+    result.innerHTML = `<strong>Migración de Lienzos en curso</strong><span>Escribiendo ${plan.counts.canvases} lienzos y ${plan.counts.notes} notas.</span>`;
     try {
       await new Promise(resolve => requestAnimationFrame(resolve));
       const migrated = await CloudFoundationService.migrateCanvas(options);
       result.classList.remove('is-error');
       result.classList.add('is-success');
-      result.innerHTML = `<strong>Canvas Engine migrado</strong><span>${migrated.plan.counts.canvases} canvas(es), ${migrated.plan.counts.notes} nota(s) y ${migrated.committed} escrituras confirmadas.</span>`;
-      showToast('Migración del Canvas Engine completada.');
+      result.innerHTML = `<strong>Motor de Lienzos migrado</strong><span>${migrated.plan.counts.canvases} lienzo(s), ${migrated.plan.counts.notes} nota(s) y ${migrated.committed} escrituras confirmadas.</span>`;
+      showToast('Migración del Motor de Lienzos completada.');
     } catch (error) {
       result.classList.remove('is-success');
       result.classList.add('is-error');
-      result.innerHTML = `<strong>No se completó la migración Canvas</strong><span>${escapeHtml(error.message)}</span>`;
+      result.innerHTML = `<strong>No se completó la migración de Lienzos</strong><span>${escapeHtml(error.message)}</span>`;
     } finally {
       button.disabled = false;
-      button.innerHTML = `${icon('upload')} Migrar canvases`;
+      button.innerHTML = `${icon('upload')} Migrar lienzos`;
     }
   });
   container.querySelector('#verify-canvas-migration')?.addEventListener('click', async event => {
@@ -641,14 +641,14 @@ function bindCloudEvents(container) {
       }), { canvases: 0, notes: 0, comments: 0, versions: 0, shareLinks: 0 });
       result.classList.remove('hidden', 'is-error');
       result.classList.add('is-success');
-      result.innerHTML = `<strong>Verificación de Canvas</strong><span>${totals.canvases} canvas(es), ${totals.notes} nota(s), ${totals.comments} comentario(s), ${totals.versions} versión(es) y ${totals.shareLinks} enlace(s) encontrados.</span><div class="cloud-verification-list">${report.map(item => `<span><b>${escapeHtml(item.workspaceName)}</b>: ${item.canvases} canvases y ${item.notes} notas.</span>`).join('')}</div>`;
+      result.innerHTML = `<strong>Verificación de Lienzos</strong><span>${totals.canvases} lienzo(s), ${totals.notes} nota(s), ${totals.comments} comentario(s), ${totals.versions} versión(es) y ${totals.shareLinks} enlace(s) encontrados.</span><div class="cloud-verification-list">${report.map(item => `<span><b>${escapeHtml(item.workspaceName)}</b>: ${item.canvases} lienzos y ${item.notes} notas.</span>`).join('')}</div>`;
     } catch (error) {
       result.classList.remove('hidden', 'is-success');
       result.classList.add('is-error');
       result.innerHTML = `<strong>No se pudo verificar</strong><span>${escapeHtml(error.message)}</span>`;
     } finally {
       button.disabled = false;
-      button.innerHTML = `${icon('check')} Verificar canvases`;
+      button.innerHTML = `${icon('check')} Verificar lienzos`;
     }
   });
 

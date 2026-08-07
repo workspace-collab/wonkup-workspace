@@ -542,4 +542,87 @@ wonkupCanvasAiCoach({
 })
 ```
 
-La función requiere Firebase Authentication, perfil WonkUp activo y acceso autorizado al Canvas. Usa `GEMINI_API_KEY` desde Firebase Secret Manager y no expone la credencial al navegador. El modelo por defecto es `gemini-2.5-flash`. Las respuestas estructuradas distinguen evidencia, inferencia e hipótesis. Los límites iniciales son 30 consultas por usuario/día y 1,000 globales/día.
+La función requiere Firebase Authentication, perfil WonkUp activo y acceso autorizado al Lienzo. Usa `GEMINI_API_KEY` desde Firebase Secret Manager y no expone la credencial al navegador. Desde el Ajuste 12.5 el modelo por defecto es `gemini-2.5-flash-lite`. Las respuestas estructuradas distinguen evidencia, inferencia e hipótesis. El piloto 12.5 no impone cuotas diarias desde WonkUp; las cuotas del proveedor continúan aplicando.
+
+## Ajuste 12.5 — AI Usage Control Center
+
+El callable principal conserva su contrato y añade analítica de uso:
+
+```text
+wonkupCanvasAiCoach(...) -> {
+  ok,
+  model,
+  action,
+  guide,
+  canAddNotes,
+  unlimitedPerUser: true,
+  usage: {
+    interactionId,
+    inputTokens,
+    outputTokens,
+    thinkingTokens,
+    totalTokens,
+    estimatedCostUsd,
+    suggestionsProposed
+  },
+  result
+}
+```
+
+WonkUp no impone un límite diario por usuario durante el piloto. Los límites técnicos, de cuota y facturación del proveedor Gemini permanecen externos al contrato de WonkUp.
+
+### Registrar aceptación de propuestas
+
+```text
+wonkupRecordAiAcceptance({ interactionId, acceptedCount })
+```
+
+- Requiere Firebase Authentication.
+- Solo el usuario dueño de la interacción puede registrar aceptación.
+- Solo aplica a `action='suggest'` exitosa.
+- El cambio se aplica con transacción y es idempotente; repetir la misma cifra no duplica métricas.
+
+Servicio frontend:
+
+```text
+AiCoachService.recordAcceptance(interactionId, acceptedCount)
+```
+
+### Resumen administrativo de consumo
+
+```text
+wonkupAiUsageSummary({
+  days: 1 | 7 | 30,
+  uid?, workspaceId?, projectId?, canvasId?
+})
+```
+
+- Exclusivo de superadministrador.
+- Devuelve totales, errores, tokens, costo estimado, acciones, ranking por usuario, tasa de aceptación, Lienzos con mayor uso, dimensiones de filtro y consumo mensual contra presupuesto.
+
+Servicio frontend:
+
+```text
+AiUsageService.summary(filters)
+```
+
+### Configuración administrativa de IA
+
+```text
+wonkupUpdateAiSettings({
+  monthlyBudgetUsd,
+  enabled
+})
+```
+
+- Exclusivo de superadministrador.
+- `unlimitedPerUser` se conserva en `true` durante el piloto.
+- Umbrales informativos: 50%, 75%, 90%, 100%.
+- `budgetAction='alert_only'`: alcanzar el presupuesto no bloquea consultas.
+- `enabled=false` funciona como pausa manual de emergencia.
+
+Servicio frontend:
+
+```text
+AiUsageService.updateSettings(input)
+```

@@ -77,7 +77,7 @@ export function createCanvasWorkspaceController({
   onInteractionEnd = () => {},
   onMessage = () => {}
 }) {
-  if (!(workspace instanceof HTMLElement)) throw new Error('Canvas workspace inválido.');
+  if (!(workspace instanceof HTMLElement)) throw new Error('Área de lienzo inválida.');
 
   const abortController = new AbortController();
   const { signal } = abortController;

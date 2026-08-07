@@ -1,12 +1,12 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.4.0';
-import { ProjectService } from '../services/project-service.js?v=12.4.0';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=12.4.0';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.4.0';
-import { icon } from '../utils/icons.js?v=12.4.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.4.0';
-import { openModal, confirmModal } from '../components/modal.js?v=12.4.0';
-import { showToast } from '../components/toast.js?v=12.4.0';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.4.0';
+import { CanvasService } from '../services/canvas-service.js?v=12.5.0';
+import { ProjectService } from '../services/project-service.js?v=12.5.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=12.5.0';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.5.0';
+import { icon } from '../utils/icons.js?v=12.5.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.5.0';
+import { openModal, confirmModal } from '../components/modal.js?v=12.5.0';
+import { showToast } from '../components/toast.js?v=12.5.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.5.0';
 
 let unsubscribeToolkit = null;
 let toolkitGeneration = 0;
@@ -16,8 +16,8 @@ export async function renderToolkit(container, workspaceId, projectId = null, em
   unsubscribeToolkit?.();
   unsubscribeToolkit = null;
   container.innerHTML = `<section class="${embedded ? 'toolkit-embedded' : 'page'}" ${embedded ? '' : 'aria-labelledby="toolkit-title"'}>
-    ${embedded ? '' : `<div class="page-header"><div><span class="page-kicker">Innovación aplicada</span><h1 id="toolkit-title">Innovation Toolkit</h1><p>Comprende, valida, prioriza y presenta proyectos mediante un motor común de canvases.</p></div><div class="page-header-actions">${canEditCanvas(session, projectId, workspaceId) ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div></div>`}
-    <div class="panel toolkit-loading"><div class="panel-body"><span class="spinner"></span> Cargando herramientas y canvases...</div></div>
+    ${embedded ? '' : `<div class="page-header"><div><span class="page-kicker">Innovación aplicada</span><h1 id="toolkit-title">Innovation Toolkit</h1><p>Comprende, valida, prioriza y presenta proyectos mediante un motor común de lienzos.</p></div><div class="page-header-actions">${canEditCanvas(session, projectId, workspaceId) ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo lienzo</button>` : ''}</div></div>`}
+    <div class="panel toolkit-loading"><div class="panel-body"><span class="spinner"></span> Cargando herramientas y lienzos...</div></div>
   </section>`;
 
   try {
@@ -49,26 +49,26 @@ function renderToolkitContent(container, context) {
   const dataSource = CanvasService.dataSource({ session });
   const canEdit = canEditCanvas(session, projectId, workspaceId);
   const canManage = canManageCanvas(session, projectId, workspaceId);
-  const canvasScopeTitle = projectId ? 'Canvases del proyecto' : 'Canvases accesibles';
-  const emptyTitle = projectId ? 'Aún no hay canvases' : 'No hay canvases en tus proyectos autorizados';
+  const canvasScopeTitle = projectId ? 'Lienzos del proyecto' : 'Lienzos accesibles';
+  const emptyTitle = projectId ? 'Aún no hay lienzos' : 'No hay lienzos en tus proyectos autorizados';
   const emptyDescription = projectId
     ? 'Crea una instancia a partir de una de las plantillas metodológicas.'
-    : 'Solo se muestran los canvases de proyectos donde tu cuenta tiene una membresía activa.';
+    : 'Solo se muestran los lienzos de proyectos donde tu cuenta tiene una membresía activa.';
 
   root.innerHTML = `
-    ${embedded ? `<div class="toolkit-embedded-head"><div><h2>Innovation Toolkit</h2><p>Canvases vinculados a este proyecto.</p></div>${canEdit ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo canvas</button>` : ''}</div>` : root.querySelector('.page-header')?.outerHTML || ''}
+    ${embedded ? `<div class="toolkit-embedded-head"><div><h2>Innovation Toolkit</h2><p>Lienzos vinculados a este proyecto.</p></div>${canEdit ? `<button class="button button-primary" id="new-canvas">${icon('plus')} Nuevo lienzo</button>` : ''}</div>` : root.querySelector('.page-header')?.outerHTML || ''}
 
     <section class="toolkit-section" aria-labelledby="canvas-instances-title">
       <div class="section-heading"><div><h2 id="canvas-instances-title">${canvasScopeTitle}</h2><p>${activeInstances.length} activo${activeInstances.length === 1 ? '' : 's'}${archivedInstances.length ? ` · ${archivedInstances.length} archivado${archivedInstances.length === 1 ? '' : 's'}` : ''} · ${dataSource === 'firebase' ? 'Firestore en tiempo real' : 'Demo local'}</p></div>${dataSource === 'mock' && session?.role === 'superadmin' && !embedded ? `<button class="button button-ghost" id="reset-canvases">${icon('refresh')} Restablecer demo</button>` : ''}</div>
-      ${activeInstances.length ? `<div class="canvas-instance-grid">${activeInstances.map(instance => instanceCard(instance, projectMap[instance.projectId], session)).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('lightbulb')}</div><h2>${emptyTitle}</h2><p>${emptyDescription}</p>${canEdit ? `<button class="button button-primary" id="empty-new-canvas">${icon('plus')} Crear primer canvas</button>` : ''}</div>`}
+      ${activeInstances.length ? `<div class="canvas-instance-grid">${activeInstances.map(instance => instanceCard(instance, projectMap[instance.projectId], session)).join('')}</div>` : `<div class="empty-state compact-empty"><div class="empty-state-icon">${icon('lightbulb')}</div><h2>${emptyTitle}</h2><p>${emptyDescription}</p>${canEdit ? `<button class="button button-primary" id="empty-new-canvas">${icon('plus')} Crear primer lienzo</button>` : ''}</div>`}
     </section>
 
     <section class="toolkit-section" aria-labelledby="canvas-templates-title">
-      <div class="section-heading"><div><h2 id="canvas-templates-title">Plantillas metodológicas</h2><p>Un mismo Canvas Engine, seis herramientas especializadas.</p></div></div>
+      <div class="section-heading"><div><h2 id="canvas-templates-title">Plantillas metodológicas</h2><p>Un mismo Motor de Lienzos, seis herramientas especializadas.</p></div></div>
       <div class="toolkit-grid">${canvasTemplates.map(template => templateCard(template, canEdit)).join('')}</div>
     </section>
 
-    ${archivedInstances.length ? `<details class="panel archived-canvases"><summary>Canvases archivados (${archivedInstances.length})</summary><div class="panel-body canvas-instance-grid">${archivedInstances.map(instance => archivedCard(instance, projectMap[instance.projectId], session, dataSource)).join('')}</div></details>` : ''}
+    ${archivedInstances.length ? `<details class="panel archived-canvases"><summary>Lienzos archivados (${archivedInstances.length})</summary><div class="panel-body canvas-instance-grid">${archivedInstances.map(instance => archivedCard(instance, projectMap[instance.projectId], session, dataSource)).join('')}</div></details>` : ''}
   `;
 
   const create = templateId => openCreateCanvas({ workspaceId, projectId, projects, templateId, session, onCreated: instance => { location.hash = canvasHref(instance); } });
@@ -87,12 +87,12 @@ function renderToolkitContent(container, context) {
         projectId: button.dataset.projectId,
         session
       });
-      showToast('Canvas restaurado.');
+      showToast('Lienzo restaurado.');
       renderToolkit(container, workspaceId, projectId, embedded, session);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   }));
   root.querySelectorAll('[data-delete-canvas]').forEach(button => button.addEventListener('click', async () => {
-    const confirmed = await confirmModal({ title: 'Eliminar canvas definitivamente', message: 'Esta acción elimina notas, comentarios e historial y no se puede deshacer.', confirmLabel: 'Eliminar', danger: true });
+    const confirmed = await confirmModal({ title: 'Eliminar lienzo definitivamente', message: 'Esta acción elimina notas, comentarios e historial y no se puede deshacer.', confirmLabel: 'Eliminar', danger: true });
     if (!confirmed) return;
     try {
       await CanvasService.deleteInstance({
@@ -101,14 +101,14 @@ function renderToolkitContent(container, context) {
         projectId: button.dataset.projectId,
         session
       });
-      showToast('Canvas eliminado.');
+      showToast('Lienzo eliminado.');
       renderToolkit(container, workspaceId, projectId, embedded, session);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   }));
   root.querySelector('#reset-canvases')?.addEventListener('click', async () => {
-    const confirmed = await confirmModal({ title: 'Restablecer canvases demo', message: 'Se reemplazarán los canvases locales por los datos demostrativos iniciales.', confirmLabel: 'Restablecer', danger: true });
+    const confirmed = await confirmModal({ title: 'Restablecer lienzos demo', message: 'Se reemplazarán los lienzos locales por los datos demostrativos iniciales.', confirmLabel: 'Restablecer', danger: true });
     if (!confirmed) return;
-    try { await CanvasService.resetDemo({ session }); showToast('Canvases demo restablecidos.'); renderToolkit(container, workspaceId, projectId, embedded, session); }
+    try { await CanvasService.resetDemo({ session }); showToast('Lienzos demo restablecidos.'); renderToolkit(container, workspaceId, projectId, embedded, session); }
     catch (error) { showToast(error.message, { type: 'error' }); }
   });
 }
@@ -119,7 +119,7 @@ function instanceCard(instance, project, session) {
   return `<article class="canvas-instance-card" style="--canvas-accent:${escapeHtml(template?.color || '#50a8f3')}">
     <div class="canvas-instance-top"><span class="canvas-template-icon">${icon(template?.icon || 'lightbulb')}</span><span class="status-badge status-active">Activo</span></div>
     <h3>${escapeHtml(instance.title)}</h3>
-    <p>${escapeHtml(template?.name || 'Canvas')} · ${escapeHtml(project?.name || 'Proyecto')}</p>
+    <p>${escapeHtml(template?.name || 'Lienzo')} · ${escapeHtml(project?.name || 'Proyecto')}</p>
     <div class="canvas-instance-progress"><span><strong>${instance.notes.length}</strong> notas</span><span><strong>${progress}%</strong> avance</span></div>
     <div class="progress-track"><div class="progress-bar" style="width:${progress}%"></div></div>
     <div class="canvas-instance-footer"><span>Actualizado ${relativeTime(instance.updatedAt)}</span><a class="button button-secondary" href="${canvasHref(instance)}">Abrir</a></div>
@@ -152,10 +152,10 @@ function templateLayoutLabel(template) {
 
 function openCreateCanvas({ workspaceId, projectId, projects, templateId, session, onCreated }) {
   const availableProjects = projectId ? projects.filter(project => project.id === projectId) : projects;
-  if (!availableProjects.length) { showToast('No hay proyectos disponibles para crear un canvas.', { type: 'error' }); return; }
+  if (!availableProjects.length) { showToast('No hay proyectos disponibles para crear un lienzo.', { type: 'error' }); return; }
   const selectedTemplate = canvasTemplates.find(template => template.id === templateId) || canvasTemplates[0];
   const modal = openModal({
-    title: 'Nuevo canvas',
+    title: 'Nuevo lienzo',
     subtitle: 'Crea una instancia metodológica vinculada a un proyecto.',
     size: 'md',
     initialFocus: '#canvas-project',
@@ -163,7 +163,7 @@ function openCreateCanvas({ workspaceId, projectId, projects, templateId, sessio
       <div class="field field-full"><label for="canvas-project">Proyecto *</label><select class="select" id="canvas-project" required aria-required="true">${availableProjects.map(project => `<option value="${escapeHtml(project.id)}" data-workspace="${escapeHtml(project.workspaceId)}" ${project.id === projectId ? 'selected' : ''}>${escapeHtml(project.name)} · ${escapeHtml(project.code)}</option>`).join('')}</select><small class="field-error" id="canvas-project-error"></small></div>
       <div class="field field-full"><label for="canvas-template">Plantilla *</label><select class="select" id="canvas-template" required aria-required="true">${canvasTemplates.map(template => `<option value="${escapeHtml(template.id)}" ${template.id === selectedTemplate.id ? 'selected' : ''}>${escapeHtml(template.name)}</option>`).join('')}</select></div>
       <div class="field field-full"><label for="canvas-title">Título *</label><input class="input" id="canvas-title" maxlength="140" required aria-required="true" value="${escapeHtml(selectedTemplate.name)}"><small class="field-help">Ejemplo: Mapa de Empatía · Familias usuarias</small><small class="field-error" id="canvas-title-error"></small></div>
-      <div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('plus')} Crear canvas</button></div>
+      <div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('plus')} Crear lienzo</button></div>
     </form>`
   });
   const form = modal.root.querySelector('#canvas-create-form');
@@ -189,12 +189,12 @@ function openCreateCanvas({ workspaceId, projectId, projects, templateId, sessio
     try {
       const instance = await CanvasService.createInstance({ workspaceId: option.dataset.workspace, projectId: projectSelect.value, templateId: templateSelect.value, title, session });
       modal.close();
-      showToast('Canvas creado correctamente.');
+      showToast('Lienzo creado correctamente.');
       onCreated?.(instance);
     } catch (error) {
       showToast(error.message, { type: 'error' });
       submit.disabled = false;
-      submit.innerHTML = `${icon('plus')} Crear canvas`;
+      submit.innerHTML = `${icon('plus')} Crear lienzo`;
     }
   });
 }

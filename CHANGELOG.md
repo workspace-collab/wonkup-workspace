@@ -427,3 +427,22 @@
 - Corrige la llamada REST de WonkUp AI Coach para `generateContent`.
 - Sustituye `generationConfig.responseFormat` por `responseMimeType` + `responseJsonSchema`.
 - Sin cambios en la API key, cuotas, modelo ni frontend.
+
+## 12.5.0 — Lienzos + control de uso de IA
+
+- Se estandarizó la terminología visible `Canvas/Canvases` a `Lienzo/Lienzos` sin modificar rutas, colecciones ni identificadores técnicos existentes.
+- WonkUp AI Coach deja de imponer cuotas diarias por usuario durante el piloto.
+- El modelo predeterminado cambia a `gemini-2.5-flash-lite` para reducir el costo de experimentación.
+- Se incorporó captura de `usageMetadata` de Gemini para registrar tokens de entrada, salida, razonamiento y total.
+- Se añadió estimación de costo por interacción y acumulados diarios/mensuales.
+- Se añadió `aiUsageEvents/{interactionId}` para analítica por usuario, workspace, proyecto, Lienzo y tipo de acción.
+- Se añadió seguimiento de notas sugeridas y notas aceptadas para calcular la tasa de aceptación de AI Coach.
+- Se añadió `wonkupRecordAiAcceptance` con actualización transaccional e idempotente.
+- Se añadió `wonkupAiUsageSummary`, accesible únicamente para superadministrador.
+- Se añadió `wonkupUpdateAiSettings` para presupuesto de referencia y pausa manual de emergencia.
+- Se incorporó **Administración → IA y consumo** con periodos 1/7/30 días, filtros, ranking de usuarios, tokens, costo estimado, tasa de aceptación y Lienzos con mayor uso.
+- Se incorporó indicador por usuario: Normal, Intensivo o Excepcional, basado en el promedio de consultas por día y sin bloquear al usuario.
+- Se configuró un presupuesto mensual de referencia de USD 10 con alertas informativas al 50%, 75%, 90% y 100%; la acción al 100% es solo alertar.
+- Las colecciones de analítica `aiUsage` y `aiUsageEvents` permanecen cerradas a lectura/escritura directa desde el navegador.
+- Se mantiene la decisión de no guardar prompts ni respuestas completas en la analítica de uso.
+- Se actualizó el cache-busting a `12.5.0`.

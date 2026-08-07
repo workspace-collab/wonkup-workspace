@@ -1,5 +1,5 @@
-import { demoCanvasInstances } from '../../data/demo-canvases.js?v=12.4.0';
-import { getLocalFoundationSnapshot } from './migration-plan.js?v=12.4.0';
+import { demoCanvasInstances } from '../../data/demo-canvases.js?v=12.5.0';
+import { getLocalFoundationSnapshot } from './migration-plan.js?v=12.5.0';
 
 const STORAGE_KEY = 'wonkup.e5.canvases';
 const SCHEMA_VERSION = 12;

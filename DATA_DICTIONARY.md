@@ -570,3 +570,80 @@ Ruta `workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId}/access/{
 | updatedByUid | string | Administrador que realizó el último cambio |
 
 La colección `canvasShareAccess/{token}` es un índice privado resuelto exclusivamente mediante Cloud Functions. Las reglas deniegan toda lectura y escritura directa del cliente.
+
+## Ajuste 12.5 — Analítica de WonkUp AI Coach
+
+> La interfaz muestra **Lienzo/Lienzos**. Por compatibilidad histórica, las rutas internas de Firestore conservan el segmento técnico `canvases`.
+
+### AiUsageDaily
+
+Ruta global: `aiUsage/{YYYY-MM-DD}`.  Subcolección por usuario: `aiUsage/{YYYY-MM-DD}/users/{uid}`.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| date | string | Fecha operativa `YYYY-MM-DD` en zona `America/Lima` |
+| uid | string | Solo en documento de usuario |
+| name | string | Nombre visible del usuario |
+| email | string | Correo del usuario |
+| requests | number | Consultas exitosas |
+| failedRequests | number | Consultas fallidas o rechazadas por el proveedor |
+| questionRequests | number | Uso de Preguntas guía |
+| suggestRequests | number | Uso de Proponer notas |
+| reviewRequests | number | Uso de Revisar sección |
+| inputTokens | number | Tokens de entrada reportados por Gemini |
+| outputTokens | number | Tokens de respuesta reportados por Gemini |
+| thinkingTokens | number | Tokens de razonamiento reportados por Gemini cuando existan |
+| totalTokens | number | Total reportado por Gemini |
+| estimatedCostUsd | number | Costo aproximado calculado por WonkUp según la tabla de precios configurada |
+| suggestionsProposed | number | Notas candidatas generadas |
+| acceptedNotes | number | Notas candidatas que terminaron insertándose al Lienzo |
+| updatedAt | ISO 8601 | Última actualización |
+| schemaVersion | number | Versión de esquema |
+
+### AiUsageEvent
+
+Ruta: `aiUsageEvents/{interactionId}`. Cada documento representa una interacción, no almacena el prompt ni la respuesta completa.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| id | string | Identificador de interacción |
+| uid | string | UID Firebase del usuario |
+| userName | string | Nombre visible |
+| userEmail | string | Correo visible para administración |
+| date | string | Fecha operativa |
+| createdAt | ISO 8601 | Fecha/hora de la interacción |
+| workspaceId | string | Workspace |
+| workspaceName | string | Nombre del workspace |
+| projectId | string | Proyecto |
+| projectName | string | Nombre del proyecto |
+| canvasId | string | Identificador técnico del Lienzo |
+| canvasTitle | string | Nombre visible del Lienzo |
+| templateId | string | Metodología/plantilla |
+| sectionId | string | Bloque consultado |
+| sectionTitle | string | Nombre del bloque |
+| action | enum | `questions`, `suggest` o `review` |
+| model | string | Modelo Gemini que respondió |
+| inputTokens | number | Tokens de entrada |
+| outputTokens | number | Tokens de salida |
+| thinkingTokens | number | Tokens de razonamiento |
+| totalTokens | number | Tokens totales |
+| estimatedCostUsd | number | Costo estimado de la interacción |
+| suggestionsProposed | number | Propuestas de nota generadas |
+| acceptedNotes | number | Propuestas aceptadas e insertadas |
+| success | boolean | Resultado técnico de la consulta |
+| errorCode | string | Código de error si `success=false` |
+| errorMessage | string | Mensaje técnico sanitizado si falla |
+
+### AiSettings
+
+Ruta: `system/aiSettings`.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| enabled | boolean | Interruptor manual de emergencia de AI Coach |
+| unlimitedPerUser | boolean | `true` durante el piloto 12.5 |
+| monthlyBudgetUsd | number | Presupuesto mensual de referencia, USD 10 por defecto |
+| alertThresholds | array | `[50,75,90,100]` |
+| budgetAction | string | `alert_only`; no suspende automáticamente el servicio |
+| updatedAt | ISO 8601 | Última modificación |
+| updatedByUid | string | Superadministrador que modificó la configuración |

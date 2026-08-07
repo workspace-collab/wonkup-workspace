@@ -1,9 +1,9 @@
-import { ProjectService } from './project-service.js?v=12.4.0';
-import { KanbanService } from './kanban-service.js?v=12.4.0';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=12.4.0';
-import { CanvasService } from './canvas-service.js?v=12.4.0';
-import { DeliverableService } from './deliverable-service.js?v=12.4.0';
-import { isReadOnlyRole } from '../utils/permissions.js?v=12.4.0';
+import { ProjectService } from './project-service.js?v=12.5.0';
+import { KanbanService } from './kanban-service.js?v=12.5.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=12.5.0';
+import { CanvasService } from './canvas-service.js?v=12.5.0';
+import { DeliverableService } from './deliverable-service.js?v=12.5.0';
+import { isReadOnlyRole } from '../utils/permissions.js?v=12.5.0';
 
 function includesQuery(values, query) {
   return values.filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query);
@@ -59,7 +59,7 @@ export const GlobalSearchService = {
       .filter(instance => includesQuery([instance.title, instance.template?.name, ...instance.notes.map(note => note.text)], normalized))
       .slice(0, 6)
       .map(instance => ({
-        id: `canvas-instance-${instance.id}`, type: 'Canvas', title: instance.title,
+        id: `canvas-instance-${instance.id}`, type: 'Lienzo', title: instance.title,
         subtitle: instance.template?.name || 'Innovation Toolkit',
         href: `#/w/${instance.workspaceId}/p/${instance.projectId}/canvas/${instance.id}`, icon: 'lightbulb'
       }));

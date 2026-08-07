@@ -13,7 +13,7 @@ setGlobalOptions({ region: 'us-central1', maxInstances: 3 });
 
 const db = getFirestore();
 const adminAuth = getAuth();
-const RELEASE = '12.4.1';
+const RELEASE = '12.5.0';
 const ALLOWED_ROLES = Object.freeze(['workspace_admin', 'project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 const PROJECT_SCOPED_ROLES = new Set(['project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 const ROLE_LABELS = Object.freeze({
@@ -34,10 +34,13 @@ const CANVAS_SHARE_PERMISSION_LABELS = Object.freeze({
 
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
-const GEMINI_MODEL = defineString('GEMINI_MODEL', { default: 'gemini-2.5-flash' });
-const AI_DAILY_USER_LIMIT = 30;
-const AI_DAILY_GLOBAL_LIMIT = 1000;
+const GEMINI_MODEL = defineString('GEMINI_MODEL', { default: 'gemini-2.5-flash-lite' });
 const AI_ACTIONS = Object.freeze(['questions', 'suggest', 'review']);
+const AI_DEFAULT_MONTHLY_BUDGET_USD = 10;
+const AI_PRICING_USD_PER_MILLION = Object.freeze({
+  'gemini-2.5-flash-lite': Object.freeze({ input: 0.10, output: 0.40 }),
+  'gemini-2.5-flash': Object.freeze({ input: 0.30, output: 2.50 })
+});
 
 const AI_CANVAS_GUIDES = Object.freeze({
   'empathy-map': {
@@ -226,7 +229,7 @@ async function requireCanvasManager(request, workspaceId, projectId, canvasId) {
   }
   const canvasSnapshot = await db.doc(`workspaces/${workspaceId}/projects/${projectId}/canvases/${canvasId}`).get();
   if (!canvasSnapshot.exists || canvasSnapshot.data().status === 'archived') {
-    throw new HttpsError('not-found', 'El Canvas no existe o está archivado.');
+    throw new HttpsError('not-found', 'El lienzo no existe o está archivado.');
   }
   return { uid, profile, email: request.auth.token.email || '', canvas: { id: canvasSnapshot.id, ...canvasSnapshot.data() } };
 }
@@ -942,10 +945,12 @@ async function requireAiCanvasAccess(request, workspaceId, projectId, canvasId) 
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Inicia sesión para usar WonkUp AI Coach.');
   if (!workspaceId || !projectId || !canvasId) {
-    throw new HttpsError('invalid-argument', 'Falta identificar el workspace, proyecto o Canvas.');
+    throw new HttpsError('invalid-argument', 'Falta identificar el workspace, proyecto o lienzo.');
   }
-  const [profileSnapshot, canvasSnapshot, workspaceMember, projectMember, canvasAccess] = await Promise.all([
+  const [profileSnapshot, workspaceSnapshot, projectSnapshot, canvasSnapshot, workspaceMember, projectMember, canvasAccess] = await Promise.all([
     db.doc(`users/${uid}`).get(),
+    db.doc(`workspaces/${workspaceId}`).get(),
+    db.doc(`workspaces/${workspaceId}/projects/${projectId}`).get(),
     db.doc(`workspaces/${workspaceId}/projects/${projectId}/canvases/${canvasId}`).get(),
     db.doc(`workspaces/${workspaceId}/members/${uid}`).get(),
     db.doc(`workspaces/${workspaceId}/projects/${projectId}/members/${uid}`).get(),
@@ -956,7 +961,7 @@ async function requireAiCanvasAccess(request, workspaceId, projectId, canvasId) 
     throw new HttpsError('permission-denied', 'Tu Cuenta WonkUp no está activa.');
   }
   if (!canvasSnapshot.exists || canvasSnapshot.data().status === 'archived') {
-    throw new HttpsError('not-found', 'El Canvas no existe o está archivado.');
+    throw new HttpsError('not-found', 'El lienzo no existe o está archivado.');
   }
   const workspaceRole = workspaceMember.exists && workspaceMember.data().status === 'active'
     ? workspaceMember.data().role : '';
@@ -970,11 +975,15 @@ async function requireAiCanvasAccess(request, workspaceId, projectId, canvasId) 
     || ['workspace_admin', 'project_lead', 'collaborator'].includes(projectRole);
   const sharedAllowed = ['commenter', 'editor'].includes(sharedPermission);
   if (!internalAllowed && !sharedAllowed) {
-    throw new HttpsError('permission-denied', 'Tu permiso actual no incluye el asistente de IA de este Canvas.');
+    throw new HttpsError('permission-denied', 'Tu permiso actual no incluye el asistente de IA de este lienzo.');
   }
   return {
     uid,
     profile,
+    workspaceId,
+    workspaceName: workspaceSnapshot.exists ? (workspaceSnapshot.data().name || workspaceId) : workspaceId,
+    projectId,
+    projectName: projectSnapshot.exists ? (projectSnapshot.data().name || projectId) : projectId,
     canvas: { id: canvasSnapshot.id, ...canvasSnapshot.data() },
     workspaceRole,
     projectRole,
@@ -983,84 +992,296 @@ async function requireAiCanvasAccess(request, workspaceId, projectId, canvasId) 
   };
 }
 
-function aiUsageDate() {
-  return new Date().toISOString().slice(0, 10);
+function aiUsageDate(value = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value).reduce((acc, part) => {
+    if (part.type !== 'literal') acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-async function reserveAiQuota(uid) {
-  const date = aiUsageDate();
-  const globalRef = db.doc(`aiUsage/${date}`);
-  const userRef = db.doc(`aiUsage/${date}/users/${uid}`);
-  let nextUserCount = 0;
-  await db.runTransaction(async transaction => {
-    const [globalSnapshot, userSnapshot] = await Promise.all([
-      transaction.get(globalRef),
-      transaction.get(userRef)
-    ]);
-    const globalCount = Number(globalSnapshot.data()?.requests || 0);
-    const userCount = Number(userSnapshot.data()?.requests || 0);
-    if (globalCount >= AI_DAILY_GLOBAL_LIMIT) {
-      throw new HttpsError('resource-exhausted', 'El límite diario de WonkUp AI Coach fue alcanzado.');
-    }
-    if (userCount >= AI_DAILY_USER_LIMIT) {
-      throw new HttpsError('resource-exhausted', `Alcanzaste el límite de ${AI_DAILY_USER_LIMIT} consultas de IA por hoy.`);
-    }
-    nextUserCount = userCount + 1;
-    transaction.set(globalRef, {
-      date,
-      requests: globalCount + 1,
-      updatedAt: isoNow(),
-      schemaVersion: 12
-    }, { merge: true });
-    transaction.set(userRef, {
-      uid,
-      date,
-      requests: nextUserCount,
-      updatedAt: isoNow(),
-      schemaVersion: 12
-    }, { merge: true });
-  });
-  return { date, used: nextUserCount, limit: AI_DAILY_USER_LIMIT, remaining: Math.max(0, AI_DAILY_USER_LIMIT - nextUserCount) };
+function aiDateKeys(days = 7) {
+  const count = Math.max(1, Math.min(31, Number(days || 7)));
+  const keys = [];
+  for (let index = 0; index < count; index += 1) {
+    keys.push(aiUsageDate(new Date(Date.now() - index * 86400000)));
+  }
+  return [...new Set(keys)];
 }
 
-async function refundAiQuota(uid, date = aiUsageDate()) {
-  const globalRef = db.doc(`aiUsage/${date}`);
-  const userRef = db.doc(`aiUsage/${date}/users/${uid}`);
-  await db.runTransaction(async transaction => {
-    const [globalSnapshot, userSnapshot] = await Promise.all([
-      transaction.get(globalRef),
-      transaction.get(userRef)
-    ]);
-    const globalCount = Math.max(0, Number(globalSnapshot.data()?.requests || 0));
-    const userCount = Math.max(0, Number(userSnapshot.data()?.requests || 0));
-    transaction.set(globalRef, {
-      requests: Math.max(0, globalCount - 1),
-      updatedAt: isoNow()
-    }, { merge: true });
-    transaction.set(userRef, {
-      requests: Math.max(0, userCount - 1),
-      updatedAt: isoNow()
-    }, { merge: true });
-  });
+function aiCurrentMonthDateKeys() {
+  const current = aiUsageDate();
+  const month = current.slice(0, 7);
+  const keys = [];
+  for (let index = 0; index < 35; index += 1) {
+    const key = aiUsageDate(new Date(Date.now() - index * 86400000));
+    if (!key.startsWith(month)) break;
+    keys.push(key);
+  }
+  return [...new Set(keys)];
 }
 
-async function recordAiTokens(uid, usage = {}) {
-  const date = aiUsageDate();
-  const globalRef = db.doc(`aiUsage/${date}`);
-  const userRef = db.doc(`aiUsage/${date}/users/${uid}`);
-  const inputTokens = Number(usage.promptTokenCount || usage.inputTokens || 0);
-  const outputTokens = Number(usage.candidatesTokenCount || usage.outputTokens || 0);
-  const totalTokens = Number(usage.totalTokenCount || inputTokens + outputTokens || 0);
-  const patch = {
-    inputTokens: FieldValue.increment(inputTokens),
-    outputTokens: FieldValue.increment(outputTokens),
-    totalTokens: FieldValue.increment(totalTokens),
-    updatedAt: isoNow()
+function aiSettingsDefaults() {
+  return {
+    enabled: true,
+    unlimitedPerUser: true,
+    monthlyBudgetUsd: AI_DEFAULT_MONTHLY_BUDGET_USD,
+    alertThresholds: [50, 75, 90, 100],
+    budgetAction: 'alert_only',
+    schemaVersion: 13
   };
-  await Promise.all([
-    globalRef.set(patch, { merge: true }),
-    userRef.set(patch, { merge: true })
-  ]);
+}
+
+async function loadAiSettings() {
+  const ref = db.doc('system/aiSettings');
+  const snapshot = await ref.get();
+  return { ...aiSettingsDefaults(), ...(snapshot.exists ? snapshot.data() : {}) };
+}
+
+function aiPricingForModel(model = '') {
+  return AI_PRICING_USD_PER_MILLION[model] || null;
+}
+
+function aiUsageNumbers(usage = {}) {
+  const inputTokens = Math.max(0, Number(usage.promptTokenCount || usage.inputTokens || 0));
+  const outputTokens = Math.max(0, Number(usage.candidatesTokenCount || usage.outputTokens || 0));
+  const thinkingTokens = Math.max(0, Number(usage.thoughtsTokenCount || usage.thinkingTokens || 0));
+  const totalTokens = Math.max(0, Number(usage.totalTokenCount || inputTokens + outputTokens + thinkingTokens || 0));
+  return { inputTokens, outputTokens, thinkingTokens, totalTokens };
+}
+
+function estimateAiCostUsd(model, usage = {}) {
+  const pricing = aiPricingForModel(model);
+  if (!pricing) return 0;
+  const { inputTokens, outputTokens, thinkingTokens } = aiUsageNumbers(usage);
+  const cost = (inputTokens / 1_000_000) * pricing.input
+    + ((outputTokens + thinkingTokens) / 1_000_000) * pricing.output;
+  return Number(cost.toFixed(8));
+}
+
+function aiActionPatch(action) {
+  if (action === 'questions') return { questionRequests: FieldValue.increment(1) };
+  if (action === 'review') return { reviewRequests: FieldValue.increment(1) };
+  return { suggestRequests: FieldValue.increment(1) };
+}
+
+function newAiInteractionId() {
+  return `ai-${Date.now().toString(36)}-${randomBytes(6).toString('hex')}`;
+}
+
+async function recordAiSuccess({ access, action, guide, model, usage, result }) {
+  const date = aiUsageDate();
+  const interactionId = newAiInteractionId();
+  const eventRef = db.doc(`aiUsageEvents/${interactionId}`);
+  const globalRef = db.doc(`aiUsage/${date}`);
+  const userRef = db.doc(`aiUsage/${date}/users/${access.uid}`);
+  const tokenUsage = aiUsageNumbers(usage);
+  const estimatedCostUsd = estimateAiCostUsd(model, usage);
+  const suggestionsProposed = action === 'suggest' && Array.isArray(result?.suggestions) ? result.suggestions.length : 0;
+  const usageIncrementPatch = () => ({
+    requests: FieldValue.increment(1),
+    inputTokens: FieldValue.increment(tokenUsage.inputTokens),
+    outputTokens: FieldValue.increment(tokenUsage.outputTokens),
+    thinkingTokens: FieldValue.increment(tokenUsage.thinkingTokens),
+    totalTokens: FieldValue.increment(tokenUsage.totalTokens),
+    estimatedCostUsd: FieldValue.increment(estimatedCostUsd),
+    suggestionsProposed: FieldValue.increment(suggestionsProposed),
+    updatedAt: isoNow(),
+    schemaVersion: 13,
+    ...aiActionPatch(action)
+  });
+  const batch = db.batch();
+  batch.set(globalRef, { date, ...usageIncrementPatch() }, { merge: true });
+  batch.set(userRef, {
+    uid: access.uid,
+    name: access.profile.name || requestDisplayName(access.profile),
+    email: access.profile.email || '',
+    date,
+    ...usageIncrementPatch()
+  }, { merge: true });
+  batch.set(eventRef, {
+    id: interactionId,
+    uid: access.uid,
+    userName: access.profile.name || requestDisplayName(access.profile),
+    userEmail: access.profile.email || '',
+    date,
+    createdAt: isoNow(),
+    createdAtMs: Date.now(),
+    workspaceId: access.workspaceId,
+    workspaceName: access.workspaceName,
+    projectId: access.projectId,
+    projectName: access.projectName,
+    canvasId: access.canvas.id,
+    canvasTitle: access.canvas.title || 'Lienzo',
+    templateId: access.canvas.templateId || '',
+    sectionId: guide.sectionId,
+    sectionTitle: guide.sectionTitle,
+    action,
+    model,
+    ...tokenUsage,
+    estimatedCostUsd,
+    suggestionsProposed,
+    acceptedNotes: 0,
+    success: true,
+    schemaVersion: 13
+  });
+  await batch.commit();
+  return { interactionId, date, ...tokenUsage, estimatedCostUsd, suggestionsProposed };
+}
+
+function requestDisplayName(profile = {}) {
+  return cleanText(profile.name || profile.email || 'Usuario WonkUp', 120);
+}
+
+async function recordAiFailure({ access, action, guide, error, model = '' }) {
+  const date = aiUsageDate();
+  const interactionId = newAiInteractionId();
+  const globalRef = db.doc(`aiUsage/${date}`);
+  const userRef = db.doc(`aiUsage/${date}/users/${access.uid}`);
+  const eventRef = db.doc(`aiUsageEvents/${interactionId}`);
+  const failurePatch = {
+    failedRequests: FieldValue.increment(1),
+    updatedAt: isoNow(),
+    schemaVersion: 13
+  };
+  const batch = db.batch();
+  batch.set(globalRef, { date, ...failurePatch }, { merge: true });
+  batch.set(userRef, {
+    uid: access.uid,
+    name: requestDisplayName(access.profile),
+    email: access.profile.email || '',
+    date,
+    ...failurePatch
+  }, { merge: true });
+  batch.set(eventRef, {
+    id: interactionId,
+    uid: access.uid,
+    userName: requestDisplayName(access.profile),
+    userEmail: access.profile.email || '',
+    date,
+    createdAt: isoNow(),
+    createdAtMs: Date.now(),
+    workspaceId: access.workspaceId,
+    workspaceName: access.workspaceName,
+    projectId: access.projectId,
+    projectName: access.projectName,
+    canvasId: access.canvas.id,
+    canvasTitle: access.canvas.title || 'Lienzo',
+    templateId: access.canvas.templateId || '',
+    sectionId: guide?.sectionId || '',
+    sectionTitle: guide?.sectionTitle || '',
+    action,
+    model,
+    success: false,
+    errorCode: cleanText(error?.code || 'unknown', 80),
+    errorMessage: cleanText(error?.message || 'Error de IA', 500),
+    schemaVersion: 13
+  });
+  await batch.commit();
+}
+
+async function loadAiEventsForDates(dateKeys = []) {
+  const snapshots = await Promise.all(dateKeys.map(date => db.collection('aiUsageEvents').where('date', '==', date).get()));
+  return snapshots.flatMap(snapshot => snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+}
+
+function aiEventMatchesFilters(event, filters = {}) {
+  if (filters.uid && event.uid !== filters.uid) return false;
+  if (filters.workspaceId && event.workspaceId !== filters.workspaceId) return false;
+  if (filters.projectId && event.projectId !== filters.projectId) return false;
+  if (filters.canvasId && event.canvasId !== filters.canvasId) return false;
+  return true;
+}
+
+function aggregateAiEvents(events = [], days = 7) {
+  const users = new Map();
+  const workspaces = new Map();
+  const projects = new Map();
+  const canvases = new Map();
+  const actions = { questions: 0, suggest: 0, review: 0 };
+  const totals = {
+    requests: 0,
+    failedRequests: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    thinkingTokens: 0,
+    totalTokens: 0,
+    estimatedCostUsd: 0,
+    suggestionsProposed: 0,
+    acceptedNotes: 0
+  };
+  for (const event of events) {
+    const success = event.success !== false;
+    if (success) {
+      totals.requests += 1;
+      totals.inputTokens += Number(event.inputTokens || 0);
+      totals.outputTokens += Number(event.outputTokens || 0);
+      totals.thinkingTokens += Number(event.thinkingTokens || 0);
+      totals.totalTokens += Number(event.totalTokens || 0);
+      totals.estimatedCostUsd += Number(event.estimatedCostUsd || 0);
+      totals.suggestionsProposed += Number(event.suggestionsProposed || 0);
+      totals.acceptedNotes += Number(event.acceptedNotes || 0);
+      if (actions[event.action] !== undefined) actions[event.action] += 1;
+    } else {
+      totals.failedRequests += 1;
+    }
+    const user = users.get(event.uid) || {
+      uid: event.uid,
+      name: event.userName || event.userEmail || 'Usuario',
+      email: event.userEmail || '',
+      requests: 0,
+      failedRequests: 0,
+      totalTokens: 0,
+      estimatedCostUsd: 0,
+      suggestionsProposed: 0,
+      acceptedNotes: 0
+    };
+    if (success) {
+      user.requests += 1;
+      user.totalTokens += Number(event.totalTokens || 0);
+      user.estimatedCostUsd += Number(event.estimatedCostUsd || 0);
+      user.suggestionsProposed += Number(event.suggestionsProposed || 0);
+      user.acceptedNotes += Number(event.acceptedNotes || 0);
+    } else user.failedRequests += 1;
+    users.set(event.uid, user);
+
+    if (event.workspaceId) workspaces.set(event.workspaceId, { id: event.workspaceId, name: event.workspaceName || event.workspaceId });
+    if (event.projectId) projects.set(event.projectId, { id: event.projectId, workspaceId: event.workspaceId || '', name: event.projectName || event.projectId });
+    if (event.canvasId) {
+      const current = canvases.get(event.canvasId) || { id: event.canvasId, projectId: event.projectId || '', workspaceId: event.workspaceId || '', name: event.canvasTitle || event.canvasId, requests: 0, estimatedCostUsd: 0 };
+      if (success) {
+        current.requests += 1;
+        current.estimatedCostUsd += Number(event.estimatedCostUsd || 0);
+      }
+      canvases.set(event.canvasId, current);
+    }
+  }
+  const totalUserRequests = Math.max(1, totals.requests);
+  const userRows = [...users.values()].map(user => ({
+    ...user,
+    estimatedCostUsd: Number(user.estimatedCostUsd.toFixed(6)),
+    acceptanceRate: user.suggestionsProposed ? Number(((user.acceptedNotes / user.suggestionsProposed) * 100).toFixed(1)) : 0,
+    usageShare: Number(((user.requests / totalUserRequests) * 100).toFixed(1)),
+    averageRequestsPerDay: Number((user.requests / Math.max(1, days)).toFixed(1))
+  })).sort((a, b) => b.requests - a.requests || b.totalTokens - a.totalTokens);
+  totals.estimatedCostUsd = Number(totals.estimatedCostUsd.toFixed(6));
+  totals.acceptanceRate = totals.suggestionsProposed ? Number(((totals.acceptedNotes / totals.suggestionsProposed) * 100).toFixed(1)) : 0;
+  return {
+    totals,
+    actions,
+    users: userRows,
+    dimensions: {
+      workspaces: [...workspaces.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+      projects: [...projects.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+      canvases: [...canvases.values()].sort((a, b) => b.requests - a.requests || a.name.localeCompare(b.name, 'es'))
+    },
+    topCanvases: [...canvases.values()].sort((a, b) => b.requests - a.requests).slice(0, 8).map(item => ({ ...item, estimatedCostUsd: Number(item.estimatedCostUsd.toFixed(6)) }))
+  };
 }
 
 async function loadAiCanvasContext(workspaceId, projectId, canvasId, canvas, sectionId) {
@@ -1134,11 +1355,11 @@ function aiResponseSchema(action) {
 
 function aiSystemInstruction(guide) {
   return `Eres WonkUp AI Coach, un facilitador senior de innovación y modelos de negocio.\n` +
-    `Metodología activa: ${guide.method}. Canvas: ${guide.templateName}. Sección: ${guide.sectionTitle}.\n` +
+    `Metodología activa: ${guide.method}. Lienzo: ${guide.templateName}. Sección: ${guide.sectionTitle}.\n` +
     `Objetivo de la sección: ${guide.sectionPrompt}\n\n` +
     `Reglas obligatorias:\n` +
     `- Guía mediante preguntas y razonamiento metodológico; no rellenes por rellenar.\n` +
-    `- Usa únicamente la información del Canvas y lo que aporta el usuario. No inventes clientes, cifras, evidencias ni hechos.\n` +
+    `- Usa únicamente la información del lienzo y lo que aporta el usuario. No inventes clientes, cifras, evidencias ni hechos.\n` +
     `- Distingue evidencia, inferencia e hipótesis. Si falta información, dilo y formula una pregunta de validación.\n` +
     `- Una nota debe contener una sola idea, ser concreta y fácil de validar.\n` +
     `- Evita lenguaje genérico, frases de consultoría vacías y repeticiones de notas existentes.\n` +
@@ -1186,7 +1407,7 @@ function extractGeminiJson(payload) {
 }
 
 async function callGeminiCoach({ action, guide, context, userInput }) {
-  const model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-2.5-flash';
+  const model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-2.5-flash-lite';
   const apiKey = GEMINI_API_KEY.value();
   if (!apiKey) throw new HttpsError('failed-precondition', 'WonkUp AI Coach todavía no tiene configurada la clave de Gemini.');
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
@@ -1222,26 +1443,49 @@ exports.wonkupCanvasAiCoach = onCall({
   memory: '512MiB',
   secrets: [GEMINI_API_KEY]
 }, async request => {
+  let access = null;
+  let guide = null;
+  let action = '';
+  let model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-2.5-flash-lite';
   try {
     const workspaceId = cleanText(request.data?.workspaceId, 128);
     const projectId = cleanText(request.data?.projectId, 128);
     const canvasId = cleanText(request.data?.canvasId, 128);
     const sectionId = cleanText(request.data?.sectionId, 128);
-    const action = cleanText(request.data?.action, 24).toLowerCase();
+    action = cleanText(request.data?.action, 24).toLowerCase();
     const userInput = cleanText(request.data?.userInput, 4000);
     if (!AI_ACTIONS.includes(action)) throw new HttpsError('invalid-argument', 'Acción de IA no válida.');
-    const access = await requireAiCanvasAccess(request, workspaceId, projectId, canvasId);
-    const guide = aiGuideFor(access.canvas.templateId, sectionId);
-    const quota = await reserveAiQuota(access.uid);
+    access = await requireAiCanvasAccess(request, workspaceId, projectId, canvasId);
+    const settings = await loadAiSettings();
+    if (settings.enabled === false) {
+      throw new HttpsError('failed-precondition', 'WonkUp AI Coach está pausado temporalmente por el superadministrador.');
+    }
+    guide = aiGuideFor(access.canvas.templateId, sectionId);
     const context = await loadAiCanvasContext(workspaceId, projectId, canvasId, access.canvas, sectionId);
     let generated;
     try {
       generated = await callGeminiCoach({ action, guide, context, userInput });
+      model = generated.model;
     } catch (error) {
-      await refundAiQuota(access.uid, quota.date).catch(refundError => console.warn('WonkUp AI quota could not be refunded after a failed Gemini request.', refundError));
+      await recordAiFailure({ access, action, guide, error, model }).catch(logError => console.warn('WonkUp AI failure metrics could not be recorded.', logError));
       throw error;
     }
-    await recordAiTokens(access.uid, generated.usage).catch(error => console.warn('WonkUp AI usage metadata could not be recorded.', error));
+    const usage = await recordAiSuccess({
+      access,
+      action,
+      guide,
+      model: generated.model,
+      usage: generated.usage,
+      result: generated.result
+    }).catch(error => {
+      console.warn('WonkUp AI usage metrics could not be recorded.', error);
+      return {
+        interactionId: '',
+        ...aiUsageNumbers(generated.usage),
+        estimatedCostUsd: estimateAiCostUsd(generated.model, generated.usage),
+        suggestionsProposed: action === 'suggest' && Array.isArray(generated.result?.suggestions) ? generated.result.suggestions.length : 0
+      };
+    });
     return {
       ok: true,
       release: RELEASE,
@@ -1249,10 +1493,116 @@ exports.wonkupCanvasAiCoach = onCall({
       action,
       guide,
       canAddNotes: access.canAddNotes,
-      quota,
+      unlimitedPerUser: true,
+      usage,
       result: generated.result
     };
   } catch (error) {
+    if (access && guide && error instanceof HttpsError && !['resource-exhausted'].includes(error.code)) {
+      // Los fallos de Gemini se registran en el bloque interno; aquí evitamos duplicarlos.
+    }
     throw publicError(error, 'No se pudo consultar WonkUp AI Coach.');
+  }
+});
+
+exports.wonkupRecordAiAcceptance = onCall(callableOptions, async request => {
+  try {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'Inicia sesión para registrar el uso de IA.');
+    const interactionId = cleanText(request.data?.interactionId, 160);
+    const acceptedCount = Math.max(0, Math.min(20, Number(request.data?.acceptedCount || 0)));
+    if (!interactionId) throw new HttpsError('invalid-argument', 'Falta identificar la interacción de IA.');
+    const eventRef = db.doc(`aiUsageEvents/${interactionId}`);
+    let delta = 0;
+    await db.runTransaction(async transaction => {
+      const snapshot = await transaction.get(eventRef);
+      if (!snapshot.exists) throw new HttpsError('not-found', 'No se encontró la interacción de IA.');
+      const event = snapshot.data();
+      if (event.uid !== uid) throw new HttpsError('permission-denied', 'Solo puedes registrar tus propias selecciones de IA.');
+      if (event.action !== 'suggest' || event.success === false) throw new HttpsError('failed-precondition', 'Esta interacción no contiene propuestas de notas.');
+      const proposed = Math.max(0, Number(event.suggestionsProposed || 0));
+      const nextAccepted = Math.min(proposed, acceptedCount);
+      const previousAccepted = Math.max(0, Number(event.acceptedNotes || 0));
+      delta = Math.max(0, nextAccepted - previousAccepted);
+      if (!delta) return;
+      transaction.set(eventRef, { acceptedNotes: nextAccepted, acceptedAt: isoNow() }, { merge: true });
+      const globalRef = db.doc(`aiUsage/${event.date}`);
+      const userRef = db.doc(`aiUsage/${event.date}/users/${uid}`);
+      transaction.set(globalRef, { acceptedNotes: FieldValue.increment(delta), updatedAt: isoNow() }, { merge: true });
+      transaction.set(userRef, { acceptedNotes: FieldValue.increment(delta), updatedAt: isoNow() }, { merge: true });
+    });
+    return { ok: true, release: RELEASE, interactionId, acceptedCount, delta };
+  } catch (error) {
+    throw publicError(error, 'No se pudo registrar la selección de notas.');
+  }
+});
+
+exports.wonkupAiUsageSummary = onCall(callableOptions, async request => {
+  try {
+    await requireSuperadmin(request);
+    const days = [1, 7, 30].includes(Number(request.data?.days)) ? Number(request.data.days) : 7;
+    const filters = {
+      uid: cleanText(request.data?.uid, 128),
+      workspaceId: cleanText(request.data?.workspaceId, 128),
+      projectId: cleanText(request.data?.projectId, 128),
+      canvasId: cleanText(request.data?.canvasId, 128)
+    };
+    const dateKeys = aiDateKeys(days);
+    const allEvents = await loadAiEventsForDates(dateKeys);
+    const dimensions = aggregateAiEvents(allEvents, days).dimensions;
+    const filtered = allEvents.filter(event => aiEventMatchesFilters(event, filters));
+    const metrics = aggregateAiEvents(filtered, days);
+    const settings = await loadAiSettings();
+    const monthDateKeys = aiCurrentMonthDateKeys();
+    const monthRefs = monthDateKeys.map(date => db.doc(`aiUsage/${date}`));
+    const monthSnapshots = monthRefs.length ? await db.getAll(...monthRefs) : [];
+    const monthCostUsd = Number(monthSnapshots.reduce((sum, snapshot) => sum + Number(snapshot.data()?.estimatedCostUsd || 0), 0).toFixed(6));
+    const monthRequests = monthSnapshots.reduce((sum, snapshot) => sum + Number(snapshot.data()?.requests || 0), 0);
+    const budget = Math.max(0, Number(settings.monthlyBudgetUsd || AI_DEFAULT_MONTHLY_BUDGET_USD));
+    const budgetPercent = budget > 0 ? Number(((monthCostUsd / budget) * 100).toFixed(1)) : 0;
+    return {
+      ok: true,
+      release: RELEASE,
+      days,
+      dateKeys,
+      filters,
+      settings: {
+        enabled: settings.enabled !== false,
+        unlimitedPerUser: true,
+        monthlyBudgetUsd: budget,
+        alertThresholds: Array.isArray(settings.alertThresholds) ? settings.alertThresholds : [50, 75, 90, 100],
+        budgetAction: 'alert_only'
+      },
+      month: { costUsd: monthCostUsd, requests: monthRequests, budgetPercent },
+      totals: metrics.totals,
+      actions: metrics.actions,
+      users: metrics.users,
+      topCanvases: metrics.topCanvases,
+      dimensions
+    };
+  } catch (error) {
+    throw publicError(error, 'No se pudieron cargar las métricas de IA.');
+  }
+});
+
+exports.wonkupUpdateAiSettings = onCall(callableOptions, async request => {
+  try {
+    const admin = await requireSuperadmin(request);
+    const monthlyBudgetUsd = Math.max(0, Math.min(10000, Number(request.data?.monthlyBudgetUsd ?? AI_DEFAULT_MONTHLY_BUDGET_USD)));
+    const enabled = request.data?.enabled !== false;
+    const patch = {
+      enabled,
+      unlimitedPerUser: true,
+      monthlyBudgetUsd: Number(monthlyBudgetUsd.toFixed(2)),
+      alertThresholds: [50, 75, 90, 100],
+      budgetAction: 'alert_only',
+      updatedAt: isoNow(),
+      updatedByUid: admin.uid,
+      schemaVersion: 13
+    };
+    await db.doc('system/aiSettings').set(patch, { merge: true });
+    return { ok: true, release: RELEASE, settings: patch };
+  } catch (error) {
+    throw publicError(error, 'No se pudo actualizar la configuración de IA.');
   }
 });

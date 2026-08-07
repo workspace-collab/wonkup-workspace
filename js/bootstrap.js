@@ -55,7 +55,7 @@ export function renderStartupFailure(error) {
 }
 
 export async function startWonkUp() {
-  const entry = globalThis.WONKUP_APP_ENTRY || './app.js?v=12.4.0';
+  const entry = globalThis.WONKUP_APP_ENTRY || './app.js?v=12.5.0';
   try {
     await import(entry);
   } catch (error) {

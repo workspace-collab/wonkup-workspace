@@ -1,17 +1,17 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.4.0';
-import { ProjectService } from '../services/project-service.js?v=12.4.0';
-import { KanbanService } from '../services/kanban-service.js?v=12.4.0';
-import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.4.0';
-import { canCommentCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.4.0';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.4.0';
-import { icon } from '../utils/icons.js?v=12.4.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.4.0';
-import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.4.0';
-import { showToast } from '../components/toast.js?v=12.4.0';
-import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.4.0';
-import { AccessService } from '../services/access-service.js?v=12.4.0';
-import { clearSession } from '../state/store.js?v=12.4.0';
-import { AiCoachService } from '../services/ai-coach-service.js?v=12.4.0';
+import { CanvasService } from '../services/canvas-service.js?v=12.5.0';
+import { ProjectService } from '../services/project-service.js?v=12.5.0';
+import { KanbanService } from '../services/kanban-service.js?v=12.5.0';
+import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.5.0';
+import { canCommentCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.5.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.5.0';
+import { icon } from '../utils/icons.js?v=12.5.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.5.0';
+import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.5.0';
+import { showToast } from '../components/toast.js?v=12.5.0';
+import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.5.0';
+import { AccessService } from '../services/access-service.js?v=12.5.0';
+import { clearSession } from '../state/store.js?v=12.5.0';
+import { AiCoachService } from '../services/ai-coach-service.js?v=12.5.0';
 
 let cleanupEditor = null;
 let workspaceController = null;
@@ -70,22 +70,22 @@ function isPersonShareNotFound(error) {
 
 export async function renderCanvas(container, params, session) {
   cleanupCanvasView();
-  container.innerHTML = `<section class="page canvas-editor-page"><div class="panel"><div class="panel-body"><span class="spinner"></span> Cargando Canvas Engine...</div></div></section>`;
+  container.innerHTML = `<section class="page canvas-editor-page"><div class="panel"><div class="panel-body"><span class="spinner"></span> Cargando Motor de Lienzos...</div></div></section>`;
   try {
     const [instance, project] = await Promise.all([
       CanvasService.getInstance({ canvasId: params.canvasId, workspaceId: params.workspaceId, projectId: params.projectId, session }),
       ProjectService.getProject({ projectId: params.projectId, session })
     ]);
-    if (instance.projectId !== params.projectId || instance.workspaceId !== params.workspaceId) throw new Error('El canvas no corresponde al proyecto solicitado.');
+    if (instance.projectId !== params.projectId || instance.workspaceId !== params.workspaceId) throw new Error('El lienzo no corresponde al proyecto solicitado.');
     renderCanvasEditor(container, { instance, project, session, readOnly: false });
   } catch (error) {
-    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h1>No se pudo abrir el canvas</h1><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p><a class="button button-primary" href="#/">Volver al inicio</a></div></section>`;
+    container.innerHTML = `<section class="page"><div class="empty-state"><div class="empty-state-icon">${icon('alert')}</div><h1>No se pudo abrir el lienzo</h1><p>${escapeHtml(error.message || 'Ocurrió un error inesperado.')}</p><a class="button button-primary" href="#/">Volver al inicio</a></div></section>`;
   }
 }
 
 export async function renderSharedCanvas(container, token, session = null) {
   cleanupCanvasView();
-  container.innerHTML = `<section class="shared-canvas-page"><div class="panel shared-canvas-loading"><div class="panel-body"><span class="spinner"></span> Validando acceso al canvas...</div></div></section>`;
+  container.innerHTML = `<section class="shared-canvas-page"><div class="panel shared-canvas-loading"><div class="panel-body"><span class="spinner"></span> Validando acceso al lienzo...</div></div></section>`;
   try {
     let personAccess = null;
     try {
@@ -168,7 +168,7 @@ function renderCanvasEditor(container, context) {
   const backLabel = isPublicShare ? 'Acceso WonkUp' : sharedAccess ? 'Volver a WonkUp' : 'Volver al Toolkit';
   const sharedActions = isShared
     ? `<span class="status-badge share-permission-badge permission-${escapeHtml(sharedAccess?.permission || 'viewer')}">${escapeHtml(permissionLabel)}</span><button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>`
-    : `<button class="button button-secondary" id="canvas-history" type="button">${icon('history')} Historial</button>${canManage ? `<button class="button button-secondary" id="canvas-share" type="button">${icon('link')} Compartir</button>` : ''}<button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>${canManage ? `<button class="icon-button" id="canvas-settings" type="button" aria-label="Administrar canvas">${icon('more')}</button>` : ''}`;
+    : `<button class="button button-secondary" id="canvas-history" type="button">${icon('history')} Historial</button>${canManage ? `<button class="button button-secondary" id="canvas-share" type="button">${icon('link')} Compartir</button>` : ''}<button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>${canManage ? `<button class="icon-button" id="canvas-settings" type="button" aria-label="Administrar lienzo">${icon('more')}</button>` : ''}`;
   document.body.classList.remove('canvas-focus-mode');
   container.dataset.activeCanvasId = instance.id;
   const projectBrand = normalizeCanvasBrand(project.brandColor || template.color);
@@ -189,9 +189,9 @@ function renderCanvasEditor(container, context) {
       </div>
     </header>
 
-    <div class="canvas-toolbar" aria-label="Herramientas del canvas">
-      <div class="canvas-view-switch" role="group" aria-label="Vista del canvas">
-        <button class="button button-ghost ${viewMode === 'board' ? 'active' : ''}" data-canvas-view="board" type="button" aria-pressed="${viewMode === 'board'}">${icon('columns')} Canvas</button>
+    <div class="canvas-toolbar" aria-label="Herramientas del lienzo">
+      <div class="canvas-view-switch" role="group" aria-label="Vista del lienzo">
+        <button class="button button-ghost ${viewMode === 'board' ? 'active' : ''}" data-canvas-view="board" type="button" aria-pressed="${viewMode === 'board'}">${icon('columns')} Lienzo</button>
         <button class="button button-ghost ${viewMode === 'list' ? 'active' : ''}" data-canvas-view="list" type="button" aria-pressed="${viewMode === 'list'}">${icon('list')} Lista</button>
       </div>
       <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${dataSource === 'mock' ? '<span class="demo-chip">Demo local</span>' : dataSource === 'firebase' ? '<span class="demo-chip">Firestore en tiempo real</span>' : '<span class="demo-chip">Vista pública</span>'}</div>
@@ -216,7 +216,7 @@ function renderCanvasEditor(container, context) {
     });
     CanvasService.startRealtime({ canvasId: instance.id, ...canvasScope(instance, session) })
       .then(stop => { stopRealtime = typeof stop === 'function' ? stop : () => {}; })
-      .catch(error => showToast(error.message || 'No se pudo iniciar la sincronización del canvas.', { type: 'error' }));
+      .catch(error => showToast(error.message || 'No se pudo iniciar la sincronización del lienzo.', { type: 'error' }));
   }
   const unsubscribe = liveCanvas ? CanvasService.subscribe(event => {
     if (event.source === 'presence' || event.source === 'local') return;
@@ -540,9 +540,12 @@ function aiConfidenceLabel(value) {
   return ({ evidence: 'Evidencia', inference: 'Inferencia', hypothesis: 'Hipótesis' })[value] || 'Hipótesis';
 }
 
-function aiQuotaMarkup(quota) {
-  if (!quota) return '';
-  return `<span class="ai-coach-quota">${Number(quota.remaining || 0)} consultas disponibles hoy</span>`;
+function aiUsageMarkup(usage) {
+  if (!usage) return '';
+  const tokens = Number(usage.totalTokens || 0);
+  const cost = Number(usage.estimatedCostUsd || 0);
+  const costLabel = cost > 0 ? ` · US$ ${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(2)} est.` : '';
+  return `<span class="ai-coach-quota">${tokens ? `${tokens.toLocaleString('es-PE')} tokens` : 'Métrica registrada'}${costLabel}</span>`;
 }
 
 function openAiCoach({ context, container }) {
@@ -580,10 +583,10 @@ function openAiCoach({ context, container }) {
         </div>
         <div class="ai-coach-generate-row">
           <button class="button button-primary" type="button" id="ai-coach-suggest">✨ Proponer notas</button>
-          <span class="ai-coach-model-note">Gemini · máximo 30 consultas por usuario/día</span>
+          <span class="ai-coach-model-note">Gemini · uso libre durante el piloto · métricas activas</span>
         </div>
         <div class="ai-coach-status" id="ai-coach-status" role="status" aria-live="polite"></div>
-        <div class="ai-coach-result" id="ai-coach-result"><div class="ai-coach-empty"><strong>Empieza por “Preguntas guía”.</strong><span>WonkUp AI Coach leerá el contexto del Canvas y te ayudará a pensar el bloque seleccionado.</span></div></div>
+        <div class="ai-coach-result" id="ai-coach-result"><div class="ai-coach-empty"><strong>Empieza por “Preguntas guía”.</strong><span>WonkUp AI Coach leerá el contexto del lienzo y te ayudará a pensar el bloque seleccionado.</span></div></div>
       </section>
     </div>`
   });
@@ -613,7 +616,7 @@ function openAiCoach({ context, container }) {
     try {
       const response = await AiCoachService.askQuestions({ instance, sectionId: sectionSelect.value, session });
       const data = response.result || {};
-      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Facilitación</span><h3>${escapeHtml(data.intro || 'Preguntas para profundizar')}</h3></div>${aiQuotaMarkup(response.quota)}</div>
+      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Facilitación</span><h3>${escapeHtml(data.intro || 'Preguntas para profundizar')}</h3></div>${aiUsageMarkup(response.usage)}</div>
         <ol class="ai-coach-question-list">${(data.questions || []).map(question => `<li>${escapeHtml(question)}</li>`).join('')}</ol>
         <div class="ai-coach-tip"><strong>💡 Tip metodológico</strong><span>${escapeHtml(data.tip || 'Responde con hechos concretos y ejemplos observables.')}</span></div>`;
       status.textContent = `Modelo: ${response.model || 'Gemini'}.`;
@@ -630,7 +633,7 @@ function openAiCoach({ context, container }) {
     try {
       const response = await AiCoachService.reviewSection({ instance, sectionId: sectionSelect.value, session });
       const data = response.result || {};
-      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Diagnóstico</span><h3>Calidad de la sección: ${Number(data.score || 0)}/100</h3></div>${aiQuotaMarkup(response.quota)}</div>
+      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Diagnóstico</span><h3>Calidad de la sección: ${Number(data.score || 0)}/100</h3></div>${aiUsageMarkup(response.usage)}</div>
         <div class="ai-coach-review-grid">
           <div><strong>✅ Fortalezas</strong><ul>${(data.strengths || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>
           <div><strong>⚠️ Vacíos</strong><ul>${(data.gaps || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>
@@ -652,10 +655,10 @@ function openAiCoach({ context, container }) {
       const response = await AiCoachService.suggestNotes({ instance, sectionId: sectionSelect.value, userInput: input.value.trim(), session });
       const data = response.result || {};
       const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Notas candidatas</span><h3>${escapeHtml(data.summary || 'Propuestas para validar')}</h3></div>${aiQuotaMarkup(response.quota)}</div>
+      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Notas candidatas</span><h3>${escapeHtml(data.summary || 'Propuestas para validar')}</h3></div>${aiUsageMarkup(response.usage)}</div>
         <div class="ai-coach-suggestions">${suggestions.map((item, index) => `<label class="ai-coach-suggestion"><input type="checkbox" data-ai-suggestion="${index}" checked><span><strong>${escapeHtml(item.text || '')}</strong><small>${escapeHtml(aiConfidenceLabel(item.confidence))} · ${escapeHtml(item.reason || '')}</small></span></label>`).join('')}</div>
         <div class="ai-coach-tip"><strong>Siguiente validación</strong><span>${escapeHtml(data.nextQuestion || '')}</span></div>
-        ${response.canAddNotes ? '<div class="modal-actions ai-coach-add-actions"><button class="button button-primary" type="button" id="ai-coach-add-selected">+ Agregar seleccionadas al Canvas</button></div>' : '<p class="field-help">Tu permiso permite consultar la IA, pero no agregar notas.</p>'}`;
+        ${response.canAddNotes ? '<div class="modal-actions ai-coach-add-actions"><button class="button button-primary" type="button" id="ai-coach-add-selected">+ Agregar seleccionadas al lienzo</button></div>' : '<p class="field-help">Tu permiso permite consultar la IA, pero no agregar notas.</p>'}`;
       status.textContent = `Modelo: ${response.model || 'Gemini'}. Revisa cada propuesta antes de agregarla.`;
 
       result.querySelector('#ai-coach-add-selected')?.addEventListener('click', async event => {
@@ -686,11 +689,12 @@ function openAiCoach({ context, container }) {
           }
           applyCanvasInstance(container, context, next);
           instance.notes = next.notes;
+          AiCoachService.recordAcceptance(response.usage?.interactionId, selected.length).catch(error => console.warn('No se pudo registrar la aceptación de propuestas de IA.', error));
           showToast(`${selected.length} nota${selected.length === 1 ? '' : 's'} agregada${selected.length === 1 ? '' : 's'} desde WonkUp AI Coach.`);
           modal.close({ restoreFocus: false });
         } catch (error) {
           button.disabled = false;
-          button.textContent = '+ Agregar seleccionadas al Canvas';
+          button.textContent = '+ Agregar seleccionadas al lienzo';
           showToast(error.message || 'No se pudieron agregar las notas.', { type: 'error' });
         } finally {
           endCanvasMutation(container);
@@ -843,7 +847,7 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
     });
 
     modal.root.querySelector('#delete-note')?.addEventListener('click', async () => {
-      const confirmed = await confirmModal({ title: 'Eliminar nota', message: 'La nota y sus comentarios se eliminarán del canvas.', confirmLabel: 'Eliminar', danger: true });
+      const confirmed = await confirmModal({ title: 'Eliminar nota', message: 'La nota y sus comentarios se eliminarán del lienzo.', confirmLabel: 'Eliminar', danger: true });
       if (!confirmed) return;
       beginCanvasMutation(container);
       blockCanvasNavigation(1600);
@@ -909,7 +913,7 @@ async function openConvertToTask({ instance, note, session, onSaved }) {
     const board = await KanbanService.getBoard({ projectId: instance.projectId, workspaceId: instance.workspaceId, session });
     const modal = openModal({
       title: 'Convertir nota en tarea',
-      subtitle: 'Crea una tarjeta Kanban manteniendo la trazabilidad con el canvas.',
+      subtitle: 'Crea una tarjeta Kanban manteniendo la trazabilidad con el lienzo.',
       size: 'sm',
       initialFocus: '#task-from-note-title',
       body: `<form id="task-from-note-form" class="form-grid"><div class="field field-full"><label for="task-from-note-title">Título *</label><input class="input" id="task-from-note-title" maxlength="160" value="${escapeHtml(note.text.slice(0, 90))}" required></div><div class="field field-full"><label for="task-from-note-column">Columna</label><select class="select" id="task-from-note-column">${board.columns.map(column => `<option value="${escapeHtml(column.id)}">${escapeHtml(column.name)}</option>`).join('')}</select></div><div class="field"><label for="task-from-note-priority">Prioridad</label><select class="select" id="task-from-note-priority"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option><option value="critical">Crítica</option></select></div><div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('checkSquare')} Crear tarea</button></div></form>`
@@ -917,7 +921,7 @@ async function openConvertToTask({ instance, note, session, onSaved }) {
     modal.root.querySelector('#task-from-note-form').addEventListener('submit', async event => {
       event.preventDefault();
       try {
-        await KanbanService.createCard({ projectId: instance.projectId, workspaceId: instance.workspaceId, input: { title: modal.root.querySelector('#task-from-note-title').value, description: `${note.text}\n\nOrigen: ${instance.title}`, columnId: modal.root.querySelector('#task-from-note-column').value, priority: modal.root.querySelector('#task-from-note-priority').value, labels: [{ id: 'canvas', name: 'Canvas', tone: 'violet' }], visibility: 'internal' }, session });
+        await KanbanService.createCard({ projectId: instance.projectId, workspaceId: instance.workspaceId, input: { title: modal.root.querySelector('#task-from-note-title').value, description: `${note.text}\n\nOrigen: ${instance.title}`, columnId: modal.root.querySelector('#task-from-note-column').value, priority: modal.root.querySelector('#task-from-note-priority').value, labels: [{ id: 'canvas', name: 'Lienzo', tone: 'violet' }], visibility: 'internal' }, session });
         modal.close();
         showToast('Tarea creada en el Kanban.');
         onSaved?.();
@@ -929,14 +933,14 @@ async function openConvertToTask({ instance, note, session, onSaved }) {
 async function openLinkNote({ instance, note, session, onSaved }) {
   try {
     const targets = (await CanvasService.listInstances({ workspaceId: instance.workspaceId, projectId: instance.projectId, session })).filter(item => item.id !== instance.id);
-    if (!targets.length) { showToast('Crea otro canvas dentro del proyecto para vincular este resultado.'); return; }
+    if (!targets.length) { showToast('Crea otro lienzo dentro del proyecto para vincular este resultado.'); return; }
     const first = targets[0];
     const modal = openModal({
       title: 'Vincular resultado',
-      subtitle: 'Copia esta nota a otro canvas y conserva el vínculo de origen.',
+      subtitle: 'Copia esta nota a otro lienzo y conserva el vínculo de origen.',
       size: 'sm',
       initialFocus: '#link-target-canvas',
-      body: `<form id="link-note-form" class="form-grid"><div class="field field-full"><label for="link-target-canvas">Canvas de destino</label><select class="select" id="link-target-canvas">${targets.map(target => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.title)}</option>`).join('')}</select></div><div class="field field-full"><label for="link-target-section">Sección de destino</label><select class="select" id="link-target-section">${first.template.sections.map(section => `<option value="${escapeHtml(section.id)}">${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div><div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('link')} Vincular nota</button></div></form>`
+      body: `<form id="link-note-form" class="form-grid"><div class="field field-full"><label for="link-target-canvas">Lienzo de destino</label><select class="select" id="link-target-canvas">${targets.map(target => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.title)}</option>`).join('')}</select></div><div class="field field-full"><label for="link-target-section">Sección de destino</label><select class="select" id="link-target-section">${first.template.sections.map(section => `<option value="${escapeHtml(section.id)}">${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div><div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('link')} Vincular nota</button></div></form>`
     });
     const targetSelect = modal.root.querySelector('#link-target-canvas');
     const sectionSelect = modal.root.querySelector('#link-target-section');
@@ -961,7 +965,7 @@ async function openLinkNote({ instance, note, session, onSaved }) {
           session
         });
         modal.close();
-        showToast('Nota vinculada al canvas de destino.');
+        showToast('Nota vinculada al lienzo de destino.');
         onSaved?.();
       } catch (error) { showToast(error.message, { type: 'error' }); }
     });
@@ -973,10 +977,10 @@ async function openHistory({ instance, session, context, container }) {
   const isSuperadmin = session?.role === 'superadmin';
   const modal = openModal({
     title: 'Historial y versiones',
-    subtitle: 'Consulta la actividad y recupera puntos de control del canvas.',
+    subtitle: 'Consulta la actividad y recupera puntos de control del lienzo.',
     size: 'lg',
     onClose: () => blockCanvasNavigation(900),
-    body: `<div class="history-version-layout"><section><div class="section-heading compact"><div><h3>Actividad</h3><p>Últimos ${Math.min(instance.history.length, 150)} eventos.</p></div></div><div class="canvas-history-list">${instance.history.length ? instance.history.map(entry => `<article><span class="history-icon">${icon(historyIcon(entry.type))}</span><div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.actor?.name || 'Sistema')} · ${relativeTime(entry.createdAt)}</small></div></article>`).join('') : '<p class="muted-copy">Todavía no hay actividad registrada.</p>'}</div></section><section><div class="section-heading compact"><div><h3>Versiones</h3><p>Se conservan hasta 20 puntos de control del canvas.</p></div>${canManageCanvas(session, instance.projectId, instance.workspaceId) ? `<button class="button button-secondary" type="button" id="create-version">${icon('plus')} Punto de control</button>` : ''}</div><div class="canvas-version-feedback" id="canvas-version-feedback" role="status" aria-live="polite"></div><div class="canvas-version-list">${versions.length ? versions.map(version => `<article><div><strong>Versión ${version.version}</strong><span>${escapeHtml(version.label || 'Punto de control')}</span><small>${escapeHtml(version.actor?.name || 'Sistema')} · ${formatDateTime(version.createdAt)} · ${version.notes?.length || 0} notas</small></div>${isSuperadmin ? `<button class="button button-secondary" type="button" data-restore-version="${escapeHtml(version.id)}">${icon('restore')} Restaurar</button>` : ''}</article>`).join('') : '<p class="muted-copy">No existen versiones guardadas.</p>'}</div></section></div>`
+    body: `<div class="history-version-layout"><section><div class="section-heading compact"><div><h3>Actividad</h3><p>Últimos ${Math.min(instance.history.length, 150)} eventos.</p></div></div><div class="canvas-history-list">${instance.history.length ? instance.history.map(entry => `<article><span class="history-icon">${icon(historyIcon(entry.type))}</span><div><strong>${escapeHtml(entry.title)}</strong><small>${escapeHtml(entry.actor?.name || 'Sistema')} · ${relativeTime(entry.createdAt)}</small></div></article>`).join('') : '<p class="muted-copy">Todavía no hay actividad registrada.</p>'}</div></section><section><div class="section-heading compact"><div><h3>Versiones</h3><p>Se conservan hasta 20 puntos de control del lienzo.</p></div>${canManageCanvas(session, instance.projectId, instance.workspaceId) ? `<button class="button button-secondary" type="button" id="create-version">${icon('plus')} Punto de control</button>` : ''}</div><div class="canvas-version-feedback" id="canvas-version-feedback" role="status" aria-live="polite"></div><div class="canvas-version-list">${versions.length ? versions.map(version => `<article><div><strong>Versión ${version.version}</strong><span>${escapeHtml(version.label || 'Punto de control')}</span><small>${escapeHtml(version.actor?.name || 'Sistema')} · ${formatDateTime(version.createdAt)} · ${version.notes?.length || 0} notas</small></div>${isSuperadmin ? `<button class="button button-secondary" type="button" data-restore-version="${escapeHtml(version.id)}">${icon('restore')} Restaurar</button>` : ''}</article>`).join('') : '<p class="muted-copy">No existen versiones guardadas.</p>'}</div></section></div>`
   });
   modal.root.querySelector('#create-version')?.addEventListener('click', async event => {
     const button = event.currentTarget;
@@ -1007,7 +1011,7 @@ async function openHistory({ instance, session, context, container }) {
       const next = await CanvasService.restoreVersion({ canvasId: instance.id, ...canvasScope(instance, session), snapshotId: event.currentTarget.dataset.restoreVersion, session });
       applyCanvasInstance(container, context, next);
       modal.close({ restoreFocus: false });
-      showToast('Versión restaurada sin salir del canvas.');
+      showToast('Versión restaurada sin salir del lienzo.');
     } catch (error) {
       feedback.textContent = error.message || 'No se pudo restaurar la versión.';
       showToast(error.message, { type: 'error' });
@@ -1020,7 +1024,7 @@ async function openHistory({ instance, session, context, container }) {
 
 async function openShare(instance, session) {
   const modal = openModal({
-    title: 'Compartir canvas',
+    title: 'Compartir lienzo',
     subtitle: 'Invita personas con permiso de lectura, comentarios o edición en tiempo real.',
     size: 'lg',
     onClose: () => blockCanvasNavigation(500),
@@ -1098,7 +1102,7 @@ async function openShare(instance, session) {
       personFeedback.className = 'inline-feedback success';
       personFeedback.textContent = `${grant.name || grant.email} ya tiene acceso como ${sharePermissionLabel(grant.permission)}.`;
       await refreshPeople();
-      showToast('Acceso al Canvas creado.');
+      showToast('Acceso al lienzo creado.');
     } catch (error) {
       personFeedback.className = 'inline-feedback error';
       personFeedback.textContent = error.message || 'No se pudo crear el acceso.';
@@ -1254,7 +1258,7 @@ function shareResultMarkup(token) {
   const link = shareLink(token.code);
   const qr = qrImageUrl(link);
   return `<section class="share-quick-card">
-    <button class="share-quick-qr" type="button" data-expand-qr="${escapeHtml(token.id)}" aria-label="Ampliar código QR"><img src="${escapeHtml(qr)}" alt="Código QR del canvas" width="190" height="190"><span>${icon('maximize')} Ampliar</span></button>
+    <button class="share-quick-qr" type="button" data-expand-qr="${escapeHtml(token.id)}" aria-label="Ampliar código QR"><img src="${escapeHtml(qr)}" alt="Código QR del lienzo" width="190" height="190"><span>${icon('maximize')} Ampliar</span></button>
     <div class="share-quick-content"><span class="share-ready-badge">${icon('check')} Listo para compartir</span><h3>Enlace público de solo lectura</h3><p>Vence el ${formatDateTime(token.expiresAt)}.</p><div class="copy-field share-copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-primary" id="copy-canvas-link" type="button">${icon('copy')} Copiar enlace</button></div><div class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></div><button class="button button-ghost share-native-button" id="native-share-link" type="button">${icon('link')} Compartir con otra aplicación</button></div>
   </section>`;
 }
@@ -1285,7 +1289,7 @@ function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
   if (!navigator.share) nativeShare?.remove();
   else nativeShare?.addEventListener('click', async () => {
     try {
-      await navigator.share({ title: instance.title, text: 'Consulta este canvas de WonkUp.', url: resultLink });
+      await navigator.share({ title: instance.title, text: 'Consulta este lienzo de WonkUp.', url: resultLink });
     } catch (error) {
       if (error?.name !== 'AbortError') showToast('No se pudo abrir el menú para compartir.', { type: 'error' });
     }
@@ -1308,7 +1312,7 @@ function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
   }));
 
   root.querySelectorAll('[data-revoke-token]').forEach(button => button.addEventListener('click', async () => {
-    if (!globalThis.confirm('El enlace dejará de abrir el canvas inmediatamente. ¿Desactivarlo?')) return;
+    if (!globalThis.confirm('El enlace dejará de abrir el lienzo inmediatamente. ¿Desactivarlo?')) return;
     try {
       await CanvasService.revokeShareToken({ canvasId: instance.id, ...canvasScope(instance, session), tokenId: button.dataset.revokeToken });
       await refreshTokens(null, false);
@@ -1321,11 +1325,11 @@ function bindShareTokenActions(root, instance, tokens, session, refreshTokens) {
 
 function openExport(instance) {
   const modal = openModal({
-    title: 'Exportar canvas a PDF',
+    title: 'Exportar lienzo a PDF',
     subtitle: 'Elige entre una síntesis de una hoja o un documento completo.',
     size: 'sm',
     onClose: () => blockCanvasNavigation(900),
-    body: `<form id="canvas-export-form" class="form-grid"><fieldset class="field field-full export-options"><legend>Formato</legend><label><input type="radio" name="export-mode" value="summary" checked><span><strong>Resumen A4 horizontal</strong><small>Intenta presentar el canvas completo en una hoja. Puede ocultar contenido excedente.</small></span></label><label><input type="radio" name="export-mode" value="detail"><span><strong>Detalle A4 horizontal</strong><small>Mantiene el texto legible y continúa en las páginas necesarias.</small></span></label></fieldset><div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('file')} Abrir impresión</button></div></form>`
+    body: `<form id="canvas-export-form" class="form-grid"><fieldset class="field field-full export-options"><legend>Formato</legend><label><input type="radio" name="export-mode" value="summary" checked><span><strong>Resumen A4 horizontal</strong><small>Intenta presentar el lienzo completo en una hoja. Puede ocultar contenido excedente.</small></span></label><label><input type="radio" name="export-mode" value="detail"><span><strong>Detalle A4 horizontal</strong><small>Mantiene el texto legible y continúa en las páginas necesarias.</small></span></label></fieldset><div class="modal-actions field-full"><button class="button button-secondary" type="button" data-modal-close>Cancelar</button><button class="button button-primary" type="submit">${icon('file')} Abrir impresión</button></div></form>`
   });
   modal.root.querySelector('#canvas-export-form').addEventListener('submit', event => {
     event.preventDefault();
@@ -1337,7 +1341,7 @@ function openExport(instance) {
 
 function openCanvasSettings({ instance, session, context, container }) {
   const modal = openModal({
-    title: 'Administrar canvas',
+    title: 'Administrar lienzo',
     subtitle: 'Actualiza el título o archiva la instancia metodológica.',
     size: 'sm',
     initialFocus: '#canvas-settings-title',
@@ -1349,7 +1353,7 @@ function openCanvasSettings({ instance, session, context, container }) {
     try {
       await CanvasService.updateInstance({ canvasId: instance.id, ...canvasScope(instance, session), patch: { title: modal.root.querySelector('#canvas-settings-title').value }, session });
       modal.close();
-      showToast('Canvas actualizado.');
+      showToast('Lienzo actualizado.');
       reloadCanvas(container, context);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   });
@@ -1359,12 +1363,12 @@ function openCanvasSettings({ instance, session, context, container }) {
     printCanvas('detail', instance.templateId);
   });
   modal.root.querySelector('#archive-canvas').addEventListener('click', async () => {
-    const confirmed = await confirmModal({ title: 'Archivar canvas', message: 'El canvas se ocultará del Toolkit, pero conservará notas e historial.', confirmLabel: 'Archivar', danger: true });
+    const confirmed = await confirmModal({ title: 'Archivar lienzo', message: 'El lienzo se ocultará del Toolkit, pero conservará notas e historial.', confirmLabel: 'Archivar', danger: true });
     if (!confirmed) return;
     try {
       await CanvasService.archiveInstance({ canvasId: instance.id, ...canvasScope(instance, session) });
       closeModal();
-      showToast('Canvas archivado.');
+      showToast('Lienzo archivado.');
       navigateFromCanvas(`#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`);
     } catch (error) { showToast(error.message, { type: 'error' }); }
   });
