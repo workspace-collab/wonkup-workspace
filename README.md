@@ -88,3 +88,14 @@ El propietario o líder de un Canvas puede compartirlo de dos formas:
 - acceso personalizado para una Cuenta WonkUp activa con permiso `viewer`, `commenter` o `editor`.
 
 Los accesos personalizados requieren autenticación, tienen vencimiento, se pueden cambiar o revocar y conservan sincronización en tiempo real. Consulta `AJUSTE_12_3_GUIA.md` y `CANVAS_SHARING_ARCHITECTURE_12_3.md`.
+
+## WonkUp AI Coach (Ajuste 12.4)
+
+El Canvas Engine incorpora un facilitador basado en Gemini para generar preguntas guía, revisar bloques y proponer notas candidatas. La clave de Gemini no se guarda en el frontend. Configúrala con Firebase Secret Manager:
+
+```bash
+firebase functions:secrets:set GEMINI_API_KEY --project wonkup-workspace
+firebase deploy --only functions,firestore:rules --project wonkup-workspace
+```
+
+Modelo predeterminado: `gemini-2.5-flash`. El contenido propuesto por IA siempre requiere validación humana antes de agregarse al Canvas.

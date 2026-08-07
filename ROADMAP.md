@@ -16,8 +16,9 @@
 | Entrega 10 — Kanban colaborativo en Firestore | Aprobada |
 | Entrega 11 — Entregables y portal del cliente cloud | Aprobada; Hotfix 11.0.1 cerrado |
 | Entrega 12 — Canvas Engine cloud | Validación real en curso; Hotfix 12.0.1 aplicado |
-| Ajuste 12.2 — Usuarios e invitaciones | Código listo; despliegue de Cloud Functions pendiente |
+| Ajuste 12.2 — Usuarios e invitaciones | Desplegado; validación operativa en curso |
+| Ajuste 12.3 — Colaboración de Canvas por enlace autenticado | Desplegado; validación real en curso |
+| Ajuste 12.4 — WonkUp AI Coach con Gemini | Código y pruebas locales completados; configuración Gemini y validación real pendientes |
 | Entrega 13 — Finanzas y reportes cloud | Pendiente |
 | Entrega 14 — Integraciones Google e IA | Pendiente |
 
-| Ajuste 12.3 — Colaboración de Canvas por enlace autenticado | Código listo; despliegue y validación real pendientes |

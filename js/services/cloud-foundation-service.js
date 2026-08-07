@@ -1,11 +1,11 @@
-import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.3.0';
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.3.0';
-import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.3.0';
-import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.3.0';
-import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.3.0';
-import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.3.0';
-import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.3.0';
-import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.3.0';
+import { API_CONFIG, firebaseConfigStatus } from '../config/api-config.js?v=12.4.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.4.0';
+import { getFirebaseSdkUrls } from '../cloud/firebase-sdk-loader.js?v=12.4.0';
+import { buildFoundationMigrationPlan, getLocalFoundationSnapshot } from '../cloud/migration-plan.js?v=12.4.0';
+import { buildUserActivationPlan } from '../cloud/user-activation-plan.js?v=12.4.0';
+import { buildKanbanMigrationPlan, getLocalKanbanSnapshot } from '../cloud/kanban-migration-plan.js?v=12.4.0';
+import { buildDeliverableMigrationPlan, getLocalDeliverableSnapshot } from '../cloud/deliverable-migration-plan.js?v=12.4.0';
+import { buildCanvasMigrationPlan, getLocalCanvasSnapshot } from '../cloud/canvas-migration-plan.js?v=12.4.0';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const FIRESTORE_RULE_SAFE_BATCH_SIZE = 4;

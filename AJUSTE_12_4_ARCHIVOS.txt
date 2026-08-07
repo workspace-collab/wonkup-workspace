@@ -1,0 +1,29 @@
+AJUSTE 12.4 — ARCHIVOS MODIFICADOS / NUEVOS
+
+Nuevos:
+- AJUSTE_12_4_GUIA.md
+- AI_COACH_ARCHITECTURE_12_4.md
+- TEST_RESULTS_12_4.md
+- js/services/ai-coach-service.js
+- tests/ai-coach-12-4.test.mjs
+
+Backend y seguridad:
+- functions/index.js
+- functions/package.json
+- firebase/firestore.rules
+
+Frontend:
+- index.html
+- css/components.css
+- js/**/*.js (cache version 12.4.0)
+- js/views/canvas-view.js
+- js/config/app-config.js
+- js/config/runtime-config.js
+- tests/firebase-singleton-9-0-5.test.mjs
+
+Documentación consolidada:
+- README.md
+- ROADMAP.md
+- PROJECT_STATE.md
+- CHANGELOG.md
+- API_CONTRACTS.md

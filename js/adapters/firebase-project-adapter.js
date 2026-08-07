@@ -1,4 +1,4 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.3.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.4.0';
 import {
   canAccessProject,
   canAccessWorkspace,
@@ -11,7 +11,7 @@ import {
   canManageProjectTeam,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js?v=12.3.0';
+} from '../utils/permissions.js?v=12.4.0';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 

@@ -1,5 +1,5 @@
-import { demoDeliverables } from '../../data/demo-deliverables.js?v=12.3.0';
-import { getLocalFoundationSnapshot } from './migration-plan.js?v=12.3.0';
+import { demoDeliverables } from '../../data/demo-deliverables.js?v=12.4.0';
+import { getLocalFoundationSnapshot } from './migration-plan.js?v=12.4.0';
 
 const STORAGE_KEY = 'wonkup.e6.deliverables';
 const clone = value => JSON.parse(JSON.stringify(value));

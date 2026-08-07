@@ -2,7 +2,7 @@
 // Entrega 12: Canvas Engine colaborativo en Firestore y presencia en Realtime Database.
 globalThis.WONKUP_API_CONFIG = {
   mode: 'mock',
-  release: '12.3.0',
+  release: '12.4.0',
   authMode: 'hybrid',
   projectMode: 'hybrid',
   kanbanMode: 'hybrid',

@@ -1,3 +1,17 @@
+## 12.4.0 — WonkUp AI Coach con Gemini
+
+- Se integró un facilitador metodológico dentro del Canvas Engine.
+- El botón `✨ Guíame con IA` aparece para usuarios autenticados con permiso de edición.
+- Gemini genera preguntas guía, revisa la calidad de cada bloque y propone notas candidatas.
+- Las notas de IA nunca se insertan automáticamente: el usuario debe seleccionarlas y confirmarlas.
+- El contexto se obtiene desde Firestore en la Cloud Function; la clave Gemini nunca llega al navegador.
+- Se incorporó `GEMINI_API_KEY` mediante Firebase Secret Manager y `GEMINI_MODEL` parametrizable.
+- Modelo predeterminado: `gemini-2.5-flash`.
+- Límite inicial: 30 consultas por usuario/día y 1,000 consultas globales/día.
+- Los prompts obligan a distinguir evidencia, inferencia e hipótesis y evitan inventar datos.
+- Los contadores de consumo `aiUsage/*` son privados y solo se escriben mediante Admin SDK.
+- Caché actualizada a 12.4.0.
+
 ## 12.0.1 — Canvas Engine colaborativo en Firebase
 
 - Se activó `canvasMode: hybrid`.

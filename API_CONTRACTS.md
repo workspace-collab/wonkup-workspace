@@ -522,3 +522,24 @@ wonkupResolveCanvasShareAccess
 ```
 
 `viewer` permite lectura en vivo; `commenter` añade comentarios; `editor` permite crear, editar, mover y archivar notas. La administración del acceso requiere superadministrador, administrador del workspace o líder del proyecto.
+
+## Ajuste 12.4 — WonkUp AI Coach
+
+Servicio frontend:
+
+```text
+AiCoachService.askQuestions({ instance, sectionId, session })
+AiCoachService.suggestNotes({ instance, sectionId, userInput, session })
+AiCoachService.reviewSection({ instance, sectionId, session })
+```
+
+Función callable:
+
+```text
+wonkupCanvasAiCoach({
+  action: 'questions' | 'suggest' | 'review',
+  workspaceId, projectId, canvasId, sectionId, userInput?
+})
+```
+
+La función requiere Firebase Authentication, perfil WonkUp activo y acceso autorizado al Canvas. Usa `GEMINI_API_KEY` desde Firebase Secret Manager y no expone la credencial al navegador. El modelo por defecto es `gemini-2.5-flash`. Las respuestas estructuradas distinguen evidencia, inferencia e hipótesis. Los límites iniciales son 30 consultas por usuario/día y 1,000 globales/día.

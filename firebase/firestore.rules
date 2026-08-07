@@ -454,6 +454,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /aiUsage/{document=**} {
+      // Los contadores de IA solo se gestionan desde Cloud Functions con Admin SDK.
+      allow read, write: if false;
+    }
+
     match /workspaces/{workspaceId} {
       allow read: if isWorkspaceMember(workspaceId);
       allow create: if isSuperadmin() && validWorkspaceDocument(workspaceId);

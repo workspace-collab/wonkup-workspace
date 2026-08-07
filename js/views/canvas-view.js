@@ -1,16 +1,17 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.3.0';
-import { ProjectService } from '../services/project-service.js?v=12.3.0';
-import { KanbanService } from '../services/kanban-service.js?v=12.3.0';
-import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.3.0';
-import { canCommentCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.3.0';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.3.0';
-import { icon } from '../utils/icons.js?v=12.3.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.3.0';
-import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.3.0';
-import { showToast } from '../components/toast.js?v=12.3.0';
-import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.3.0';
-import { AccessService } from '../services/access-service.js?v=12.3.0';
-import { clearSession } from '../state/store.js?v=12.3.0';
+import { CanvasService } from '../services/canvas-service.js?v=12.4.0';
+import { ProjectService } from '../services/project-service.js?v=12.4.0';
+import { KanbanService } from '../services/kanban-service.js?v=12.4.0';
+import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.4.0';
+import { canCommentCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.4.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.4.0';
+import { icon } from '../utils/icons.js?v=12.4.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.4.0';
+import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.4.0';
+import { showToast } from '../components/toast.js?v=12.4.0';
+import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.4.0';
+import { AccessService } from '../services/access-service.js?v=12.4.0';
+import { clearSession } from '../state/store.js?v=12.4.0';
+import { AiCoachService } from '../services/ai-coach-service.js?v=12.4.0';
 
 let cleanupEditor = null;
 let workspaceController = null;
@@ -158,6 +159,7 @@ function renderCanvasEditor(container, context) {
   const liveCanvas = Boolean(session?.firebaseUid) && !isPublicShare;
   const dataSource = isPublicShare ? 'public' : CanvasService.dataSource({ session });
   const permissionLabel = sharedAccess ? sharePermissionLabel(sharedAccess.permission) : (readOnly ? 'Solo lectura' : '');
+  const aiCoachAvailable = liveCanvas && canEdit && dataSource === 'firebase';
   const backHash = isPublicShare
     ? '#/access'
     : sharedAccess
@@ -181,6 +183,7 @@ function renderCanvasEditor(container, context) {
         ${liveCanvas ? `<div class="canvas-presence" id="canvas-presence" aria-label="Participantes conectados">${participantAvatar(session?.user, true)}</div>` : ''}
         <div class="canvas-completion" title="Avance de llenado: 70% cobertura de secciones y 30% profundidad"><strong>${completion}%</strong><span>avance de llenado</span></div>
         ${!isShared ? timerMarkup(instance.id) : ''}
+        ${aiCoachAvailable ? '<button class="button button-secondary canvas-ai-coach-button" id="canvas-ai-coach" type="button"><span aria-hidden="true">✨</span> Guíame con IA</button>' : ''}
         <button class="button button-secondary" id="canvas-fullscreen" type="button">${icon('maximize')} Pantalla completa</button>
         ${sharedActions}
       </div>
@@ -479,6 +482,11 @@ function bindCanvasEvents(container, context, currentView) {
     onMessage: (message, type) => showToast(message, type === 'error' ? { type: 'error' } : undefined)
   }) : null;
 
+  container.querySelector('#canvas-ai-coach')?.addEventListener('click', () => {
+    blockCanvasNavigation(1000);
+    openAiCoach({ context, container });
+  });
+
   container.querySelector('#canvas-history')?.addEventListener('click', () => {
     blockCanvasNavigation(1000);
     openHistory({ instance: context.instance, session, context, container });
@@ -525,6 +533,177 @@ function navigateFromCanvas(hash) {
   canvasMutationActive = false;
   navigationBlockedUntil = 0;
   location.hash = hash;
+}
+
+
+function aiConfidenceLabel(value) {
+  return ({ evidence: 'Evidencia', inference: 'Inferencia', hypothesis: 'Hipótesis' })[value] || 'Hipótesis';
+}
+
+function aiQuotaMarkup(quota) {
+  if (!quota) return '';
+  return `<span class="ai-coach-quota">${Number(quota.remaining || 0)} consultas disponibles hoy</span>`;
+}
+
+function openAiCoach({ context, container }) {
+  const instance = context.instance;
+  const session = context.session;
+  const initialSection = instance.template.sections.find(section => !instance.notes.some(note => note.sectionId === section.id))
+    || instance.template.sections[0];
+  const modal = openModal({
+    title: '✨ WonkUp AI Coach',
+    subtitle: `Facilitador metodológico para ${instance.template.name}. La IA propone; tu equipo valida.`,
+    size: 'lg',
+    initialFocus: '#ai-coach-section',
+    onClose: () => blockCanvasNavigation(900),
+    body: `<div class="ai-coach-layout">
+      <aside class="ai-coach-sidebar">
+        <span class="page-kicker">Metodología activa</span>
+        <h3>${escapeHtml(instance.template.name)}</h3>
+        <p>${escapeHtml(instance.template.description)}</p>
+        <div class="ai-coach-principle"><strong>Regla WonkUp</strong><span>No aceptes una sugerencia solo porque la dijo la IA. Contrástala con usuarios, datos o evidencia real.</span></div>
+      </aside>
+      <section class="ai-coach-main">
+        <div class="field">
+          <label for="ai-coach-section">¿Qué bloque quieres trabajar?</label>
+          <select class="select" id="ai-coach-section">${instance.template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === initialSection.id ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select>
+          <small class="field-help" id="ai-coach-section-help">${escapeHtml(initialSection.prompt)}</small>
+        </div>
+        <div class="ai-coach-actions" role="group" aria-label="Acciones de WonkUp AI Coach">
+          <button class="button button-secondary" type="button" id="ai-coach-questions">🧭 Preguntas guía</button>
+          <button class="button button-secondary" type="button" id="ai-coach-review">🔎 Revisar sección</button>
+        </div>
+        <div class="field">
+          <label for="ai-coach-input">Cuéntale a la IA lo que sabes</label>
+          <textarea class="input textarea" id="ai-coach-input" rows="5" maxlength="4000" placeholder="Ej.: entrevistamos a 6 postulantes y todos dijeron que después del examen buscan respuestas primero en grupos de WhatsApp..."></textarea>
+          <small class="field-help">No incluyas contraseñas, datos personales sensibles ni información que no deba procesarse con IA.</small>
+        </div>
+        <div class="ai-coach-generate-row">
+          <button class="button button-primary" type="button" id="ai-coach-suggest">✨ Proponer notas</button>
+          <span class="ai-coach-model-note">Gemini · máximo 30 consultas por usuario/día</span>
+        </div>
+        <div class="ai-coach-status" id="ai-coach-status" role="status" aria-live="polite"></div>
+        <div class="ai-coach-result" id="ai-coach-result"><div class="ai-coach-empty"><strong>Empieza por “Preguntas guía”.</strong><span>WonkUp AI Coach leerá el contexto del Canvas y te ayudará a pensar el bloque seleccionado.</span></div></div>
+      </section>
+    </div>`
+  });
+
+  const sectionSelect = modal.root.querySelector('#ai-coach-section');
+  const sectionHelp = modal.root.querySelector('#ai-coach-section-help');
+  const input = modal.root.querySelector('#ai-coach-input');
+  const status = modal.root.querySelector('#ai-coach-status');
+  const result = modal.root.querySelector('#ai-coach-result');
+
+  const selectedSection = () => instance.template.sections.find(section => section.id === sectionSelect.value) || instance.template.sections[0];
+  const setBusy = (busy, message = '') => {
+    modal.root.querySelectorAll('#ai-coach-questions, #ai-coach-review, #ai-coach-suggest').forEach(button => { button.disabled = busy; });
+    status.textContent = message;
+    status.classList.toggle('is-loading', busy);
+  };
+
+  sectionSelect.addEventListener('change', () => {
+    const section = selectedSection();
+    sectionHelp.textContent = section.prompt;
+    result.innerHTML = `<div class="ai-coach-empty"><strong>${escapeHtml(section.title)}</strong><span>${escapeHtml(section.prompt)}</span></div>`;
+    status.textContent = '';
+  });
+
+  modal.root.querySelector('#ai-coach-questions').addEventListener('click', async () => {
+    setBusy(true, 'Gemini está preparando preguntas para este bloque...');
+    try {
+      const response = await AiCoachService.askQuestions({ instance, sectionId: sectionSelect.value, session });
+      const data = response.result || {};
+      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Facilitación</span><h3>${escapeHtml(data.intro || 'Preguntas para profundizar')}</h3></div>${aiQuotaMarkup(response.quota)}</div>
+        <ol class="ai-coach-question-list">${(data.questions || []).map(question => `<li>${escapeHtml(question)}</li>`).join('')}</ol>
+        <div class="ai-coach-tip"><strong>💡 Tip metodológico</strong><span>${escapeHtml(data.tip || 'Responde con hechos concretos y ejemplos observables.')}</span></div>`;
+      status.textContent = `Modelo: ${response.model || 'Gemini'}.`;
+    } catch (error) {
+      result.innerHTML = `<div class="ai-coach-error"><strong>No se pudo consultar la IA.</strong><span>${escapeHtml(error.message || 'Intenta nuevamente.')}</span></div>`;
+      status.textContent = '';
+    } finally {
+      setBusy(false, status.textContent);
+    }
+  });
+
+  modal.root.querySelector('#ai-coach-review').addEventListener('click', async () => {
+    setBusy(true, 'Revisando la calidad metodológica de la sección...');
+    try {
+      const response = await AiCoachService.reviewSection({ instance, sectionId: sectionSelect.value, session });
+      const data = response.result || {};
+      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Diagnóstico</span><h3>Calidad de la sección: ${Number(data.score || 0)}/100</h3></div>${aiQuotaMarkup(response.quota)}</div>
+        <div class="ai-coach-review-grid">
+          <div><strong>✅ Fortalezas</strong><ul>${(data.strengths || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>
+          <div><strong>⚠️ Vacíos</strong><ul>${(data.gaps || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>
+        </div>
+        <div class="ai-coach-recommendations"><strong>Próximos pasos</strong><ul>${(data.recommendations || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>
+        <div class="ai-coach-tip"><strong>Pregunta siguiente</strong><span>${escapeHtml(data.nextQuestion || '')}</span></div>`;
+      status.textContent = `Modelo: ${response.model || 'Gemini'}.`;
+    } catch (error) {
+      result.innerHTML = `<div class="ai-coach-error"><strong>No se pudo revisar la sección.</strong><span>${escapeHtml(error.message || 'Intenta nuevamente.')}</span></div>`;
+      status.textContent = '';
+    } finally {
+      setBusy(false, status.textContent);
+    }
+  });
+
+  modal.root.querySelector('#ai-coach-suggest').addEventListener('click', async () => {
+    setBusy(true, 'Gemini está convirtiendo el contexto en notas candidatas...');
+    try {
+      const response = await AiCoachService.suggestNotes({ instance, sectionId: sectionSelect.value, userInput: input.value.trim(), session });
+      const data = response.result || {};
+      const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+      result.innerHTML = `<div class="ai-coach-response-head"><div><span class="page-kicker">Notas candidatas</span><h3>${escapeHtml(data.summary || 'Propuestas para validar')}</h3></div>${aiQuotaMarkup(response.quota)}</div>
+        <div class="ai-coach-suggestions">${suggestions.map((item, index) => `<label class="ai-coach-suggestion"><input type="checkbox" data-ai-suggestion="${index}" checked><span><strong>${escapeHtml(item.text || '')}</strong><small>${escapeHtml(aiConfidenceLabel(item.confidence))} · ${escapeHtml(item.reason || '')}</small></span></label>`).join('')}</div>
+        <div class="ai-coach-tip"><strong>Siguiente validación</strong><span>${escapeHtml(data.nextQuestion || '')}</span></div>
+        ${response.canAddNotes ? '<div class="modal-actions ai-coach-add-actions"><button class="button button-primary" type="button" id="ai-coach-add-selected">+ Agregar seleccionadas al Canvas</button></div>' : '<p class="field-help">Tu permiso permite consultar la IA, pero no agregar notas.</p>'}`;
+      status.textContent = `Modelo: ${response.model || 'Gemini'}. Revisa cada propuesta antes de agregarla.`;
+
+      result.querySelector('#ai-coach-add-selected')?.addEventListener('click', async event => {
+        const selected = [...result.querySelectorAll('[data-ai-suggestion]:checked')]
+          .map(box => suggestions[Number(box.dataset.aiSuggestion)])
+          .filter(item => item?.text);
+        if (!selected.length) {
+          showToast('Selecciona al menos una propuesta.', { type: 'error' });
+          return;
+        }
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.textContent = 'Agregando...';
+        beginCanvasMutation(container);
+        blockCanvasNavigation(2000);
+        let next = context.instance;
+        try {
+          const section = selectedSection();
+          const colorId = CANVAS_NOTE_COLORS.some(color => color.id === section.tone) ? section.tone : 'sky';
+          for (const item of selected) {
+            next = await CanvasService.createNote({
+              canvasId: next.id,
+              ...canvasScope(next, session),
+              sectionId: section.id,
+              input: { text: String(item.text).slice(0, 1200), colorId },
+              session
+            });
+          }
+          applyCanvasInstance(container, context, next);
+          instance.notes = next.notes;
+          showToast(`${selected.length} nota${selected.length === 1 ? '' : 's'} agregada${selected.length === 1 ? '' : 's'} desde WonkUp AI Coach.`);
+          modal.close({ restoreFocus: false });
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = '+ Agregar seleccionadas al Canvas';
+          showToast(error.message || 'No se pudieron agregar las notas.', { type: 'error' });
+        } finally {
+          endCanvasMutation(container);
+          blockCanvasNavigation(900);
+        }
+      });
+    } catch (error) {
+      result.innerHTML = `<div class="ai-coach-error"><strong>No se pudieron generar propuestas.</strong><span>${escapeHtml(error.message || 'Intenta nuevamente.')}</span></div>`;
+      status.textContent = '';
+    } finally {
+      setBusy(false, status.textContent);
+    }
+  });
 }
 
 function openNoteForm({ context, sectionId = '', container, onSaved }) {

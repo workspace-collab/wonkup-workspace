@@ -1,9 +1,9 @@
-import { demoWorkspaces } from '../../data/demo-workspaces.js?v=12.3.0';
-import { demoProjects } from '../../data/demo-projects.js?v=12.3.0';
-import { demoActivities, demoTasks } from '../../data/demo-activities.js?v=12.3.0';
-import { demoKanban } from '../../data/demo-kanban.js?v=12.3.0';
-import { canvasTemplates } from '../../data/canvas-templates.js?v=12.3.0';
-import { canAccessProject, canAccessWorkspace, canViewMaster } from '../utils/permissions.js?v=12.3.0';
+import { demoWorkspaces } from '../../data/demo-workspaces.js?v=12.4.0';
+import { demoProjects } from '../../data/demo-projects.js?v=12.4.0';
+import { demoActivities, demoTasks } from '../../data/demo-activities.js?v=12.4.0';
+import { demoKanban } from '../../data/demo-kanban.js?v=12.4.0';
+import { canvasTemplates } from '../../data/canvas-templates.js?v=12.4.0';
+import { canAccessProject, canAccessWorkspace, canViewMaster } from '../utils/permissions.js?v=12.4.0';
 
 function projectVisibleToSession(project, session) {
   if (!session) return false;

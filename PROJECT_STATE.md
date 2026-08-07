@@ -6,11 +6,11 @@ WonkUp Workspace
 
 ## Fase actual
 
-Entrega 12 — Canvas Engine colaborativo + Ajuste 12.2 de usuarios
+Entrega 12 — Canvas Engine colaborativo + Ajustes 12.2–12.4
 
 ## Estado
 
-AJUSTE 12.2 CÓDIGO LISTO / CLOUD FUNCTIONS Y VALIDACIÓN REAL PENDIENTES
+AJUSTE 12.4 CÓDIGO LISTO / CONFIGURACIÓN GEMINI Y VALIDACIÓN REAL PENDIENTES
 
 ## Fases cerradas
 
@@ -78,7 +78,7 @@ Durante la validación con dos cuentas se confirmó que una cuenta colaboradora 
 
 ## Ajuste 12.3 — Compartir Canvas por persona
 
-Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE Y VALIDACIÓN FIREBASE PENDIENTES.
+Estado: DESPLEGADO / VALIDACIÓN FUNCIONAL EN CURSO.
 
 - Permisos: `viewer`, `commenter`, `editor`.
 - Acceso vinculado al UID de una Cuenta WonkUp activa.
@@ -87,3 +87,16 @@ Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE Y VALIDACIÓN FIREBAS
 - Presencia compartida mediante Realtime Database.
 - Enlaces públicos anónimos preservados como solo lectura.
 - Cloud Functions de creación, listado, actualización, revocación y resolución.
+
+## Ajuste 12.4 — WonkUp AI Coach
+
+Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / SECRETO GEMINI Y VALIDACIÓN REAL PENDIENTES.
+
+- Facilitador IA dentro del Canvas Engine para Mapa de Empatía, Propuesta de Valor, Lean Canvas, Business Model Canvas, Priorización y Pitch Canvas.
+- Acciones: preguntas guía, revisión metodológica y propuesta de notas.
+- Las propuestas se agregan solo después de selección y confirmación explícita del usuario.
+- `GEMINI_API_KEY` se mantiene en Firebase Secret Manager.
+- Modelo predeterminado: `gemini-2.5-flash`, configurable mediante `GEMINI_MODEL`.
+- Cuotas iniciales: 30 consultas por usuario/día y 1,000 globales/día.
+- Firestore conserva únicamente métricas de consumo; no se guardan prompts ni respuestas de IA en `aiUsage`.
+- La IA está habilitada para miembros internos con edición y accesos personalizados `commenter/editor`; solo quienes pueden editar pueden insertar notas.

@@ -1,4 +1,4 @@
-import { getFirebaseClient } from '../cloud/firebase-client.js?v=12.3.0';
+import { getFirebaseClient } from '../cloud/firebase-client.js?v=12.4.0';
 
 function messageFromError(error) {
   const code = String(error?.code || '');
