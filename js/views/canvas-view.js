@@ -1,14 +1,16 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.2.1';
-import { ProjectService } from '../services/project-service.js?v=12.2.1';
-import { KanbanService } from '../services/kanban-service.js?v=12.2.1';
-import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.2.1';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.2.1';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.2.1';
-import { icon } from '../utils/icons.js?v=12.2.1';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.2.1';
-import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.2.1';
-import { showToast } from '../components/toast.js?v=12.2.1';
-import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.2.1';
+import { CanvasService } from '../services/canvas-service.js?v=12.3.0';
+import { ProjectService } from '../services/project-service.js?v=12.3.0';
+import { KanbanService } from '../services/kanban-service.js?v=12.3.0';
+import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.3.0';
+import { canCommentCanvas, canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.3.0';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.3.0';
+import { icon } from '../utils/icons.js?v=12.3.0';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.3.0';
+import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.3.0';
+import { showToast } from '../components/toast.js?v=12.3.0';
+import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.3.0';
+import { AccessService } from '../services/access-service.js?v=12.3.0';
+import { clearSession } from '../state/store.js?v=12.3.0';
 
 let cleanupEditor = null;
 let workspaceController = null;
@@ -29,6 +31,42 @@ function canvasScope(instance, session) {
   };
 }
 
+
+function contextSharePermission(context) {
+  return context?.sharedAccess?.permission || '';
+}
+
+function contextCanEdit(context) {
+  const permission = contextSharePermission(context);
+  if (permission) return permission === 'editor';
+  return !context.readOnly && canEditCanvas(
+    context.session,
+    context.instance.projectId,
+    context.instance.workspaceId,
+    context.instance.id
+  );
+}
+
+function contextCanComment(context) {
+  const permission = contextSharePermission(context);
+  if (permission) return ['commenter', 'editor'].includes(permission);
+  return !context.readOnly && canCommentCanvas(
+    context.session,
+    context.instance.projectId,
+    context.instance.workspaceId,
+    context.instance.id
+  );
+}
+
+function sharePermissionLabel(permission) {
+  return ({ viewer: 'Solo lectura', commenter: 'Puede comentar', editor: 'Editor' })[permission] || 'Acceso compartido';
+}
+
+function isPersonShareNotFound(error) {
+  return ['functions/not-found', 'not-found'].includes(String(error?.code || ''))
+    || String(error?.message || '').includes('no corresponde a un acceso personalizado');
+}
+
 export async function renderCanvas(container, params, session) {
   cleanupCanvasView();
   container.innerHTML = `<section class="page canvas-editor-page"><div class="panel"><div class="panel-body"><span class="spinner"></span> Cargando Canvas Engine...</div></div></section>`;
@@ -44,16 +82,62 @@ export async function renderCanvas(container, params, session) {
   }
 }
 
-export async function renderSharedCanvas(container, token) {
+export async function renderSharedCanvas(container, token, session = null) {
   cleanupCanvasView();
-  container.innerHTML = `<section class="shared-canvas-page"><div class="panel shared-canvas-loading"><div class="panel-body"><span class="spinner"></span> Abriendo canvas compartido...</div></div></section>`;
+  container.innerHTML = `<section class="shared-canvas-page"><div class="panel shared-canvas-loading"><div class="panel-body"><span class="spinner"></span> Validando acceso al canvas...</div></div></section>`;
   try {
+    let personAccess = null;
+    try {
+      personAccess = await CanvasService.resolvePersonShare({ token, session });
+    } catch (error) {
+      if (!isPersonShareNotFound(error)) throw error;
+    }
+
+    if (personAccess) {
+      if (personAccess.requiresAuth || !session?.firebaseUid) {
+        renderSharedAuthenticationRequired(container, token, personAccess);
+        return;
+      }
+      const result = await CanvasService.getSharedCollaborativeInstance({ token, session, access: personAccess });
+      const project = {
+        id: result.instance.projectId,
+        workspaceId: result.instance.workspaceId,
+        name: 'Acceso compartido',
+        code: 'Colaboración',
+        brandColor: result.instance.template?.color || '#50a8f3'
+      };
+      renderCanvasEditor(container, {
+        instance: result.instance,
+        project,
+        session: result.session,
+        readOnly: personAccess.permission === 'viewer',
+        sharedToken: token,
+        sharedAccess: personAccess
+      });
+      return;
+    }
+
     const instance = await CanvasService.getSharedInstance({ token });
     const project = { id: instance.projectId, workspaceId: instance.workspaceId, name: 'Proyecto compartido', code: 'Consulta', brandColor: instance.template?.color || '#50a8f3' };
-    renderCanvasEditor(container, { instance, project, session: null, readOnly: true, sharedToken: token });
+    renderCanvasEditor(container, { instance, project, session: null, readOnly: true, sharedToken: token, sharedAccess: null });
   } catch (error) {
-    container.innerHTML = `<section class="shared-canvas-page"><div class="empty-state"><div class="empty-state-icon">${icon('lock')}</div><h1>Enlace no disponible</h1><p>${escapeHtml(error.message || 'El enlace compartido no está disponible.')}</p><a class="button button-primary" href="#/access">Ir al acceso</a></div></section>`;
+    const hasSession = Boolean(session?.firebaseUid);
+    container.innerHTML = `<section class="shared-canvas-page"><div class="empty-state"><div class="empty-state-icon">${icon('lock')}</div><h1>Acceso no disponible</h1><p>${escapeHtml(error.message || 'El enlace compartido no está disponible.')}</p>${hasSession ? '<button class="button button-primary" id="shared-switch-account" type="button">Ingresar con otra cuenta</button>' : '<a class="button button-primary" href="#/access">Ir al acceso</a>'}</div></section>`;
+    container.querySelector('#shared-switch-account')?.addEventListener('click', async () => {
+      sessionStorage.setItem('wonkup.auth.returnHash', `#/share/canvas/${token}`);
+      try { await AccessService.revokeSession(session); } catch { /* noop */ }
+      clearSession();
+      location.hash = '#/access?reason=share';
+    });
   }
+}
+
+function renderSharedAuthenticationRequired(container, token, access) {
+  container.innerHTML = `<section class="shared-canvas-page"><div class="empty-state shared-auth-required"><div class="empty-state-icon">${icon('users')}</div><span class="status-badge">${escapeHtml(sharePermissionLabel(access.permission))}</span><h1>Ingresa para colaborar</h1><p>Este enlace está asignado a una Cuenta WonkUp específica. Inicia sesión con el correo autorizado para continuar.</p><button class="button button-primary" id="shared-auth-login" type="button">Ingresar con mi cuenta</button><small>El permiso vence según la vigencia definida por el propietario.</small></div></section>`;
+  container.querySelector('#shared-auth-login')?.addEventListener('click', () => {
+    sessionStorage.setItem('wonkup.auth.returnHash', `#/share/canvas/${token}`);
+    location.hash = '#/access?reason=share';
+  });
 }
 
 function renderCanvasEditor(container, context) {
@@ -61,35 +145,44 @@ function renderCanvasEditor(container, context) {
   cleanupEditor = null;
   workspaceController?.destroy();
   workspaceController = null;
-  const { instance, project, session, readOnly, sharedToken = '' } = context;
+  const { instance, project, session, readOnly, sharedToken = '', sharedAccess = null } = context;
   const template = instance.template;
   const storedView = localStorage.getItem(`${VIEW_KEY}.${template.id}`) || localStorage.getItem(VIEW_KEY);
   const viewMode = storedView || (matchMedia('(max-width: 760px)').matches ? 'list' : 'board');
   const completion = calculateCanvasProgress(instance);
-  const canEdit = !readOnly && canEditCanvas(session, instance.projectId, instance.workspaceId);
-  const canManage = !readOnly && canManageCanvas(session, instance.projectId, instance.workspaceId);
-  const dataSource = readOnly ? 'public' : CanvasService.dataSource({ session });
+  const canEdit = contextCanEdit(context);
+  const canComment = contextCanComment(context);
+  const isShared = Boolean(sharedAccess || readOnly);
+  const isPublicShare = Boolean(readOnly && !sharedAccess);
+  const canManage = !isShared && canManageCanvas(session, instance.projectId, instance.workspaceId);
+  const liveCanvas = Boolean(session?.firebaseUid) && !isPublicShare;
+  const dataSource = isPublicShare ? 'public' : CanvasService.dataSource({ session });
+  const permissionLabel = sharedAccess ? sharePermissionLabel(sharedAccess.permission) : (readOnly ? 'Solo lectura' : '');
+  const backHash = isPublicShare
+    ? '#/access'
+    : sharedAccess
+      ? '#/'
+      : `#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`;
+  const backLabel = isPublicShare ? 'Acceso WonkUp' : sharedAccess ? 'Volver a WonkUp' : 'Volver al Toolkit';
+  const sharedActions = isShared
+    ? `<span class="status-badge share-permission-badge permission-${escapeHtml(sharedAccess?.permission || 'viewer')}">${escapeHtml(permissionLabel)}</span><button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>`
+    : `<button class="button button-secondary" id="canvas-history" type="button">${icon('history')} Historial</button>${canManage ? `<button class="button button-secondary" id="canvas-share" type="button">${icon('link')} Compartir</button>` : ''}<button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>${canManage ? `<button class="icon-button" id="canvas-settings" type="button" aria-label="Administrar canvas">${icon('more')}</button>` : ''}`;
   document.body.classList.remove('canvas-focus-mode');
   container.dataset.activeCanvasId = instance.id;
   const projectBrand = normalizeCanvasBrand(project.brandColor || template.color);
 
-  container.innerHTML = `<section class="${readOnly ? 'shared-canvas-page' : 'page canvas-editor-page'}" data-canvas-id="${escapeHtml(instance.id)}" data-template-layout="${escapeHtml(template.layout || 'generic')}">
+  container.innerHTML = `<section class="${isShared ? 'shared-canvas-page' : 'page canvas-editor-page'}" data-canvas-id="${escapeHtml(instance.id)}" data-template-layout="${escapeHtml(template.layout || 'generic')}">
     <header class="canvas-editor-header" style="--canvas-accent:${escapeHtml(template.color)};--canvas-brand:${escapeHtml(projectBrand)}">
       <div class="canvas-editor-identity">
-        <button class="canvas-back-link" id="canvas-back" type="button" data-back-hash="${readOnly ? '#/access' : `#/w/${instance.workspaceId}/p/${instance.projectId}/innovation`}">${icon('arrowLeft')} ${readOnly ? 'Acceso WonkUp' : 'Volver al Toolkit'}</button>
+        <button class="canvas-back-link" id="canvas-back" type="button" data-back-hash="${backHash}">${icon('arrowLeft')} ${backLabel}</button>
         <div class="canvas-title-row"><span class="canvas-title-icon">${icon(template.icon)}</span><div><span class="page-kicker">${escapeHtml(template.category)} · ${escapeHtml(project.name || 'Proyecto')}</span><h1>${escapeHtml(instance.title)}</h1><p>${escapeHtml(template.description)}</p></div></div>
       </div>
       <div class="canvas-editor-actions">
-        ${readOnly ? '' : `<div class="canvas-presence" id="canvas-presence" aria-label="Participantes conectados">${participantAvatar(session?.user, true)}</div>`}
+        ${liveCanvas ? `<div class="canvas-presence" id="canvas-presence" aria-label="Participantes conectados">${participantAvatar(session?.user, true)}</div>` : ''}
         <div class="canvas-completion" title="Avance de llenado: 70% cobertura de secciones y 30% profundidad"><strong>${completion}%</strong><span>avance de llenado</span></div>
-        ${readOnly ? '' : timerMarkup(instance.id)}
+        ${!isShared ? timerMarkup(instance.id) : ''}
         <button class="button button-secondary" id="canvas-fullscreen" type="button">${icon('maximize')} Pantalla completa</button>
-        ${readOnly ? `<span class="status-badge">Solo lectura</span>` : `
-          <button class="button button-secondary" id="canvas-history" type="button">${icon('history')} Historial</button>
-          ${canManage ? `<button class="button button-secondary" id="canvas-share" type="button">${icon('link')} Compartir</button>` : ''}
-          <button class="button button-secondary" id="canvas-print" type="button">${icon('file')} Imprimir / PDF</button>
-          ${canManage ? `<button class="icon-button" id="canvas-settings" type="button" aria-label="Administrar canvas">${icon('more')}</button>` : ''}
-        `}
+        ${sharedActions}
       </div>
     </header>
 
@@ -98,21 +191,21 @@ function renderCanvasEditor(container, context) {
         <button class="button button-ghost ${viewMode === 'board' ? 'active' : ''}" data-canvas-view="board" type="button" aria-pressed="${viewMode === 'board'}">${icon('columns')} Canvas</button>
         <button class="button button-ghost ${viewMode === 'list' ? 'active' : ''}" data-canvas-view="list" type="button" aria-pressed="${viewMode === 'list'}">${icon('list')} Lista</button>
       </div>
-      <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${dataSource === 'mock' ? '<span class="demo-chip">Demo local</span>' : dataSource === 'firebase' ? '<span class="demo-chip">Firestore en tiempo real</span>' : ''}</div>
+      <div class="canvas-toolbar-meta"><span data-canvas-note-count>${instance.notes.length} notas</span><span data-canvas-section-count>${new Set(instance.notes.map(note => note.sectionId)).size}/${template.sections.length} secciones con contenido</span><span data-canvas-version>Versión ${instance.version}</span>${dataSource === 'mock' ? '<span class="demo-chip">Demo local</span>' : dataSource === 'firebase' ? '<span class="demo-chip">Firestore en tiempo real</span>' : '<span class="demo-chip">Vista pública</span>'}</div>
     </div>
 
     <div class="canvas-workspace" id="canvas-workspace">
-      ${viewMode === 'list' ? renderCanvasList(instance, canEdit) : renderCanvasBoard(instance, canEdit)}
+      ${viewMode === 'list' ? renderCanvasList(instance, canEdit, canComment) : renderCanvasBoard(instance, canEdit, canComment)}
     </div>
 
-    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${readOnly ? 'Vista compartida de consulta' : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.9.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
+    <footer class="canvas-editor-footer"><span data-canvas-updated>Última actualización: ${formatDate(instance.updatedAt)}</span><span>${isShared ? `${escapeHtml(permissionLabel)} · ${liveCanvas ? 'sincronización en tiempo real' : 'vista pública'}` : 'Los cambios se guardan automáticamente.'}</span><span class="canvas-build-version">Motor 5.9.0</span>${sharedToken ? `<span>Código: ${escapeHtml(sharedToken)}</span>` : ''}</footer>
   </section>`;
 
   bindCanvasEvents(container, context, viewMode);
 
   let stopPresence = () => {};
   let stopRealtime = () => {};
-  if (!readOnly && session) {
+  if (liveCanvas) {
     stopPresence = CanvasService.startPresence({
       canvasId: instance.id,
       ...canvasScope(instance, session),
@@ -122,13 +215,13 @@ function renderCanvasEditor(container, context) {
       .then(stop => { stopRealtime = typeof stop === 'function' ? stop : () => {}; })
       .catch(error => showToast(error.message || 'No se pudo iniciar la sincronización del canvas.', { type: 'error' }));
   }
-  const unsubscribe = readOnly ? () => {} : CanvasService.subscribe(event => {
+  const unsubscribe = liveCanvas ? CanvasService.subscribe(event => {
     if (event.source === 'presence' || event.source === 'local') return;
     if (event.source !== 'storage' && event.canvasId !== context.instance.id) return;
     if (document.querySelector('#wonkup-modal')) return;
     reloadCanvas(container, context);
-  });
-  if (!readOnly) bindCanvasTimer(container, instance.id);
+  }) : () => {};
+  if (!isShared) bindCanvasTimer(container, instance.id);
   updateFullscreenButton(container);
   updateTimerVisibility(container);
   const fullscreenHost = container.closest('#main-view') || container;
@@ -154,58 +247,58 @@ function renderCanvasEditor(container, context) {
   };
 }
 
-function renderCanvasBoard(instance, canEdit) {
+function renderCanvasBoard(instance, canEdit, canComment) {
   const layout = instance.template.layout || 'generic';
-  if (layout === 'value-proposition') return renderValueProposition(instance, canEdit);
-  if (layout === 'prioritization') return renderPrioritization(instance, canEdit);
-  if (layout === 'business-model' || layout === 'lean' || layout === 'empathy') return renderSpecializedGrid(instance, canEdit, layout);
-  return renderGenericBoard(instance, canEdit);
+  if (layout === 'value-proposition') return renderValueProposition(instance, canEdit, canComment);
+  if (layout === 'prioritization') return renderPrioritization(instance, canEdit, canComment);
+  if (layout === 'business-model' || layout === 'lean' || layout === 'empathy') return renderSpecializedGrid(instance, canEdit, canComment, layout);
+  return renderGenericBoard(instance, canEdit, canComment);
 }
 
-function renderGenericBoard(instance, canEdit) {
+function renderGenericBoard(instance, canEdit, canComment) {
   const template = instance.template;
-  return `<div class="canvas-board-shell"><div class="canvas-board-hint">${icon('arrowRight')} Desplázate horizontalmente para explorar las secciones.</div><div class="canvas-board-scroll"><div class="canvas-board" style="--canvas-columns:${Math.max(2, Number(template.columns || 3))}">${template.sections.map(section => canvasSection(instance, section, canEdit)).join('')}</div></div></div>`;
+  return `<div class="canvas-board-shell"><div class="canvas-board-hint">${icon('arrowRight')} Desplázate horizontalmente para explorar las secciones.</div><div class="canvas-board-scroll"><div class="canvas-board" style="--canvas-columns:${Math.max(2, Number(template.columns || 3))}">${template.sections.map(section => canvasSection(instance, section, canEdit, canComment)).join('')}</div></div></div>`;
 }
 
-function renderSpecializedGrid(instance, canEdit, layout) {
-  return `<div class="canvas-board-shell canvas-document"><div class="canvas-board-hint">${icon('arrowRight')} El desplazamiento queda contenido dentro del lienzo.</div><div class="canvas-board-scroll"><div class="canvas-specialized-grid layout-${escapeHtml(layout)}">${instance.template.sections.map(section => canvasSection(instance, section, canEdit, `canvas-area-${section.area}`)).join('')}</div></div></div>`;
+function renderSpecializedGrid(instance, canEdit, canComment, layout) {
+  return `<div class="canvas-board-shell canvas-document"><div class="canvas-board-hint">${icon('arrowRight')} El desplazamiento queda contenido dentro del lienzo.</div><div class="canvas-board-scroll"><div class="canvas-specialized-grid layout-${escapeHtml(layout)}">${instance.template.sections.map(section => canvasSection(instance, section, canEdit, canComment, `canvas-area-${section.area}`)).join('')}</div></div></div>`;
 }
 
-function renderValueProposition(instance, canEdit) {
+function renderValueProposition(instance, canEdit, canComment) {
   const groups = instance.template.groups || [];
   return `<div class="canvas-board-shell canvas-document"><div class="canvas-board-hint">${icon('arrowRight')} Mapa de valor y perfil del cliente.</div><div class="canvas-board-scroll"><div class="value-proposition-layout">${groups.map(group => {
     const sections = instance.template.sections.filter(section => section.group === group.id);
-    return `<section class="value-proposition-group group-${escapeHtml(group.tone)}"><header><h2>${escapeHtml(group.emoji)} ${escapeHtml(group.title)}</h2></header><div class="value-proposition-group-grid">${sections.map(section => canvasSection(instance, section, canEdit, `canvas-area-${section.area}`)).join('')}</div></section>`;
+    return `<section class="value-proposition-group group-${escapeHtml(group.tone)}"><header><h2>${escapeHtml(group.emoji)} ${escapeHtml(group.title)}</h2></header><div class="value-proposition-group-grid">${sections.map(section => canvasSection(instance, section, canEdit, canComment, `canvas-area-${section.area}`)).join('')}</div></section>`;
   }).join('')}</div></div></div>`;
 }
 
-function renderPrioritization(instance, canEdit) {
+function renderPrioritization(instance, canEdit, canComment) {
   const sectionMap = Object.fromEntries(instance.template.sections.map(section => [section.area, section]));
   return `<div class="canvas-board-shell canvas-document"><div class="canvas-board-hint">${icon('arrowRight')} Arrastra las ideas entre los cuadrantes.</div><div class="canvas-board-scroll"><div class="priority-matrix">
     <div class="priority-axis priority-axis-y"><span>+</span><strong>Deseabilidad</strong><span>−</span></div>
     <div class="priority-axis priority-axis-x"><span>−</span><strong>Factibilidad</strong><span>+</span></div>
     <div class="priority-quadrants">
-      ${canvasSection(instance, sectionMap.investigate, canEdit, 'canvas-area-investigate')}
-      ${canvasSection(instance, sectionMap.implement, canEdit, 'canvas-area-implement')}
-      ${canvasSection(instance, sectionMap.discard, canEdit, 'canvas-area-discard')}
-      ${canvasSection(instance, sectionMap.validate, canEdit, 'canvas-area-validate')}
+      ${canvasSection(instance, sectionMap.investigate, canEdit, canComment, 'canvas-area-investigate')}
+      ${canvasSection(instance, sectionMap.implement, canEdit, canComment, 'canvas-area-implement')}
+      ${canvasSection(instance, sectionMap.discard, canEdit, canComment, 'canvas-area-discard')}
+      ${canvasSection(instance, sectionMap.validate, canEdit, canComment, 'canvas-area-validate')}
     </div>
   </div></div></div>`;
 }
 
-function renderCanvasList(instance, canEdit) {
+function renderCanvasList(instance, canEdit, canComment) {
   return `<div class="canvas-list canvas-document">${instance.template.sections.map(section => {
     const notes = notesForSection(instance, section.id);
-    return `<section class="canvas-list-section"><header><div><span class="canvas-section-tone tone-${escapeHtml(section.tone)}"></span><h2>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</h2><p>${escapeHtml(section.prompt)}</p></div>${canEdit ? `<button class="icon-button" type="button" data-add-note="${escapeHtml(section.id)}" aria-label="Agregar nota en ${escapeHtml(section.title)}">${icon('plus')}</button>` : ''}</header><div class="canvas-list-notes" data-drop-section="${escapeHtml(section.id)}">${notes.length ? notes.map(note => noteCard(note, canEdit, false)).join('') : `<p class="canvas-empty-section">Sin notas todavía.</p>`}</div></section>`;
+    return `<section class="canvas-list-section"><header><div><span class="canvas-section-tone tone-${escapeHtml(section.tone)}"></span><h2>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</h2><p>${escapeHtml(section.prompt)}</p></div>${canEdit ? `<button class="icon-button" type="button" data-add-note="${escapeHtml(section.id)}" aria-label="Agregar nota en ${escapeHtml(section.title)}">${icon('plus')}</button>` : ''}</header><div class="canvas-list-notes" data-drop-section="${escapeHtml(section.id)}">${notes.length ? notes.map(note => noteCard(note, canEdit, false, canComment)).join('') : `<p class="canvas-empty-section">Sin notas todavía.</p>`}</div></section>`;
   }).join('')}</div>`;
 }
 
-function canvasSection(instance, section, canEdit, extraClass = '') {
+function canvasSection(instance, section, canEdit, canComment, extraClass = '') {
   if (!section) return '';
   const notes = notesForSection(instance, section.id);
   return `<section class="canvas-section tone-${escapeHtml(section.tone)} ${escapeHtml(extraClass)}" data-section-id="${escapeHtml(section.id)}" style="--section-span:${Math.max(1, Number(section.colSpan || 1))}">
     <header class="canvas-section-header"><div>${section.step ? `<span class="canvas-step">${escapeHtml(section.step)}</span>` : ''}<h2><span class="canvas-section-emoji" aria-hidden="true">${escapeHtml(section.emoji || '')}</span>${escapeHtml(section.title)}</h2><p>${escapeHtml(section.prompt)}</p></div>${canEdit ? `<button class="icon-button" type="button" data-add-note="${escapeHtml(section.id)}" aria-label="Agregar nota en ${escapeHtml(section.title)}">${icon('plus')}</button>` : ''}</header>
-    <div class="canvas-note-stack" data-drop-section="${escapeHtml(section.id)}">${notes.length ? notes.map(note => noteCard(note, canEdit, true)).join('') : `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`}</div>
+    <div class="canvas-note-stack" data-drop-section="${escapeHtml(section.id)}">${notes.length ? notes.map(note => noteCard(note, canEdit, true, canComment)).join('') : `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`}</div>
   </section>`;
 }
 
@@ -254,7 +347,7 @@ function resolveNoteColor(note) {
   };
 }
 
-function noteCard(note, canEdit, draggable) {
+function noteCard(note, canEdit, draggable, canComment = canEdit) {
   const color = resolveNoteColor(note);
   const comments = note.comments?.length || 0;
   const renderKey = [note.text, note.colorId, note.colorHex || '', comments, note.sourceCanvasId || '', note.sourceNoteId || ''].join('|');
@@ -262,12 +355,13 @@ function noteCard(note, canEdit, draggable) {
     <div class="canvas-note-color-dots">${CANVAS_NOTE_COLORS.map(item => `<button class="note-color-dot ${!note.colorHex && item.id === note.colorId ? 'active' : ''}" type="button" data-note-color="${escapeHtml(item.id)}" style="--dot:${item.background};--dot-border:${item.border}" aria-label="Cambiar a color ${escapeHtml(item.name)}" title="${escapeHtml(item.name)}"></button>`).join('')}</div>
     <button class="note-quick-icon note-quick-delete" type="button" data-delete-note="${escapeHtml(note.id)}" aria-label="Eliminar nota" title="Eliminar">${icon('trash')}</button>
   </div>` : '';
+  const detailAction = canComment ? `<button class="note-open" type="button" draggable="false" data-open-note="${escapeHtml(note.id)}" aria-label="${canEdit ? 'Más opciones' : 'Abrir comentarios'} de la nota" title="${canEdit ? 'Más opciones' : 'Comentarios'}">${canEdit ? icon('more') : icon('message')}</button>` : '';
   return `<article class="canvas-note" data-note-id="${escapeHtml(note.id)}" data-note-render-key="${escapeHtml(renderKey)}" tabindex="0" style="--note-bg:${color.background};--note-border:${color.border};--note-text:${color.text}">
     ${quickTools}
     <div class="canvas-note-handle" ${canEdit && draggable ? `data-drag-note="${escapeHtml(note.id)}" role="button" tabindex="0" aria-label="Mover nota" title="Arrastrar nota"` : ''}>${canEdit && draggable ? icon('grip') : ''}</div>
     <p>${escapeHtml(note.text)}</p>
     ${note.sourceCanvasId ? `<span class="linked-note-label">${icon('link')} Vinculada</span>` : ''}
-    <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${canEdit ? `<button class="note-open" type="button" draggable="false" data-open-note="${escapeHtml(note.id)}" aria-label="Más opciones de la nota" title="Más opciones">${icon('more')}</button>` : ''}</footer>
+    <footer><span class="note-author" title="${escapeHtml(note.author?.name || 'Autor')}">${escapeHtml(note.author?.initials || '?')}</span><time datetime="${escapeHtml(note.updatedAt)}">${relativeTime(note.updatedAt)}</time>${comments ? `<span class="note-comments">${icon('message')} ${comments}</span>` : ''}${detailAction}</footer>
   </article>`;
 }
 
@@ -321,9 +415,9 @@ function bindCanvasEvents(container, context, currentView) {
   workspaceController = workspace ? createCanvasWorkspaceController({
     workspace,
     getInstance: () => context.instance,
-    getCanEdit: () => !context.readOnly && canEditCanvas(context.session, context.instance.projectId, context.instance.workspaceId),
+    getCanEdit: () => contextCanEdit(context),
     getViewMode: () => currentView,
-    renderNote: (note, canEdit, draggable) => noteCard(note, canEdit, draggable),
+    renderNote: (note, canEdit, draggable) => noteCard(note, canEdit, draggable, contextCanComment(context)),
     emptyMarkup: canEdit => `<div class="canvas-empty-section">${canEdit ? 'Pulsa + para crear una nota aquí.' : 'Sin notas.'}</div>`,
     colors: CANVAS_NOTE_COLORS,
     defaultColorForSection: sectionId => {
@@ -503,108 +597,131 @@ function openNoteDetail({ context, noteId, container, onSaved }) {
   const session = context.session;
   const note = instance.notes.find(item => item.id === noteId);
   if (!note) return;
+  const canEdit = contextCanEdit(context);
+  const canComment = contextCanComment(context);
+  const sharedAccess = Boolean(context.sharedAccess);
+  const fieldState = canEdit ? '' : ' disabled';
+  const editActions = canEdit ? `<div class="modal-actions field-full note-actions"><button class="button button-danger" type="button" id="delete-note">${icon('trash')} Eliminar</button>${sharedAccess ? '' : `<button class="button button-secondary" type="button" id="link-note">${icon('link')} Vincular</button><button class="button button-secondary" type="button" id="convert-note">${icon('checkSquare')} Crear tarea</button>`}<button class="button button-primary" type="submit">Guardar cambios</button></div>` : '<p class="field-help field-full">Tu permiso permite comentar, pero no modificar el contenido de la nota.</p>';
+  const commentForm = canComment ? `<form id="note-comment-form"><label class="sr-only" for="note-comment-text">Nuevo comentario</label><textarea class="input textarea" id="note-comment-text" rows="3" maxlength="800" required placeholder="Escribe un comentario..."></textarea><button class="button button-secondary" type="submit">${icon('message')} Comentar</button></form>` : '<p class="muted-copy">No tienes permiso para comentar.</p>';
   const modal = openModal({
-    title: 'Detalle de la nota',
-    subtitle: 'Edita, comenta, vincula o convierte esta idea en trabajo accionable.',
+    title: canEdit ? 'Detalle de la nota' : 'Comentarios de la nota',
+    subtitle: canEdit ? 'Edita el contenido o conversa con el equipo.' : 'Consulta la idea y participa mediante comentarios.',
     size: 'lg',
-    initialFocus: '#note-detail-text',
+    initialFocus: canEdit ? '#note-detail-text' : '#note-comment-text',
     onClose: () => blockCanvasNavigation(900),
     body: `<div class="note-detail-layout"><form id="note-detail-form" class="form-grid" novalidate>
-      <div class="field field-full"><label for="note-detail-text">Contenido *</label><textarea class="input textarea" id="note-detail-text" rows="6" maxlength="1200" required>${escapeHtml(note.text)}</textarea><small class="field-error" id="note-detail-error"></small></div>
-      <div class="field"><label for="note-detail-section">Sección</label><select class="select" id="note-detail-section">${instance.template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === note.sectionId ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div>
-      ${detailColorField(note)}
+      <div class="field field-full"><label for="note-detail-text">Contenido *</label><textarea class="input textarea" id="note-detail-text" rows="6" maxlength="1200" required${fieldState}>${escapeHtml(note.text)}</textarea><small class="field-error" id="note-detail-error"></small></div>
+      <div class="field"><label for="note-detail-section">Sección</label><select class="select" id="note-detail-section"${fieldState}>${instance.template.sections.map(section => `<option value="${escapeHtml(section.id)}" ${section.id === note.sectionId ? 'selected' : ''}>${escapeHtml(section.emoji || '')} ${escapeHtml(section.title)}</option>`).join('')}</select></div>
+      ${canEdit ? detailColorField(note) : `<div class="field"><label>Color</label><div class="note-color-readonly" style="--note-color:${escapeHtml(resolveNoteColor(note).background)}"><span></span>${escapeHtml(resolveNoteColor(note).name)}</div></div>`}
       <div class="note-meta field-full"><span>Creada por <strong>${escapeHtml(note.author?.name || 'Usuario')}</strong></span><span>${formatDate(note.createdAt)}</span>${note.sourceCanvasId ? `<span>${icon('link')} Resultado vinculado</span>` : ''}</div>
-      <div class="modal-actions field-full note-actions"><button class="button button-danger" type="button" id="delete-note">${icon('trash')} Eliminar</button><button class="button button-secondary" type="button" id="link-note">${icon('link')} Vincular</button><button class="button button-secondary" type="button" id="convert-note">${icon('checkSquare')} Crear tarea</button><button class="button button-primary" type="submit">Guardar cambios</button></div>
+      ${editActions}
     </form>
-    <aside class="note-comments-panel"><h3>Comentarios</h3><div class="note-comment-list">${note.comments?.length ? note.comments.map(comment => `<article><span class="note-author">${escapeHtml(comment.author?.initials || '?')}</span><div><strong>${escapeHtml(comment.author?.name || 'Usuario')}</strong><p>${escapeHtml(comment.text)}</p><time>${relativeTime(comment.createdAt)}</time></div></article>`).join('') : '<p class="muted-copy">No hay comentarios todavía.</p>'}</div><form id="note-comment-form"><label class="sr-only" for="note-comment-text">Nuevo comentario</label><textarea class="input textarea" id="note-comment-text" rows="3" maxlength="800" placeholder="Escribe un comentario..."></textarea><button class="button button-secondary" type="submit">${icon('message')} Comentar</button></form></aside></div>`
+    <aside class="note-comments-panel"><h3>Comentarios</h3><div class="note-comment-list">${note.comments?.length ? note.comments.map(comment => `<article><span class="note-author">${escapeHtml(comment.author?.initials || '?')}</span><div><strong>${escapeHtml(comment.author?.name || 'Usuario')}</strong><p>${escapeHtml(comment.text)}</p><time>${relativeTime(comment.createdAt)}</time></div></article>`).join('') : '<p class="muted-copy">No hay comentarios todavía.</p>'}</div>${commentForm}</aside></div>`
   });
 
-  const noteColorInput = modal.root.querySelector('#note-detail-color');
-  const noteColorCode = modal.root.querySelector('#note-detail-color-code');
-  noteColorInput?.addEventListener('input', event => {
-    const value = normalizeHexColor(event.target.value);
-    if (noteColorCode) noteColorCode.textContent = value;
-  });
+  if (canEdit) {
+    const noteColorInput = modal.root.querySelector('#note-detail-color');
+    const noteColorCode = modal.root.querySelector('#note-detail-color-code');
+    noteColorInput?.addEventListener('input', event => {
+      const value = normalizeHexColor(event.target.value);
+      if (noteColorCode) noteColorCode.textContent = value;
+    });
 
-  modal.root.querySelector('#note-detail-form').addEventListener('submit', async event => {
-    event.preventDefault();
-    const textField = modal.root.querySelector('#note-detail-text');
-    const text = textField.value.trim();
-    if (!text) {
-      textField.setAttribute('aria-invalid', 'true');
-      modal.root.querySelector('#note-detail-error').textContent = 'La nota no puede quedar vacía.';
-      textField.focus();
-      return;
-    }
-    beginCanvasMutation(container);
-    blockCanvasNavigation(1600);
-    try {
-      const next = await CanvasService.updateNote({
-        canvasId: context.instance.id,
-        ...canvasScope(context.instance, context.session),
-        noteId,
-        patch: {
-          text,
-          sectionId: modal.root.querySelector('#note-detail-section').value,
-          colorId: note.colorId || 'sky',
-          colorHex: normalizeHexColor(modal.root.querySelector('#note-detail-color')?.value, getCanvasNoteColor(note.colorId).background)
-        },
-        session
-      });
-      onSaved?.(next);
+    modal.root.querySelector('#note-detail-form')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const textField = modal.root.querySelector('#note-detail-text');
+      const text = textField.value.trim();
+      if (!text) {
+        textField.setAttribute('aria-invalid', 'true');
+        modal.root.querySelector('#note-detail-error').textContent = 'La nota no puede quedar vacía.';
+        textField.focus();
+        return;
+      }
+      beginCanvasMutation(container);
+      blockCanvasNavigation(1600);
+      try {
+        const next = await CanvasService.updateNote({
+          canvasId: context.instance.id,
+          ...canvasScope(context.instance, session),
+          noteId,
+          patch: {
+            text,
+            sectionId: modal.root.querySelector('#note-detail-section').value,
+            colorId: note.colorId || 'sky',
+            colorHex: normalizeHexColor(modal.root.querySelector('#note-detail-color')?.value, getCanvasNoteColor(note.colorId).background)
+          },
+          session
+        });
+        onSaved?.(next);
+        modal.close({ restoreFocus: false });
+        showToast('Nota actualizada.');
+      } catch (error) {
+        showToast(error.message || 'No se pudo actualizar la nota.', { type: 'error' });
+      } finally {
+        endCanvasMutation(container);
+        blockCanvasNavigation(900);
+      }
+    });
+
+    modal.root.querySelector('#delete-note')?.addEventListener('click', async () => {
+      const confirmed = await confirmModal({ title: 'Eliminar nota', message: 'La nota y sus comentarios se eliminarán del canvas.', confirmLabel: 'Eliminar', danger: true });
+      if (!confirmed) return;
+      beginCanvasMutation(container);
+      blockCanvasNavigation(1600);
+      try {
+        const next = await CanvasService.deleteNote({ canvasId: context.instance.id, ...canvasScope(context.instance, session), noteId, session });
+        onSaved?.(next);
+        closeModal({ restoreFocus: false });
+        showToast('Nota eliminada.');
+      } catch (error) {
+        showToast(error.message || 'No se pudo eliminar la nota.', { type: 'error' });
+      } finally {
+        endCanvasMutation(container);
+        blockCanvasNavigation(900);
+      }
+    });
+
+    modal.root.querySelector('#convert-note')?.addEventListener('click', () => {
       modal.close({ restoreFocus: false });
-      showToast('Nota actualizada.');
-    } catch (error) {
-      showToast(error.message || 'No se pudo actualizar la nota.', { type: 'error' });
-    } finally {
-      endCanvasMutation(container);
-      blockCanvasNavigation(900);
-    }
-  });
+      openConvertToTask({ instance: context.instance, note, session, onSaved });
+    });
+    modal.root.querySelector('#link-note')?.addEventListener('click', () => {
+      modal.close({ restoreFocus: false });
+      openLinkNote({ instance: context.instance, note, session, onSaved });
+    });
+  }
 
-  modal.root.querySelector('#note-comment-form').addEventListener('submit', async event => {
+  modal.root.querySelector('#note-comment-form')?.addEventListener('submit', async event => {
     event.preventDefault();
     const field = modal.root.querySelector('#note-comment-text');
+    const text = field.value.trim();
+    if (!text) {
+      field.setAttribute('aria-invalid', 'true');
+      field.focus();
+      return;
+    }
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    submit.disabled = true;
     beginCanvasMutation(container);
     blockCanvasNavigation(1600);
     try {
-      const next = await CanvasService.addComment({ canvasId: context.instance.id, ...canvasScope(context.instance, session), noteId, text: field.value });
+      const next = await CanvasService.addComment({
+        canvasId: context.instance.id,
+        ...canvasScope(context.instance, session),
+        noteId,
+        text,
+        session
+      });
       onSaved?.(next);
       modal.close({ restoreFocus: false });
       showToast('Comentario agregado.');
     } catch (error) {
       showToast(error.message || 'No se pudo agregar el comentario.', { type: 'error' });
+      submit.disabled = false;
     } finally {
       endCanvasMutation(container);
       blockCanvasNavigation(900);
     }
-  });
-
-  modal.root.querySelector('#delete-note').addEventListener('click', async () => {
-    const confirmed = await confirmModal({ title: 'Eliminar nota', message: 'La nota y sus comentarios se eliminarán del canvas.', confirmLabel: 'Eliminar', danger: true });
-    if (!confirmed) return;
-    beginCanvasMutation(container);
-    blockCanvasNavigation(1600);
-    try {
-      const next = await CanvasService.deleteNote({ canvasId: context.instance.id, ...canvasScope(context.instance, session), noteId });
-      onSaved?.(next);
-      closeModal({ restoreFocus: false });
-      showToast('Nota eliminada.');
-    } catch (error) {
-      showToast(error.message || 'No se pudo eliminar la nota.', { type: 'error' });
-    } finally {
-      endCanvasMutation(container);
-      blockCanvasNavigation(900);
-    }
-  });
-
-  modal.root.querySelector('#convert-note').addEventListener('click', () => {
-    modal.close({ restoreFocus: false });
-    openConvertToTask({ instance: context.instance, note, session, onSaved });
-  });
-  modal.root.querySelector('#link-note').addEventListener('click', () => {
-    modal.close({ restoreFocus: false });
-    openLinkNote({ instance: context.instance, note, session, onSaved });
   });
 }
 
@@ -725,27 +842,90 @@ async function openHistory({ instance, session, context, container }) {
 async function openShare(instance, session) {
   const modal = openModal({
     title: 'Compartir canvas',
-    subtitle: 'El enlace y el QR quedan listos al abrir esta ventana.',
-    size: 'md',
+    subtitle: 'Invita personas con permiso de lectura, comentarios o edición en tiempo real.',
+    size: 'lg',
     onClose: () => blockCanvasNavigation(500),
-    body: `<div class="share-canvas-box share-canvas-simple">
-      <div id="share-result" class="share-result-loading"><span class="spinner"></span> Preparando enlace...</div>
-      <details class="share-secondary-options">
-        <summary>${icon('more')} Cambiar vigencia o crear otro enlace</summary>
-        <form id="share-create-form" class="form-grid share-options-form">
-          <div class="field"><label for="share-expiry-preset">Vigencia</label><select class="select" id="share-expiry-preset"><option value="1">1 día</option><option value="7" selected>7 días</option><option value="15">15 días</option><option value="30">30 días</option><option value="custom">Fecha personalizada</option></select></div>
-          <div class="field"><label for="share-custom-expiry">Fecha y hora</label><input class="input" id="share-custom-expiry" type="datetime-local" disabled></div>
-          <div class="field field-full"><label for="share-label">Etiqueta opcional</label><input class="input" id="share-label" maxlength="80" placeholder="Ej.: Revisión del cliente"></div>
-          <div class="modal-actions field-full"><button class="button button-secondary" type="submit">${icon('plus')} Crear otro enlace</button></div>
+    body: `<div class="share-canvas-box share-canvas-advanced">
+      <section class="share-people-section">
+        <div class="section-heading compact"><div><span class="page-kicker">Acceso personalizado</span><h3>Personas con acceso</h3><p>Cada persona debe ingresar con la Cuenta WonkUp correspondiente a su correo.</p></div></div>
+        <form id="person-share-form" class="form-grid share-person-form" novalidate>
+          <div class="field field-full"><label for="person-share-email">Correo de la persona *</label><input class="input" id="person-share-email" type="email" autocomplete="email" required placeholder="persona@empresa.com"><small class="field-help">La cuenta debe existir y estar activa en Administración → Usuarios.</small><small class="field-error" id="person-share-email-error"></small></div>
+          <div class="field"><label for="person-share-permission">Permiso</label><select class="select" id="person-share-permission"><option value="viewer">Solo lectura</option><option value="commenter">Comentarista</option><option value="editor" selected>Editor en tiempo real</option></select></div>
+          <div class="field"><label for="person-share-expiry">Vigencia</label><select class="select" id="person-share-expiry"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option><option value="365">1 año</option></select></div>
+          <div class="modal-actions field-full"><button class="button button-primary" type="submit">${icon('users')} Dar acceso</button></div>
         </form>
+        <div id="person-share-feedback" class="inline-feedback" role="status" aria-live="polite"></div>
+        <div id="person-share-list" class="share-person-list"><span class="spinner"></span> Cargando personas...</div>
+      </section>
+
+      <details class="share-secondary-options share-public-section" open>
+        <summary>${icon('link')} Enlace público de solo lectura</summary>
+        <div id="share-result" class="share-result-loading"><span class="spinner"></span> Preparando enlace público...</div>
+        <details class="share-secondary-options nested">
+          <summary>${icon('more')} Cambiar vigencia o crear otro enlace público</summary>
+          <form id="share-create-form" class="form-grid share-options-form">
+            <div class="field"><label for="share-expiry-preset">Vigencia</label><select class="select" id="share-expiry-preset"><option value="1">1 día</option><option value="7" selected>7 días</option><option value="15">15 días</option><option value="30">30 días</option><option value="custom">Fecha personalizada</option></select></div>
+            <div class="field"><label for="share-custom-expiry">Fecha y hora</label><input class="input" id="share-custom-expiry" type="datetime-local" disabled></div>
+            <div class="field field-full"><label for="share-label">Etiqueta opcional</label><input class="input" id="share-label" maxlength="80" placeholder="Ej.: Revisión del cliente"></div>
+            <div class="modal-actions field-full"><button class="button button-secondary" type="submit">${icon('plus')} Crear enlace público</button></div>
+          </form>
+        </details>
+        <details class="share-secondary-options nested">
+          <summary>${icon('settings')} Administrar enlaces públicos</summary>
+          <div id="share-token-list"><span class="spinner"></span> Cargando...</div>
+          <p class="field-help">Los enlaces públicos siempre son de solo lectura y no requieren cuenta.</p>
+        </details>
       </details>
-      <details class="share-secondary-options">
-        <summary>${icon('settings')} Administrar enlaces</summary>
-        <div id="share-token-list"><span class="spinner"></span> Cargando...</div>
-        <p class="field-help">Revocar sirve para desactivar inmediatamente un enlace enviado por error o cuando la revisión ya terminó.</p>
-      </details>
-      <p class="field-help">Modo demo local: el QR y el enlace solo podrán abrir el canvas en este mismo navegador hasta conectar Firebase.</p>
     </div>`
+  });
+
+  const personFeedback = modal.root.querySelector('#person-share-feedback');
+  const refreshPeople = async () => {
+    try {
+      const grants = await CanvasService.listPersonShares({ canvasId: instance.id, ...canvasScope(instance, session) });
+      renderPersonShareAccess(modal.root, instance, session, grants, refreshPeople);
+    } catch (error) {
+      modal.root.querySelector('#person-share-list').innerHTML = `<div class="inline-feedback error">${escapeHtml(error.message || 'No se pudieron cargar las personas con acceso.')}</div>`;
+    }
+  };
+
+  modal.root.querySelector('#person-share-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const emailField = modal.root.querySelector('#person-share-email');
+    const email = emailField.value.trim().toLowerCase();
+    const submit = form.querySelector('[type="submit"]');
+    modal.root.querySelector('#person-share-email-error').textContent = '';
+    emailField.setAttribute('aria-invalid', String(!email));
+    if (!email) {
+      modal.root.querySelector('#person-share-email-error').textContent = 'Escribe el correo de la persona.';
+      emailField.focus();
+      return;
+    }
+    submit.disabled = true;
+    personFeedback.className = 'inline-feedback';
+    personFeedback.textContent = 'Creando acceso seguro...';
+    try {
+      const days = Number(modal.root.querySelector('#person-share-expiry').value || 30);
+      const grant = await CanvasService.createPersonShare({
+        canvasId: instance.id,
+        ...canvasScope(instance, session),
+        email,
+        permission: modal.root.querySelector('#person-share-permission').value,
+        expiresAt: new Date(Date.now() + days * 86400000).toISOString(),
+        session
+      });
+      emailField.value = '';
+      personFeedback.className = 'inline-feedback success';
+      personFeedback.textContent = `${grant.name || grant.email} ya tiene acceso como ${sharePermissionLabel(grant.permission)}.`;
+      await refreshPeople();
+      showToast('Acceso al Canvas creado.');
+    } catch (error) {
+      personFeedback.className = 'inline-feedback error';
+      personFeedback.textContent = error.message || 'No se pudo crear el acceso.';
+    } finally {
+      submit.disabled = false;
+    }
   });
 
   const preset = modal.root.querySelector('#share-expiry-preset');
@@ -765,7 +945,7 @@ async function openShare(instance, session) {
         canvasId: instance.id,
         ...canvasScope(instance, session),
         expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
-        label: 'Enlace principal',
+        label: 'Enlace público principal',
         session
       });
       tokens = await CanvasService.listShareTokens({ canvasId: instance.id, ...canvasScope(instance, session) });
@@ -773,11 +953,7 @@ async function openShare(instance, session) {
     renderShareTokens(modal.root, instance, tokens, session, token, refreshTokens);
   };
 
-  try {
-    await refreshTokens();
-  } catch (error) {
-    modal.root.querySelector('#share-result').innerHTML = `<div class="inline-feedback error">${escapeHtml(error.message || 'No se pudo preparar el enlace.')}</div>`;
-  }
+  await Promise.allSettled([refreshPeople(), refreshTokens()]);
 
   modal.root.querySelector('#share-create-form').addEventListener('submit', async event => {
     event.preventDefault();
@@ -799,14 +975,88 @@ async function openShare(instance, session) {
         session
       });
       await refreshTokens(token);
-      modal.root.querySelector('.share-secondary-options')?.removeAttribute('open');
-      showToast('Nuevo enlace listo para compartir.');
+      showToast('Nuevo enlace público listo.');
     } catch (error) {
       showToast(error.message, { type: 'error' });
     } finally {
       submit.disabled = false;
     }
   });
+}
+
+function renderPersonShareAccess(root, instance, session, grants, refreshPeople) {
+  const list = root.querySelector('#person-share-list');
+  if (!grants.length) {
+    list.innerHTML = '<div class="empty-inline"><strong>Aún no hay personas invitadas.</strong><span>Agrega un correo y define su permiso.</span></div>';
+    return;
+  }
+  list.innerHTML = grants.map(grant => {
+    const active = grant.active && new Date(grant.expiresAt).getTime() > Date.now();
+    const link = grant.tokenCode ? shareLink(grant.tokenCode) : '';
+    const expiryValue = toLocalDateTime(new Date(grant.expiresAt));
+    const initials = (grant.name || grant.email || '?').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+    return `<article class="share-person-item ${active ? '' : 'is-inactive'}" data-share-person="${escapeHtml(grant.uid)}">
+      <div class="share-person-avatar">${escapeHtml(initials)}</div>
+      <div class="share-person-main"><strong>${escapeHtml(grant.name || grant.email)}</strong><span>${escapeHtml(grant.email)}</span><small>${active ? `Acceso activo hasta ${formatDateTime(grant.expiresAt)}` : 'Acceso vencido o revocado'}</small></div>
+      <div class="share-person-controls">
+        <label><span class="sr-only">Permiso</span><select class="select share-permission-select" data-person-permission><option value="viewer" ${grant.permission === 'viewer' ? 'selected' : ''}>Solo lectura</option><option value="commenter" ${grant.permission === 'commenter' ? 'selected' : ''}>Comentarista</option><option value="editor" ${grant.permission === 'editor' ? 'selected' : ''}>Editor</option></select></label>
+        <label><span class="sr-only">Vencimiento</span><input class="input share-person-expiry" data-person-expiry type="datetime-local" min="${toLocalDateTime(new Date(Date.now() + 5 * 60000))}" value="${escapeHtml(expiryValue)}"></label>
+        <button class="button button-secondary" type="button" data-save-person="${escapeHtml(grant.uid)}">${active ? 'Guardar' : 'Reactivar'}</button>
+        ${link ? `<button class="icon-button" type="button" data-copy-person-link="${escapeHtml(link)}" aria-label="Copiar enlace de ${escapeHtml(grant.name || grant.email)}" title="Copiar enlace">${icon('copy')}</button>` : ''}
+        ${active ? `<button class="icon-button danger-soft" type="button" data-revoke-person="${escapeHtml(grant.uid)}" aria-label="Revocar acceso" title="Revocar acceso">${icon('lock')}</button>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+
+  list.querySelectorAll('[data-copy-person-link]').forEach(button => button.addEventListener('click', async () => {
+    const copied = await copyText(button.dataset.copyPersonLink);
+    button.innerHTML = copied ? icon('check') : icon('copy');
+    showToast(copied ? 'Enlace personalizado copiado.' : 'Selecciona y copia el enlace.');
+    setTimeout(() => { if (button.isConnected) button.innerHTML = icon('copy'); }, 2200);
+  }));
+
+  list.querySelectorAll('[data-save-person]').forEach(button => button.addEventListener('click', async () => {
+    const item = button.closest('[data-share-person]');
+    const expiresAt = new Date(item.querySelector('[data-person-expiry]').value);
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      showToast('Selecciona una fecha futura.', { type: 'error' });
+      return;
+    }
+    button.disabled = true;
+    try {
+      await CanvasService.updatePersonShare({
+        canvasId: instance.id,
+        ...canvasScope(instance, session),
+        targetUid: button.dataset.savePerson,
+        permission: item.querySelector('[data-person-permission]').value,
+        expiresAt: expiresAt.toISOString(),
+        session
+      });
+      await refreshPeople();
+      showToast('Permiso actualizado.');
+    } catch (error) {
+      showToast(error.message || 'No se pudo actualizar el permiso.', { type: 'error' });
+      button.disabled = false;
+    }
+  }));
+
+  list.querySelectorAll('[data-revoke-person]').forEach(button => button.addEventListener('click', async () => {
+    if (!globalThis.confirm('La persona perderá el acceso inmediatamente. ¿Revocar?')) return;
+    button.disabled = true;
+    try {
+      await CanvasService.revokePersonShare({
+        canvasId: instance.id,
+        ...canvasScope(instance, session),
+        targetUid: button.dataset.revokePerson,
+        session
+      });
+      await refreshPeople();
+      showToast('Acceso revocado.');
+    } catch (error) {
+      showToast(error.message || 'No se pudo revocar el acceso.', { type: 'error' });
+      button.disabled = false;
+    }
+  }));
 }
 
 function renderShareTokens(root, instance, tokens, session, selectedToken, refreshTokens) {
@@ -826,7 +1076,7 @@ function shareResultMarkup(token) {
   const qr = qrImageUrl(link);
   return `<section class="share-quick-card">
     <button class="share-quick-qr" type="button" data-expand-qr="${escapeHtml(token.id)}" aria-label="Ampliar código QR"><img src="${escapeHtml(qr)}" alt="Código QR del canvas" width="190" height="190"><span>${icon('maximize')} Ampliar</span></button>
-    <div class="share-quick-content"><span class="share-ready-badge">${icon('check')} Listo para compartir</span><h3>Enlace de consulta</h3><p>Vence el ${formatDateTime(token.expiresAt)}.</p><div class="copy-field share-copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-primary" id="copy-canvas-link" type="button">${icon('copy')} Copiar enlace</button></div><div class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></div><button class="button button-ghost share-native-button" id="native-share-link" type="button">${icon('link')} Compartir con otra aplicación</button></div>
+    <div class="share-quick-content"><span class="share-ready-badge">${icon('check')} Listo para compartir</span><h3>Enlace público de solo lectura</h3><p>Vence el ${formatDateTime(token.expiresAt)}.</p><div class="copy-field share-copy-field"><input class="input" id="canvas-share-link" readonly value="${escapeHtml(link)}"><button class="button button-primary" id="copy-canvas-link" type="button">${icon('copy')} Copiar enlace</button></div><div class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></div><button class="button button-ghost share-native-button" id="native-share-link" type="button">${icon('link')} Compartir con otra aplicación</button></div>
   </section>`;
 }
 

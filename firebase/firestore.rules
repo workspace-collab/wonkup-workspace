@@ -90,6 +90,46 @@ service cloud.firestore {
       return canLeadProject(workspaceId, projectId);
     }
 
+    function canvasAccessPath(workspaceId, projectId, canvasId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/projects/$(projectId)/canvases/$(canvasId)/access/$(request.auth.uid);
+    }
+
+    function hasActiveCanvasAccess(workspaceId, projectId, canvasId) {
+      return hasActiveProfile()
+        && exists(canvasAccessPath(workspaceId, projectId, canvasId))
+        && get(canvasAccessPath(workspaceId, projectId, canvasId)).data.active == true
+        && get(canvasAccessPath(workspaceId, projectId, canvasId)).data.expiresAt is timestamp
+        && get(canvasAccessPath(workspaceId, projectId, canvasId)).data.expiresAt > request.time;
+    }
+
+    function canvasAccessPermission(workspaceId, projectId, canvasId) {
+      return get(canvasAccessPath(workspaceId, projectId, canvasId)).data.permission;
+    }
+
+    function canReadCanvasDocument(workspaceId, projectId, canvasId) {
+      return canReadCanvas(workspaceId, projectId)
+        || (
+          hasActiveCanvasAccess(workspaceId, projectId, canvasId)
+          && canvasAccessPermission(workspaceId, projectId, canvasId) in ['viewer', 'commenter', 'editor']
+        );
+    }
+
+    function canCommentCanvasDocument(workspaceId, projectId, canvasId) {
+      return canEditCanvas(workspaceId, projectId)
+        || (
+          hasActiveCanvasAccess(workspaceId, projectId, canvasId)
+          && canvasAccessPermission(workspaceId, projectId, canvasId) in ['commenter', 'editor']
+        );
+    }
+
+    function canEditCanvasDocument(workspaceId, projectId, canvasId) {
+      return canEditCanvas(workspaceId, projectId)
+        || (
+          hasActiveCanvasAccess(workspaceId, projectId, canvasId)
+          && canvasAccessPermission(workspaceId, projectId, canvasId) == 'editor'
+        );
+    }
+
     function validCanvas(workspaceId, projectId, canvasId) {
       return request.resource.data.id == canvasId
         && request.resource.data.workspaceId == workspaceId
@@ -408,6 +448,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    match /canvasShareAccess/{shareId} {
+      // Los enlaces personalizados se resuelven exclusivamente mediante Cloud Functions.
+      allow read, write: if false;
+    }
+
     match /workspaces/{workspaceId} {
       allow read: if isWorkspaceMember(workspaceId);
       allow create: if isSuperadmin() && validWorkspaceDocument(workspaceId);
@@ -510,30 +556,45 @@ service cloud.firestore {
         }
 
         match /canvases/{canvasId} {
-          allow read: if canReadCanvas(workspaceId, projectId);
+          allow read: if canReadCanvasDocument(workspaceId, projectId, canvasId);
           allow create: if canEditCanvas(workspaceId, projectId)
             && validCanvas(workspaceId, projectId, canvasId);
           allow update: if validCanvas(workspaceId, projectId, canvasId) && (
             canManageCanvas(workspaceId, projectId)
             || (
-              canEditCanvas(workspaceId, projectId)
+              canEditCanvasDocument(workspaceId, projectId, canvasId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
                 'version', 'noteCount', 'activeSectionCount', 'historyCount',
                 'versionCount', 'shareCount', 'updatedAt', 'updatedBy', 'schemaVersion'
+              ])
+            )
+            || (
+              canCommentCanvasDocument(workspaceId, projectId, canvasId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'version', 'historyCount', 'updatedAt', 'updatedBy', 'schemaVersion'
               ])
             )
           );
           allow delete: if false;
 
           match /notes/{noteId} {
-            allow read: if canReadCanvas(workspaceId, projectId);
-            allow create, update: if canEditCanvas(workspaceId, projectId)
+            allow read: if canReadCanvasDocument(workspaceId, projectId, canvasId);
+            allow create: if canEditCanvasDocument(workspaceId, projectId, canvasId)
               && validCanvasNote(workspaceId, projectId, canvasId, noteId);
+            allow update: if validCanvasNote(workspaceId, projectId, canvasId, noteId) && (
+              canEditCanvasDocument(workspaceId, projectId, canvasId)
+              || (
+                canCommentCanvasDocument(workspaceId, projectId, canvasId)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'commentCount', 'updatedAt', 'schemaVersion'
+                ])
+              )
+            );
             allow delete: if false;
 
             match /comments/{commentId} {
-              allow read: if canReadCanvas(workspaceId, projectId);
-              allow create: if canEditCanvas(workspaceId, projectId)
+              allow read: if canReadCanvasDocument(workspaceId, projectId, canvasId);
+              allow create: if canCommentCanvasDocument(workspaceId, projectId, canvasId)
                 && validCanvasComment(canvasId, noteId, commentId)
                 && (isSuperadmin() || request.resource.data.authorUid == request.auth.uid);
               allow update, delete: if false;
@@ -542,7 +603,8 @@ service cloud.firestore {
 
           match /history/{eventId} {
             allow read: if canReadCanvas(workspaceId, projectId);
-            allow create: if canEditCanvas(workspaceId, projectId)
+            allow create: if (canEditCanvasDocument(workspaceId, projectId, canvasId)
+                || canCommentCanvasDocument(workspaceId, projectId, canvasId))
               && validCanvasHistory(workspaceId, projectId, canvasId, eventId)
               && (isSuperadmin() || request.resource.data.actorUid == request.auth.uid);
             allow update, delete: if false;
@@ -567,6 +629,12 @@ service cloud.firestore {
             allow create, update: if canManageCanvas(workspaceId, projectId)
               && validCanvasShareLink(workspaceId, projectId, canvasId, shareId);
             allow delete: if false;
+          }
+
+          match /access/{memberId} {
+            allow read: if canManageCanvas(workspaceId, projectId)
+              || (signedIn() && request.auth.uid == memberId);
+            allow create, update, delete: if false;
           }
         }
 

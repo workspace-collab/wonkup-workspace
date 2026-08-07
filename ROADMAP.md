@@ -19,3 +19,5 @@
 | Ajuste 12.2 — Usuarios e invitaciones | Código listo; despliegue de Cloud Functions pendiente |
 | Entrega 13 — Finanzas y reportes cloud | Pendiente |
 | Entrega 14 — Integraciones Google e IA | Pendiente |
+
+| Ajuste 12.3 — Colaboración de Canvas por enlace autenticado | Código listo; despliegue y validación real pendientes |

@@ -1,8 +1,8 @@
-import { AccessService } from '../services/access-service.js?v=12.2.1';
-import { setSession, setState } from '../state/store.js?v=12.2.1';
-import { getDefaultRoute } from '../utils/permissions.js?v=12.2.1';
-import { escapeHtml } from '../utils/format.js?v=12.2.1';
-import { icon } from '../utils/icons.js?v=12.2.1';
+import { AccessService } from '../services/access-service.js?v=12.3.0';
+import { setSession, setState } from '../state/store.js?v=12.3.0';
+import { getDefaultRoute } from '../utils/permissions.js?v=12.3.0';
+import { escapeHtml } from '../utils/format.js?v=12.3.0';
+import { icon } from '../utils/icons.js?v=12.3.0';
 
 export function renderAccess(container, options = {}) {
   const demoCodes = AccessService.getDemoCodes();
@@ -13,7 +13,9 @@ export function renderAccess(container, options = {}) {
   const defaultPanel = showCodeTab ? 'code' : 'account';
   const reason = options.reason === 'expired'
     ? '<div class="auth-alert" role="alert">Tu sesión terminó. Ingresa nuevamente para continuar.</div>'
-    : '';
+    : options.reason === 'share'
+      ? '<div class="auth-alert" role="status">Ingresa con la cuenta autorizada para abrir el Canvas compartido.</div>'
+      : '';
 
   container.innerHTML = `
     <section class="auth-page">
@@ -116,6 +118,12 @@ function completeLogin(session) {
   setSession(session);
   const firstWorkspace = session.scopes?.workspaceIds?.find(id => id !== '*') || 'all';
   setState({ selectedWorkspaceId: firstWorkspace, sidebarOpen: false });
+  const returnHash = sessionStorage.getItem('wonkup.auth.returnHash');
+  if (returnHash) {
+    sessionStorage.removeItem('wonkup.auth.returnHash');
+    location.hash = returnHash;
+    return;
+  }
   location.hash = getDefaultRoute(session);
 }
 

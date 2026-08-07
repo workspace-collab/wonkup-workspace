@@ -79,3 +79,12 @@ Consulta:
 - `TEST_RESULTS_12_2.md`
 
 El frontend continúa en GitHub Pages. La creación administrativa de identidades se ejecuta mediante Cloud Functions y Firebase Admin SDK; por ello, el proyecto debe usar el plan Blaze.
+
+## Ajuste 12.3 — Colaboración por enlace en Canvas
+
+El propietario o líder de un Canvas puede compartirlo de dos formas:
+
+- enlace público anónimo, siempre de solo lectura;
+- acceso personalizado para una Cuenta WonkUp activa con permiso `viewer`, `commenter` o `editor`.
+
+Los accesos personalizados requieren autenticación, tienen vencimiento, se pueden cambiar o revocar y conservan sincronización en tiempo real. Consulta `AJUSTE_12_3_GUIA.md` y `CANVAS_SHARING_ARCHITECTURE_12_3.md`.

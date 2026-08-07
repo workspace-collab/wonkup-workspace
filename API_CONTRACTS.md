@@ -497,3 +497,28 @@ wonkupSetManagedUserStatus
 ```
 
 Todas las funciones requieren un ID token válido y un documento `users/{uid}` con `role=superadmin` y `status=active`. Las operaciones privilegiadas se ejecutan con Firebase Admin SDK; el navegador nunca recibe credenciales de servicio.
+
+## Ajuste 12.3 — Accesos personalizados al Canvas
+
+CanvasService incorpora:
+
+```text
+createPersonShare({ canvasId, workspaceId, projectId, email, permission, expiresAt, session })
+listPersonShares({ canvasId, workspaceId, projectId, session })
+updatePersonShare({ canvasId, workspaceId, projectId, targetUid, permission, expiresAt, session })
+revokePersonShare({ canvasId, workspaceId, projectId, targetUid, session })
+resolvePersonShare({ token, session })
+getSharedCollaborativeInstance({ token, session, access })
+```
+
+Funciones callable:
+
+```text
+wonkupCreateCanvasShareAccess
+wonkupListCanvasShareAccess
+wonkupUpdateCanvasShareAccess
+wonkupRevokeCanvasShareAccess
+wonkupResolveCanvasShareAccess
+```
+
+`viewer` permite lectura en vivo; `commenter` añade comentarios; `editor` permite crear, editar, mover y archivar notas. La administración del acceso requiere superadministrador, administrador del workspace o líder del proyecto.

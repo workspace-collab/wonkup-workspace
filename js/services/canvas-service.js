@@ -1,6 +1,6 @@
-import { API_CONFIG } from '../config/api-config.js?v=12.2.1';
-import { MockCanvasAdapter } from '../adapters/mock-canvas-adapter.js?v=12.2.1';
-import { FirebaseCanvasAdapter } from '../adapters/firebase-canvas-adapter.js?v=12.2.1';
+import { API_CONFIG } from '../config/api-config.js?v=12.3.0';
+import { MockCanvasAdapter } from '../adapters/mock-canvas-adapter.js?v=12.3.0';
+import { FirebaseCanvasAdapter } from '../adapters/firebase-canvas-adapter.js?v=12.3.0';
 
 export function canvasDataSourceForSession(session) {
   if (API_CONFIG.canvasMode === 'firebase') return 'firebase';
@@ -33,6 +33,12 @@ export const CanvasService = {
   createShareToken: options => adapter(options).createShareToken(options),
   listShareTokens: options => adapter(options).listShareTokens(options),
   revokeShareToken: options => adapter(options).revokeShareToken(options),
+  createPersonShare: options => FirebaseCanvasAdapter.createPersonShare(options),
+  listPersonShares: options => FirebaseCanvasAdapter.listPersonShares(options),
+  updatePersonShare: options => FirebaseCanvasAdapter.updatePersonShare(options),
+  revokePersonShare: options => FirebaseCanvasAdapter.revokePersonShare(options),
+  resolvePersonShare: options => FirebaseCanvasAdapter.resolvePersonShare(options),
+  getSharedCollaborativeInstance: options => FirebaseCanvasAdapter.getSharedCollaborativeInstance(options),
   async getSharedInstance(options) {
     if (API_CONFIG.canvasMode === 'mock') return MockCanvasAdapter.getSharedInstance(options);
     try {

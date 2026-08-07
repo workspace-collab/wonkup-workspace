@@ -171,8 +171,19 @@ export function canDeleteKanbanCard(session, projectId = null, workspaceId = nul
   return MANAGEMENT_ROLES.has(getWorkspaceRole(session, workspaceId));
 }
 
-export function canViewCanvas(session, projectId = null, workspaceId = null) {
+export function getCanvasSharePermission(session, canvasId = null, projectId = null, workspaceId = null) {
+  if (!session || !canvasId) return null;
+  const grant = session.canvasShareAccess?.[canvasId];
+  if (!grant || grant.active === false) return null;
+  if (projectId && grant.projectId !== projectId) return null;
+  if (workspaceId && grant.workspaceId !== workspaceId) return null;
+  if (grant.expiresAt && new Date(grant.expiresAt).getTime() <= Date.now()) return null;
+  return ['viewer', 'commenter', 'editor'].includes(grant.permission) ? grant.permission : null;
+}
+
+export function canViewCanvas(session, projectId = null, workspaceId = null, canvasId = null) {
   if (!session) return false;
+  if (canvasId && getCanvasSharePermission(session, canvasId, projectId, workspaceId)) return true;
   if (projectId && !canAccessProject(session, projectId, workspaceId)) return false;
   if (projectId) return INTERNAL_ROLES.has(getProjectRole(session, projectId, workspaceId));
   return INTERNAL_ROLES.has(session.role)
@@ -180,8 +191,16 @@ export function canViewCanvas(session, projectId = null, workspaceId = null) {
     || Object.values(session.projectRoles || {}).some(role => INTERNAL_ROLES.has(role));
 }
 
-export function canEditCanvas(session, projectId = null, workspaceId = null) {
-  return canViewCanvas(session, projectId, workspaceId);
+export function canCommentCanvas(session, projectId = null, workspaceId = null, canvasId = null) {
+  const permission = getCanvasSharePermission(session, canvasId, projectId, workspaceId);
+  if (permission) return ['commenter', 'editor'].includes(permission);
+  return canViewCanvas(session, projectId, workspaceId, canvasId);
+}
+
+export function canEditCanvas(session, projectId = null, workspaceId = null, canvasId = null) {
+  const permission = getCanvasSharePermission(session, canvasId, projectId, workspaceId);
+  if (permission) return permission === 'editor';
+  return canViewCanvas(session, projectId, workspaceId, canvasId);
 }
 
 export function canManageCanvas(session, projectId = null, workspaceId = null) {

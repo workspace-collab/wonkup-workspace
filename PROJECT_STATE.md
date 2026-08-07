@@ -75,3 +75,15 @@ Durante la validación con dos cuentas se confirmó que una cuenta colaboradora 
 - Auditoría administrativa.
 - Botón de actualización del frontend en el menú del perfil.
 - Requiere migrar el proyecto Firebase de Spark a Blaze para desplegar funciones.
+
+## Ajuste 12.3 — Compartir Canvas por persona
+
+Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE Y VALIDACIÓN FIREBASE PENDIENTES.
+
+- Permisos: `viewer`, `commenter`, `editor`.
+- Acceso vinculado al UID de una Cuenta WonkUp activa.
+- Enlace personalizado con vencimiento y revocación.
+- Edición y comentarios sincronizados mediante Firestore.
+- Presencia compartida mediante Realtime Database.
+- Enlaces públicos anónimos preservados como solo lectura.
+- Cloud Functions de creación, listado, actualización, revocación y resolución.

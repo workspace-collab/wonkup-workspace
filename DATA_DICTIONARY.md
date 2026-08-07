@@ -552,3 +552,21 @@ Ruta `system/schema/userAdminAudit/{auditId}`.
 | executedAt | timestamp | Fecha del servidor |
 | executedBy | string | UID superadministrador |
 | release | string | Versión que ejecutó la acción |
+
+## Ajuste 12.3 — CanvasAccessGrant
+
+Ruta `workspaces/{workspaceId}/projects/{projectId}/canvases/{canvasId}/access/{uid}`.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| authUid | string | UID de la persona autorizada |
+| email | string | Correo de la Cuenta WonkUp |
+| name | string | Nombre visible |
+| permission | enum | `viewer`, `commenter` o `editor` |
+| active | boolean | Estado del acceso |
+| expiresAt | timestamp | Vencimiento obligatorio |
+| tokenCode | string | Token impredecible del enlace |
+| createdByUid | string | Administrador que creó el acceso |
+| updatedByUid | string | Administrador que realizó el último cambio |
+
+La colección `canvasShareAccess/{token}` es un índice privado resuelto exclusivamente mediante Cloud Functions. Las reglas deniegan toda lectura y escritura directa del cliente.

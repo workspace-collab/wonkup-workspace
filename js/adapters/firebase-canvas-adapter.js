@@ -1,12 +1,14 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.2.1';
-import { getCanvasTemplate } from '../../data/canvas-templates.js?v=12.2.1';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.3.0';
+import { getCanvasTemplate } from '../../data/canvas-templates.js?v=12.3.0';
 import {
   canAccessProject,
   canDeleteCanvas,
+  canViewCanvas,
+  canCommentCanvas,
   canEditCanvas,
   canManageCanvas,
   getWorkspaceRole
-} from '../utils/permissions.js?v=12.2.1';
+} from '../utils/permissions.js?v=12.3.0';
 
 const listeners = new Set();
 const locationCache = new Map();
@@ -86,16 +88,24 @@ function actor(session) {
   };
 }
 
-function requireAccess(session, projectId, workspaceId) {
-  if (!canAccessProject(session, projectId, workspaceId)) {
-    throw new Error('No tienes acceso a este canvas.');
+function requireAccess(session, projectId, workspaceId, canvasId = '') {
+  const allowed = canvasId
+    ? canViewCanvas(session, projectId, workspaceId, canvasId)
+    : canAccessProject(session, projectId, workspaceId);
+  if (!allowed) throw new Error('No tienes acceso a este canvas.');
+}
+
+function requireComment(session, projectId, workspaceId, canvasId) {
+  requireAccess(session, projectId, workspaceId, canvasId);
+  if (!canCommentCanvas(session, projectId, workspaceId, canvasId)) {
+    throw new Error('Tu permiso no permite comentar este canvas.');
   }
 }
 
-function requireEdit(session, projectId, workspaceId) {
-  requireAccess(session, projectId, workspaceId);
-  if (!canEditCanvas(session, projectId, workspaceId)) {
-    throw new Error('Tu rol no permite modificar canvases.');
+function requireEdit(session, projectId, workspaceId, canvasId = '') {
+  requireAccess(session, projectId, workspaceId, canvasId);
+  if (!canEditCanvas(session, projectId, workspaceId, canvasId)) {
+    throw new Error('Tu permiso no permite modificar este canvas.');
   }
 }
 
@@ -423,7 +433,7 @@ async function loadComments(client, noteRef) {
 }
 
 async function loadInstance(client, workspaceId, projectId, canvasId, session, { includeArchived = false, includeHistory = true } = {}) {
-  requireAccess(session, projectId, workspaceId);
+  requireAccess(session, projectId, workspaceId, canvasId);
   const { getDoc, getDocs, query, orderBy, limit } = client.sdk.firestore;
   const reference = refs(client, workspaceId, projectId, canvasId);
   const canvasSnapshot = await getDoc(reference.canvasRef);
@@ -565,7 +575,10 @@ async function refreshPublicShares(client, instance) {
     const snapshot = await client.sdk.firestore.getDocs(reference.shareLinksRef);
     const active = snapshot.docs
       .map(item => ({ id: item.id, ...item.data() }))
-      .filter(link => link.active !== false && timestampMillis(link.expiresAt) > Date.now());
+      .filter(link => link.active !== false
+        && link.shareType !== 'person'
+        && link.requiresAuth !== true
+        && timestampMillis(link.expiresAt) > Date.now());
     await Promise.all(active.map(link => client.sdk.firestore.setDoc(
       client.sdk.firestore.doc(client.db, 'canvasShares', link.code),
       publicShareSnapshot(instance, link),
@@ -581,6 +594,37 @@ async function afterMutation(client, location, canvasId, session, action, extra 
   await refreshPublicShares(client, next);
   emit({ action, canvasId, workspaceId: location.workspaceId, projectId: location.projectId, ...extra });
   return next;
+}
+
+async function callCanvasAccessFunction(name, data = {}, session = null) {
+  try {
+    const client = session ? await context(session) : await getFirebaseClient();
+    const callable = client.sdk.functions.httpsCallable(client.functions, name);
+    const result = await callable(data);
+    return result.data;
+  } catch (error) {
+    const wrapped = friendlyError(error);
+    wrapped.code = String(error?.code || '');
+    wrapped.cause = error;
+    throw wrapped;
+  }
+}
+
+function collaborativeShareSession(session, access) {
+  return {
+    ...session,
+    canvasShareAccess: {
+      ...(session?.canvasShareAccess || {}),
+      [access.canvasId]: {
+        active: true,
+        token: access.token,
+        permission: access.permission,
+        workspaceId: access.workspaceId,
+        projectId: access.projectId,
+        expiresAt: access.expiresAt
+      }
+    }
+  };
 }
 
 export const FirebaseCanvasAdapter = {
@@ -754,7 +798,7 @@ export const FirebaseCanvasAdapter = {
   async createNote({ canvasId, workspaceId, projectId, sectionId, input, session }) {
     try {
       const location = resolveLocation({ canvasId, workspaceId, projectId });
-      requireEdit(session, location.projectId, location.workspaceId);
+      requireEdit(session, location.projectId, location.workspaceId, canvasId);
       const client = await context(session);
       const reference = refs(client, location.workspaceId, location.projectId, canvasId);
       const canvasSnapshot = await client.sdk.firestore.getDoc(reference.canvasRef);
@@ -811,7 +855,7 @@ export const FirebaseCanvasAdapter = {
   async updateNote({ canvasId, workspaceId, projectId, noteId, patch, session }) {
     try {
       const location = resolveLocation({ canvasId, workspaceId, projectId });
-      requireEdit(session, location.projectId, location.workspaceId);
+      requireEdit(session, location.projectId, location.workspaceId, canvasId);
       const client = await context(session);
       const reference = refs(client, location.workspaceId, location.projectId, canvasId);
       const noteRef = client.sdk.firestore.doc(reference.notesRef, noteId);
@@ -861,7 +905,7 @@ export const FirebaseCanvasAdapter = {
   async moveNote({ canvasId, workspaceId, projectId, noteId, toSectionId, toIndex = 0, session }) {
     try {
       const location = resolveLocation({ canvasId, workspaceId, projectId });
-      requireEdit(session, location.projectId, location.workspaceId);
+      requireEdit(session, location.projectId, location.workspaceId, canvasId);
       const client = await context(session);
       const reference = refs(client, location.workspaceId, location.projectId, canvasId);
       const canvasSnapshot = await client.sdk.firestore.getDoc(reference.canvasRef);
@@ -906,7 +950,7 @@ export const FirebaseCanvasAdapter = {
   async deleteNote({ canvasId, workspaceId, projectId, noteId, session }) {
     try {
       const location = resolveLocation({ canvasId, workspaceId, projectId });
-      requireEdit(session, location.projectId, location.workspaceId);
+      requireEdit(session, location.projectId, location.workspaceId, canvasId);
       const client = await context(session);
       const reference = refs(client, location.workspaceId, location.projectId, canvasId);
       const noteRef = client.sdk.firestore.doc(reference.notesRef, noteId);
@@ -942,7 +986,7 @@ export const FirebaseCanvasAdapter = {
   async addComment({ canvasId, workspaceId, projectId, noteId, text, session }) {
     try {
       const location = resolveLocation({ canvasId, workspaceId, projectId });
-      requireEdit(session, location.projectId, location.workspaceId);
+      requireComment(session, location.projectId, location.workspaceId, canvasId);
       const value = String(text || '').trim().slice(0, 800);
       if (!value) throw new Error('Escribe un comentario.');
       const client = await context(session);
@@ -990,8 +1034,8 @@ export const FirebaseCanvasAdapter = {
     try {
       const sourceLocation = resolveLocation({ canvasId: sourceCanvasId, workspaceId: sourceWorkspaceId, projectId: sourceProjectId });
       const targetLocation = resolveLocation({ canvasId: targetCanvasId, workspaceId: targetWorkspaceId, projectId: targetProjectId });
-      requireAccess(session, sourceLocation.projectId, sourceLocation.workspaceId);
-      requireEdit(session, targetLocation.projectId, targetLocation.workspaceId);
+      requireAccess(session, sourceLocation.projectId, sourceLocation.workspaceId, sourceCanvasId);
+      requireEdit(session, targetLocation.projectId, targetLocation.workspaceId, targetCanvasId);
       const client = await context(session);
       const sourceRef = refs(client, sourceLocation.workspaceId, sourceLocation.projectId, sourceCanvasId);
       const sourceSnapshot = await client.sdk.firestore.getDoc(client.sdk.firestore.doc(sourceRef.notesRef, sourceNoteId));
@@ -1035,6 +1079,9 @@ export const FirebaseCanvasAdapter = {
         workspaceId: location.workspaceId,
         projectId: location.projectId,
         label: String(label || '').trim().slice(0, 80),
+        shareType: 'public',
+        permission: 'viewer',
+        requiresAuth: false,
         createdBy: actor(session).actorId,
         createdByUid: actor(session).actorUid,
         createdByName: actor(session).actorName,
@@ -1073,7 +1120,8 @@ export const FirebaseCanvasAdapter = {
       return snapshot.docs.map(item => {
         const data = { id: item.id, ...item.data() };
         return { ...data, expiresAt: asIso(data.expiresAt), createdAt: asIso(data.createdAt), revokedAt: asIso(data.revokedAt) };
-      }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }).filter(item => item.shareType !== 'person' && item.requiresAuth !== true)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } catch (error) {
       throw friendlyError(error);
     }
@@ -1154,6 +1202,61 @@ export const FirebaseCanvasAdapter = {
       if (String(error?.code || '') === 'permission-denied') {
         throw new Error('El enlace compartido no existe, expiró o fue revocado.');
       }
+      throw friendlyError(error);
+    }
+  },
+
+  async createPersonShare({ canvasId, workspaceId, projectId, email, permission, expiresAt, session }) {
+    requireManage(session, projectId, workspaceId);
+    const result = await callCanvasAccessFunction('wonkupCreateCanvasShareAccess', {
+      canvasId, workspaceId, projectId, email, permission, expiresAt
+    }, session);
+    return result.grant;
+  },
+
+  async listPersonShares({ canvasId, workspaceId, projectId, session }) {
+    requireManage(session, projectId, workspaceId);
+    const result = await callCanvasAccessFunction('wonkupListCanvasShareAccess', {
+      canvasId, workspaceId, projectId
+    }, session);
+    return result.grants || [];
+  },
+
+  async updatePersonShare({ canvasId, workspaceId, projectId, targetUid, permission, expiresAt, session }) {
+    requireManage(session, projectId, workspaceId);
+    return callCanvasAccessFunction('wonkupUpdateCanvasShareAccess', {
+      canvasId, workspaceId, projectId, targetUid, permission, expiresAt
+    }, session);
+  },
+
+  async revokePersonShare({ canvasId, workspaceId, projectId, targetUid, session }) {
+    requireManage(session, projectId, workspaceId);
+    return callCanvasAccessFunction('wonkupRevokeCanvasShareAccess', {
+      canvasId, workspaceId, projectId, targetUid
+    }, session);
+  },
+
+  async resolvePersonShare({ token, session = null }) {
+    return callCanvasAccessFunction('wonkupResolveCanvasShareAccess', { token }, session);
+  },
+
+  async getSharedCollaborativeInstance({ token, session, access = null }) {
+    try {
+      if (!session?.firebaseUid) throw new Error('Inicia sesión con la Cuenta WonkUp autorizada.');
+      const resolved = access || await this.resolvePersonShare({ token, session });
+      if (resolved.requiresAuth) throw new Error('Inicia sesión con la Cuenta WonkUp autorizada.');
+      const sharedSession = collaborativeShareSession(session, resolved);
+      const client = await context(sharedSession);
+      const instance = await loadInstance(
+        client,
+        resolved.workspaceId,
+        resolved.projectId,
+        resolved.canvasId,
+        sharedSession,
+        { includeHistory: false }
+      );
+      return { instance: { ...instance, sharedAccess: resolved }, session: sharedSession, access: resolved };
+    } catch (error) {
       throw friendlyError(error);
     }
   },
@@ -1299,7 +1402,7 @@ export const FirebaseCanvasAdapter = {
   async startRealtime({ canvasId, workspaceId, projectId, session }) {
     try {
       const location = resolveLocation({ canvasId, workspaceId, projectId });
-      requireAccess(session, location.projectId, location.workspaceId);
+      requireAccess(session, location.projectId, location.workspaceId, canvasId);
       const client = await context(session);
       const key = `${session.firebaseUid}:${location.workspaceId}:${location.projectId}:${canvasId}`;
       realtimeStops.get(key)?.();
@@ -1339,7 +1442,7 @@ export const FirebaseCanvasAdapter = {
     (async () => {
       try {
         const location = resolveLocation({ canvasId, workspaceId, projectId });
-        requireAccess(session, location.projectId, location.workspaceId);
+        requireAccess(session, location.projectId, location.workspaceId, canvasId);
         const client = await context(session);
         if (!client.realtimeDb) throw new Error('Realtime Database no está configurada.');
         const { ref, onValue, onDisconnect, set, remove, serverTimestamp } = client.sdk.database;

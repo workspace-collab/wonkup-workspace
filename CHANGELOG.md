@@ -394,3 +394,17 @@
 - Se conservó la activación manual por UID como contingencia.
 - Se agregó `Actualizar aplicación` al menú del perfil.
 - Se actualizó la cadena de caché a `12.2.0`.
+
+## 12.3.0 — Acceso personalizado y colaboración en Canvas
+
+- Se añadieron permisos por persona: lector, comentarista y editor.
+- Se incorporó administración de personas desde el modal Compartir del Canvas.
+- Los enlaces personalizados requieren una Cuenta WonkUp activa y validan el UID autorizado.
+- Los editores pueden crear, editar, mover y archivar notas en tiempo real.
+- Los comentaristas pueden consultar y comentar sin modificar las notas.
+- Los lectores acceden en vivo sin permisos de escritura.
+- Se añadieron vencimiento, reactivación, cambio de permiso y revocación inmediata.
+- Se conservaron los enlaces públicos anónimos como solo lectura.
+- Se impidió que un acceso personalizado se copie a la colección pública sanitizada.
+- Se incorporaron cinco Cloud Functions y reglas Firestore de mínimo privilegio.
+- Se actualizó la cadena de caché a `12.3.0`.
