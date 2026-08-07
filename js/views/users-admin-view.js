@@ -1,8 +1,8 @@
-import { ManagedUsersService } from '../services/managed-users-service.js?v=12.2.0';
-import { openModal, confirmModal } from '../components/modal.js?v=12.2.0';
-import { showToast } from '../components/toast.js?v=12.2.0';
-import { escapeHtml } from '../utils/format.js?v=12.2.0';
-import { icon } from '../utils/icons.js?v=12.2.0';
+import { ManagedUsersService } from '../services/managed-users-service.js?v=12.2.1';
+import { openModal, confirmModal } from '../components/modal.js?v=12.2.1';
+import { showToast } from '../components/toast.js?v=12.2.1';
+import { escapeHtml } from '../utils/format.js?v=12.2.1';
+import { icon } from '../utils/icons.js?v=12.2.1';
 
 const ROLE_OPTIONS = Object.freeze([
   ['workspace_admin', 'Administrador de workspace'],

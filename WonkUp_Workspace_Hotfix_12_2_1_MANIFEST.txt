@@ -1,0 +1,13 @@
+WonkUp Workspace - Hotfix 12.2.1
+
+Archivos principales:
+- index.html
+- js/ (frontend con cache 12.2.1)
+- js/adapters/firebase-project-adapter.js (filtro multiworkspace y validacion de membresia)
+- HOTFIX_12_2_1_GUIA.md
+- TEST_RESULTS_12_2_1.md
+
+No requiere:
+- cambios de reglas Firestore
+- cambios de Realtime Database
+- redespliegue de Cloud Functions

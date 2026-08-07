@@ -1,4 +1,4 @@
-import { demoDeliverables } from '../../data/demo-deliverables.js?v=12.2.0';
+import { demoDeliverables } from '../../data/demo-deliverables.js?v=12.2.1';
 import {
   canAccessProject,
   canCommentDeliverable,
@@ -6,7 +6,7 @@ import {
   canReviewDeliverable,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js?v=12.2.0';
+} from '../utils/permissions.js?v=12.2.1';
 
 const STORAGE_KEY = 'wonkup.e6.deliverables';
 const CHANNEL_NAME = 'wonkup-deliverables';

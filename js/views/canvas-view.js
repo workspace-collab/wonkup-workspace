@@ -1,14 +1,14 @@
-import { CanvasService } from '../services/canvas-service.js?v=12.2.0';
-import { ProjectService } from '../services/project-service.js?v=12.2.0';
-import { KanbanService } from '../services/kanban-service.js?v=12.2.0';
-import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.2.0';
-import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.2.0';
-import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.2.0';
-import { icon } from '../utils/icons.js?v=12.2.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.2.0';
-import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.2.0';
-import { showToast } from '../components/toast.js?v=12.2.0';
-import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.2.0';
+import { CanvasService } from '../services/canvas-service.js?v=12.2.1';
+import { ProjectService } from '../services/project-service.js?v=12.2.1';
+import { KanbanService } from '../services/kanban-service.js?v=12.2.1';
+import { CANVAS_NOTE_COLORS, getCanvasNoteColor } from '../../data/canvas-templates.js?v=12.2.1';
+import { canEditCanvas, canManageCanvas } from '../utils/permissions.js?v=12.2.1';
+import { calculateCanvasProgress } from '../utils/canvas-progress.js?v=12.2.1';
+import { icon } from '../utils/icons.js?v=12.2.1';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.2.1';
+import { openModal, confirmModal, closeModal } from '../components/modal.js?v=12.2.1';
+import { showToast } from '../components/toast.js?v=12.2.1';
+import { createCanvasWorkspaceController } from '../components/canvas-workspace-controller.js?v=12.2.1';
 
 let cleanupEditor = null;
 let workspaceController = null;

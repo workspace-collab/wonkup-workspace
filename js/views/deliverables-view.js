@@ -1,16 +1,16 @@
-import { DeliverableService } from '../services/deliverable-service.js?v=12.2.0';
-import { ProjectService } from '../services/project-service.js?v=12.2.0';
+import { DeliverableService } from '../services/deliverable-service.js?v=12.2.1';
+import { ProjectService } from '../services/project-service.js?v=12.2.1';
 import {
   canCommentDeliverable,
   canManageDeliverables,
   canReviewDeliverable,
   isReadOnlyRole
-} from '../utils/permissions.js?v=12.2.0';
-import { escapeHtml, formatDate } from '../utils/format.js?v=12.2.0';
-import { normalizeText, normalizeUrl } from '../utils/validation.js?v=12.2.0';
-import { icon } from '../utils/icons.js?v=12.2.0';
-import { openModal, confirmModal } from '../components/modal.js?v=12.2.0';
-import { showToast } from '../components/toast.js?v=12.2.0';
+} from '../utils/permissions.js?v=12.2.1';
+import { escapeHtml, formatDate } from '../utils/format.js?v=12.2.1';
+import { normalizeText, normalizeUrl } from '../utils/validation.js?v=12.2.1';
+import { icon } from '../utils/icons.js?v=12.2.1';
+import { openModal, confirmModal } from '../components/modal.js?v=12.2.1';
+import { showToast } from '../components/toast.js?v=12.2.1';
 
 const STATUS_LABELS = Object.freeze({
   draft: 'Borrador',

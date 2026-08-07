@@ -1,14 +1,14 @@
-import { icon } from '../utils/icons.js?v=12.2.0';
-import { DemoService } from '../services/demo-service.js?v=12.2.0';
-import { AccessService } from '../services/access-service.js?v=12.2.0';
-import { NotificationService } from '../services/notification-service.js?v=12.2.0';
-import { GlobalSearchService } from '../services/global-search-service.js?v=12.2.0';
-import { getState, setState, clearSession } from '../state/store.js?v=12.2.0';
-import { showToast } from './toast.js?v=12.2.0';
-import { confirmModal } from './modal.js?v=12.2.0';
-import { escapeHtml } from '../utils/format.js?v=12.2.0';
-import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=12.2.0';
-import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=12.2.0';
+import { icon } from '../utils/icons.js?v=12.2.1';
+import { DemoService } from '../services/demo-service.js?v=12.2.1';
+import { AccessService } from '../services/access-service.js?v=12.2.1';
+import { NotificationService } from '../services/notification-service.js?v=12.2.1';
+import { GlobalSearchService } from '../services/global-search-service.js?v=12.2.1';
+import { getState, setState, clearSession } from '../state/store.js?v=12.2.1';
+import { showToast } from './toast.js?v=12.2.1';
+import { confirmModal } from './modal.js?v=12.2.1';
+import { escapeHtml } from '../utils/format.js?v=12.2.1';
+import { closePopovers, initializePopoverManager, togglePopover } from '../utils/popover-manager.js?v=12.2.1';
+import { canCreateProject, canManageCloudFoundation, canViewMaster, isInternalUser, isReadOnlyRole } from '../utils/permissions.js?v=12.2.1';
 
 const internalNavItems = [
   ['dashboard', 'Dashboard', 'home', null, true],
@@ -164,7 +164,7 @@ export function renderShell(route = null) {
 
   const profileMenu = popover({
     id: 'profile-menu', triggerId: 'profile-button', className: 'header-popover profile-dropdown',
-    body: `<div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small><span>${escapeHtml(session.roleLabel)}</span></div><button role="menuitem" data-profile-action="preferences">${icon('sun')} Apariencia</button><button role="menuitem" data-profile-action="update">${icon('refresh')} <span>Actualizar aplicación<small>Versión ${escapeHtml(globalThis.WONKUP_API_CONFIG?.release || '12.2.0')}</small></span></button><div class="dropdown-divider"></div><button role="menuitem" id="logout-button" class="danger-menu-item">${icon('logout')} Cerrar sesión</button>`
+    body: `<div class="profile-menu-info"><strong>${escapeHtml(session.user.name)}</strong><small>${escapeHtml(session.user.email || '')}</small><span>${escapeHtml(session.roleLabel)}</span></div><button role="menuitem" data-profile-action="preferences">${icon('sun')} Apariencia</button><button role="menuitem" data-profile-action="update">${icon('refresh')} <span>Actualizar aplicación<small>Versión ${escapeHtml(globalThis.WONKUP_API_CONFIG?.release || '12.2.1')}</small></span></button><div class="dropdown-divider"></div><button role="menuitem" id="logout-button" class="danger-menu-item">${icon('logout')} Cerrar sesión</button>`
   });
 
   const menuExpanded = desktopSidebar ? !sidebarCollapsed : Boolean(state.sidebarOpen);

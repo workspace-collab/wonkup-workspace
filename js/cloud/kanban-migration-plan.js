@@ -1,6 +1,6 @@
-import { demoKanbanBoards, defaultKanbanColumns } from '../../data/demo-kanban.js?v=12.2.0';
-import { getKanbanTemplate } from '../../data/kanban-templates.js?v=12.2.0';
-import { getLocalFoundationSnapshot } from './migration-plan.js?v=12.2.0';
+import { demoKanbanBoards, defaultKanbanColumns } from '../../data/demo-kanban.js?v=12.2.1';
+import { getKanbanTemplate } from '../../data/kanban-templates.js?v=12.2.1';
+import { getLocalFoundationSnapshot } from './migration-plan.js?v=12.2.1';
 
 const STORAGE_KEY = 'wonkup.e4.1.kanban';
 const LEGACY_STORAGE_KEY = 'wonkup.e4.kanban';

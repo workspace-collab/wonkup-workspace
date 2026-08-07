@@ -1,4 +1,4 @@
-import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.2.0';
+import { getFirebaseClient, waitForFirebaseAuth } from '../cloud/firebase-client.js?v=12.2.1';
 import {
   canAccessProject,
   canAccessWorkspace,
@@ -11,7 +11,7 @@ import {
   canManageProjectTeam,
   canViewMaster,
   isReadOnlyRole
-} from '../utils/permissions.js?v=12.2.0';
+} from '../utils/permissions.js?v=12.2.1';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 
@@ -66,8 +66,37 @@ async function resolveWorkspaceIds(client, session) {
   return snapshot.docs.map(item => item.id);
 }
 
+async function hasActiveProjectMembership(client, workspaceId, projectId, uid) {
+  if (!uid) return false;
+  const snapshot = await client.sdk.firestore.getDoc(
+    client.sdk.firestore.doc(client.db, 'workspaces', workspaceId, 'projects', projectId, 'members', uid)
+  );
+  return snapshot.exists() && snapshot.data().status === 'active';
+}
+
+async function projectIdsForWorkspace(client, workspaceId, session) {
+  const projectIds = [...new Set((session?.scopes?.projectIds || []).filter(id => id && id !== '*'))];
+  const mappedWorkspaces = session?.projectWorkspaceIds || {};
+  const output = [];
+  for (const projectId of projectIds) {
+    const mappedWorkspaceId = mappedWorkspaces[projectId];
+    if (mappedWorkspaceId && mappedWorkspaceId !== workspaceId) continue;
+    if (await hasActiveProjectMembership(client, workspaceId, projectId, session?.firebaseUid)) {
+      output.push(projectId);
+    }
+  }
+  return output;
+}
+
 async function getProjectById(client, projectId, session) {
-  for (const workspaceId of await resolveWorkspaceIds(client, session)) {
+  const knownWorkspaceIds = await resolveWorkspaceIds(client, session);
+  const mappedWorkspaceId = session?.projectWorkspaceIds?.[projectId];
+  const workspaceIds = mappedWorkspaceId ? [mappedWorkspaceId] : knownWorkspaceIds;
+  for (const workspaceId of workspaceIds) {
+    if (!canViewMaster(session) && !canCreateProject(session, workspaceId)) {
+      const member = await hasActiveProjectMembership(client, workspaceId, projectId, session?.firebaseUid);
+      if (!member) continue;
+    }
     const snapshot = await client.sdk.firestore.getDoc(
       client.sdk.firestore.doc(client.db, 'workspaces', workspaceId, 'projects', projectId)
     );
@@ -157,7 +186,7 @@ export const FirebaseProjectAdapter = {
         if (canCreateProject(session, workspaceId)) {
           projects = await getWorkspaceProjects(client, workspaceId);
         } else {
-          for (const projectId of [...new Set((session?.scopes?.projectIds || []).filter(id => id && id !== '*'))]) {
+          for (const projectId of await projectIdsForWorkspace(client, workspaceId, session)) {
             const snapshot = await client.sdk.firestore.getDoc(
               client.sdk.firestore.doc(client.db, 'workspaces', workspaceId, 'projects', projectId)
             );
