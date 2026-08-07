@@ -13,7 +13,7 @@ setGlobalOptions({ region: 'us-central1', maxInstances: 3 });
 
 const db = getFirestore();
 const adminAuth = getAuth();
-const RELEASE = '12.4.0';
+const RELEASE = '12.4.1';
 const ALLOWED_ROLES = Object.freeze(['workspace_admin', 'project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 const PROJECT_SCOPED_ROLES = new Set(['project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 const ROLE_LABELS = Object.freeze({
@@ -1023,6 +1023,27 @@ async function reserveAiQuota(uid) {
   return { date, used: nextUserCount, limit: AI_DAILY_USER_LIMIT, remaining: Math.max(0, AI_DAILY_USER_LIMIT - nextUserCount) };
 }
 
+async function refundAiQuota(uid, date = aiUsageDate()) {
+  const globalRef = db.doc(`aiUsage/${date}`);
+  const userRef = db.doc(`aiUsage/${date}/users/${uid}`);
+  await db.runTransaction(async transaction => {
+    const [globalSnapshot, userSnapshot] = await Promise.all([
+      transaction.get(globalRef),
+      transaction.get(userRef)
+    ]);
+    const globalCount = Math.max(0, Number(globalSnapshot.data()?.requests || 0));
+    const userCount = Math.max(0, Number(userSnapshot.data()?.requests || 0));
+    transaction.set(globalRef, {
+      requests: Math.max(0, globalCount - 1),
+      updatedAt: isoNow()
+    }, { merge: true });
+    transaction.set(userRef, {
+      requests: Math.max(0, userCount - 1),
+      updatedAt: isoNow()
+    }, { merge: true });
+  });
+}
+
 async function recordAiTokens(uid, usage = {}) {
   const date = aiUsageDate();
   const globalRef = db.doc(`aiUsage/${date}`);
@@ -1180,12 +1201,8 @@ async function callGeminiCoach({ action, guide, context, userInput }) {
       generationConfig: {
         temperature: action === 'suggest' ? 0.45 : 0.25,
         maxOutputTokens: action === 'review' ? 1100 : 900,
-        responseFormat: {
-          text: {
-            mimeType: 'application/json',
-            schema: aiResponseSchema(action)
-          }
-        }
+        responseMimeType: 'application/json',
+        responseJsonSchema: aiResponseSchema(action)
       }
     })
   });
@@ -1217,7 +1234,13 @@ exports.wonkupCanvasAiCoach = onCall({
     const guide = aiGuideFor(access.canvas.templateId, sectionId);
     const quota = await reserveAiQuota(access.uid);
     const context = await loadAiCanvasContext(workspaceId, projectId, canvasId, access.canvas, sectionId);
-    const generated = await callGeminiCoach({ action, guide, context, userInput });
+    let generated;
+    try {
+      generated = await callGeminiCoach({ action, guide, context, userInput });
+    } catch (error) {
+      await refundAiQuota(access.uid, quota.date).catch(refundError => console.warn('WonkUp AI quota could not be refunded after a failed Gemini request.', refundError));
+      throw error;
+    }
     await recordAiTokens(access.uid, generated.usage).catch(error => console.warn('WonkUp AI usage metadata could not be recorded.', error));
     return {
       ok: true,

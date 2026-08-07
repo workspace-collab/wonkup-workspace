@@ -59,7 +59,19 @@ test('AI usage counters cannot be read or written from the browser', () => {
   assert.match(rules, /allow read, write: if false/);
 });
 
-test('Release 12.4 uses cache-busted frontend assets', () => {
+
+
+test('Hotfix 12.4.1 uses the supported Gemini structured-output fields', () => {
+  const functions = read('functions/index.js');
+  assert.match(functions, /responseMimeType: 'application\/json'/);
+  assert.match(functions, /responseJsonSchema: aiResponseSchema\(action\)/);
+  assert.doesNotMatch(functions, /responseFormat:\s*\{/);
+  assert.doesNotMatch(functions, /mimeType:\s*'application\/json'/);
+  assert.match(functions, /refundAiQuota/);
+  assert.match(functions, /quota could not be refunded after a failed Gemini request/);
+});
+
+test('Frontend remains 12.4 while the AI function package is hotfixed to 12.4.1', () => {
   const runtime = read('js/config/runtime-config.js');
   const appConfig = read('js/config/app-config.js');
   const index = read('index.html');
@@ -67,5 +79,5 @@ test('Release 12.4 uses cache-busted frontend assets', () => {
   assert.match(runtime, /release: '12\.4\.0'/);
   assert.match(appConfig, /0\.12\.4-ai-coach/);
   assert.match(index, /bootstrap\.js\?v=12\.4\.0/);
-  assert.equal(pkg.version, '12.4.0');
+  assert.equal(pkg.version, '12.4.1');
 });

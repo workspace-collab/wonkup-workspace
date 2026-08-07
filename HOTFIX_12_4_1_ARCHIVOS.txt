@@ -1,0 +1,7 @@
+functions/index.js
+functions/package.json
+tests/ai-coach-12-4.test.mjs
+HOTFIX_12_4_1_GUIA.md
+TEST_RESULTS_12_4_1.md
+CHANGELOG.md
+PROJECT_STATE.md

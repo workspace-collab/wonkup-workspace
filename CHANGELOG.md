@@ -422,3 +422,8 @@
 - Se impidió que un acceso personalizado se copie a la colección pública sanitizada.
 - Se incorporaron cinco Cloud Functions y reglas Firestore de mínimo privilegio.
 - Se actualizó la cadena de caché a `12.3.0`.
+
+## 12.4.1 — Hotfix Gemini structured output
+- Corrige la llamada REST de WonkUp AI Coach para `generateContent`.
+- Sustituye `generationConfig.responseFormat` por `responseMimeType` + `responseJsonSchema`.
+- Sin cambios en la API key, cuotas, modelo ni frontend.

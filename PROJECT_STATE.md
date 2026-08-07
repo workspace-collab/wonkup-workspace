@@ -100,3 +100,6 @@ Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / SECRETO GEMINI Y VALIDACIÓN REA
 - Cuotas iniciales: 30 consultas por usuario/día y 1,000 globales/día.
 - Firestore conserva únicamente métricas de consumo; no se guardan prompts ni respuestas de IA en `aiUsage`.
 - La IA está habilitada para miembros internos con edición y accesos personalizados `commenter/editor`; solo quienes pueden editar pueden insertar notas.
+
+### Hotfix 12.4.1
+WonkUp AI Coach corrige el contrato de salida estructurada de Gemini `generateContent`. Requiere solo redesplegar `wonkupCanvasAiCoach`.
