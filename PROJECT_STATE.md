@@ -10,7 +10,7 @@ Entrega 12 — Motor de Lienzos colaborativo + Ajustes 12.2–12.5
 
 ## Estado
 
-AJUSTE 12.5 CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE Y VALIDACIÓN REAL PENDIENTES
+AJUSTE 12.5 VALIDADO EN PRODUCCIÓN / HOTFIX 12.5.1 DE COSTEO PREPARADO PARA DESPLIEGUE
 
 ## Fases cerradas
 
@@ -96,7 +96,7 @@ Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / SECRETO GEMINI Y VALIDACIÓN REA
 - Acciones: preguntas guía, revisión metodológica y propuesta de notas.
 - Las propuestas se agregan solo después de selección y confirmación explícita del usuario.
 - `GEMINI_API_KEY` se mantiene en Firebase Secret Manager.
-- Modelo predeterminado desde 12.5: `gemini-2.5-flash-lite`, configurable mediante `GEMINI_MODEL`.
+- Modelo operativo actual desde el Hotfix 12.5.1: `gemini-3.1-flash-lite`, configurable mediante `GEMINI_MODEL`.
 - Piloto 12.5: sin límite de consultas impuesto por WonkUp; se mantienen los límites del proveedor Gemini.
 - Firestore conserva únicamente métricas de consumo; no se guardan prompts ni respuestas de IA en `aiUsage`.
 - La IA está habilitada para miembros internos con edición y accesos personalizados `commenter/editor`; solo quienes pueden editar pueden insertar notas.
@@ -107,11 +107,11 @@ WonkUp AI Coach corrige el contrato de salida estructurada de Gemini `generateCo
 
 ## Ajuste 12.5 — Lienzos + AI Usage Control Center
 
-Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE Y VALIDACIÓN REAL PENDIENTES.
+Estado: VALIDADO EN PRODUCCIÓN; métricas por usuario, acciones, tokens y aceptación confirmadas. Hotfix 12.5.1 corrige el costeo estimado del modelo operativo.
 
 - La terminología visible se estandariza a **Lienzo/Lienzos**. Los identificadores técnicos `canvas` permanecen para no romper enlaces, rutas ni datos existentes.
 - AI Coach queda sin límite diario por usuario impuesto por WonkUp durante el piloto.
-- Modelo económico predeterminado: `gemini-2.5-flash-lite`.
+- Modelo operativo del piloto: `gemini-3.1-flash-lite`.
 - Métricas por interacción: usuario, acción, workspace, proyecto, Lienzo, tokens, costo estimado, éxito/error y notas propuestas/aceptadas.
 - Métricas por usuario: consultas, participación, tokens, costo, aceptación e indicador Normal/Intensivo/Excepcional según promedio diario.
 - Centro Superadmin: `#/master/ai` / **Administración → IA y consumo**.
@@ -119,3 +119,14 @@ Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE Y VALIDACIÓN REAL PE
 - El 100% del presupuesto no bloquea automáticamente; existe pausa manual de emergencia.
 - Analítica privada mediante Cloud Functions; `aiUsage` y `aiUsageEvents` no se exponen al navegador.
 - No se almacenan prompts ni respuestas completas en la analítica.
+
+### Hotfix 12.5.1 — Costeo real de IA
+
+Estado: CÓDIGO Y PRUEBAS LOCALES COMPLETADOS / DESPLIEGUE PENDIENTE.
+
+- Añade la tarifa estándar actual de `gemini-3.1-flash-lite` al estimador local.
+- Recalcula en lectura los eventos históricos con costo cero a partir de modelo y tokens.
+- Conserva estimaciones históricas mayores a cero.
+- Recalcula el costo mensual desde eventos de interacción exitosos.
+- No requiere migración de datos, cambios de reglas, Vercel ni rotación de `GEMINI_API_KEY`.
+

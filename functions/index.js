@@ -13,7 +13,7 @@ setGlobalOptions({ region: 'us-central1', maxInstances: 3 });
 
 const db = getFirestore();
 const adminAuth = getAuth();
-const RELEASE = '12.5.0';
+const RELEASE = '12.5.1';
 const ALLOWED_ROLES = Object.freeze(['workspace_admin', 'project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 const PROJECT_SCOPED_ROLES = new Set(['project_lead', 'collaborator', 'reviewer', 'client', 'guest']);
 const ROLE_LABELS = Object.freeze({
@@ -34,10 +34,13 @@ const CANVAS_SHARE_PERMISSION_LABELS = Object.freeze({
 
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
-const GEMINI_MODEL = defineString('GEMINI_MODEL', { default: 'gemini-2.5-flash-lite' });
+const GEMINI_MODEL = defineString('GEMINI_MODEL', { default: 'gemini-3.1-flash-lite' });
 const AI_ACTIONS = Object.freeze(['questions', 'suggest', 'review']);
 const AI_DEFAULT_MONTHLY_BUDGET_USD = 10;
 const AI_PRICING_USD_PER_MILLION = Object.freeze({
+  // Standard paid-tier text/image/video pricing per 1M tokens.
+  // Verified against the official Gemini API pricing page on 2026-08-07.
+  'gemini-3.1-flash-lite': Object.freeze({ input: 0.25, output: 1.50 }),
   'gemini-2.5-flash-lite': Object.freeze({ input: 0.10, output: 0.40 }),
   'gemini-2.5-flash': Object.freeze({ input: 0.30, output: 2.50 })
 });
@@ -1064,6 +1067,12 @@ function estimateAiCostUsd(model, usage = {}) {
   return Number(cost.toFixed(8));
 }
 
+function aiEventEstimatedCostUsd(event = {}) {
+  const stored = Math.max(0, Number(event.estimatedCostUsd || 0));
+  if (stored > 0) return stored;
+  return estimateAiCostUsd(cleanText(event.model, 80), event);
+}
+
 function aiActionPatch(action) {
   if (action === 'questions') return { questionRequests: FieldValue.increment(1) };
   if (action === 'review') return { reviewRequests: FieldValue.increment(1) };
@@ -1223,7 +1232,7 @@ function aggregateAiEvents(events = [], days = 7) {
       totals.outputTokens += Number(event.outputTokens || 0);
       totals.thinkingTokens += Number(event.thinkingTokens || 0);
       totals.totalTokens += Number(event.totalTokens || 0);
-      totals.estimatedCostUsd += Number(event.estimatedCostUsd || 0);
+      totals.estimatedCostUsd += aiEventEstimatedCostUsd(event);
       totals.suggestionsProposed += Number(event.suggestionsProposed || 0);
       totals.acceptedNotes += Number(event.acceptedNotes || 0);
       if (actions[event.action] !== undefined) actions[event.action] += 1;
@@ -1244,7 +1253,7 @@ function aggregateAiEvents(events = [], days = 7) {
     if (success) {
       user.requests += 1;
       user.totalTokens += Number(event.totalTokens || 0);
-      user.estimatedCostUsd += Number(event.estimatedCostUsd || 0);
+      user.estimatedCostUsd += aiEventEstimatedCostUsd(event);
       user.suggestionsProposed += Number(event.suggestionsProposed || 0);
       user.acceptedNotes += Number(event.acceptedNotes || 0);
     } else user.failedRequests += 1;
@@ -1256,7 +1265,7 @@ function aggregateAiEvents(events = [], days = 7) {
       const current = canvases.get(event.canvasId) || { id: event.canvasId, projectId: event.projectId || '', workspaceId: event.workspaceId || '', name: event.canvasTitle || event.canvasId, requests: 0, estimatedCostUsd: 0 };
       if (success) {
         current.requests += 1;
-        current.estimatedCostUsd += Number(event.estimatedCostUsd || 0);
+        current.estimatedCostUsd += aiEventEstimatedCostUsd(event);
       }
       canvases.set(event.canvasId, current);
     }
@@ -1407,7 +1416,7 @@ function extractGeminiJson(payload) {
 }
 
 async function callGeminiCoach({ action, guide, context, userInput }) {
-  const model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-2.5-flash-lite';
+  const model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-3.1-flash-lite';
   const apiKey = GEMINI_API_KEY.value();
   if (!apiKey) throw new HttpsError('failed-precondition', 'WonkUp AI Coach todavía no tiene configurada la clave de Gemini.');
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
@@ -1446,7 +1455,7 @@ exports.wonkupCanvasAiCoach = onCall({
   let access = null;
   let guide = null;
   let action = '';
-  let model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-2.5-flash-lite';
+  let model = cleanText(GEMINI_MODEL.value(), 80) || 'gemini-3.1-flash-lite';
   try {
     const workspaceId = cleanText(request.data?.workspaceId, 128);
     const projectId = cleanText(request.data?.projectId, 128);
@@ -1554,10 +1563,18 @@ exports.wonkupAiUsageSummary = onCall(callableOptions, async request => {
     const metrics = aggregateAiEvents(filtered, days);
     const settings = await loadAiSettings();
     const monthDateKeys = aiCurrentMonthDateKeys();
-    const monthRefs = monthDateKeys.map(date => db.doc(`aiUsage/${date}`));
-    const monthSnapshots = monthRefs.length ? await db.getAll(...monthRefs) : [];
-    const monthCostUsd = Number(monthSnapshots.reduce((sum, snapshot) => sum + Number(snapshot.data()?.estimatedCostUsd || 0), 0).toFixed(6));
-    const monthRequests = monthSnapshots.reduce((sum, snapshot) => sum + Number(snapshot.data()?.requests || 0), 0);
+    // Recalculate from immutable interaction events so historical 3.1 usage that
+    // was recorded before its tariff was configured no longer appears as US$0.
+    // Reuse already-loaded events when the selected period covers the month to
+    // avoid extra Firestore reads; existing non-zero event costs are preserved.
+    const loadedDateKeys = new Set(dateKeys);
+    const monthDateKeySet = new Set(monthDateKeys);
+    const monthEvents = monthDateKeys.every(date => loadedDateKeys.has(date))
+      ? allEvents.filter(event => monthDateKeySet.has(event.date))
+      : await loadAiEventsForDates(monthDateKeys);
+    const successfulMonthEvents = monthEvents.filter(event => event.success !== false);
+    const monthCostUsd = Number(successfulMonthEvents.reduce((sum, event) => sum + aiEventEstimatedCostUsd(event), 0).toFixed(6));
+    const monthRequests = successfulMonthEvents.length;
     const budget = Math.max(0, Number(settings.monthlyBudgetUsd || AI_DEFAULT_MONTHLY_BUDGET_USD));
     const budgetPercent = budget > 0 ? Number(((monthCostUsd / budget) * 100).toFixed(1)) : 0;
     return {

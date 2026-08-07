@@ -446,3 +446,13 @@
 - Las colecciones de analítica `aiUsage` y `aiUsageEvents` permanecen cerradas a lectura/escritura directa desde el navegador.
 - Se mantiene la decisión de no guardar prompts ni respuestas completas en la analítica de uso.
 - Se actualizó el cache-busting a `12.5.0`.
+
+## 12.5.1 — Hotfix de costeo real de IA
+
+- Se añadió la tarifa estándar de pago de `gemini-3.1-flash-lite`: USD 0.25 / 1M tokens de entrada y USD 1.50 / 1M tokens de salida, incluyendo thinking tokens en el componente de salida.
+- Se actualizó el modelo predeterminado de Functions a `gemini-3.1-flash-lite` para coincidir con el modelo operativo del piloto.
+- El resumen de IA recalcula eventos históricos cuyo `estimatedCostUsd` quedó en cero usando el modelo y los tokens guardados.
+- Los eventos con costo histórico mayor a cero conservan su valor para no reescribir estimaciones previas.
+- El presupuesto mensual se recalcula desde `aiUsageEvents` exitosos, por lo que el panel deja de depender de agregados diarios que pudieron quedar en cero antes del hotfix.
+- No se modifica Firestore Rules, el frontend, los Lienzos ni la API key.
+

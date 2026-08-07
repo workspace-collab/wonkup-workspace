@@ -74,7 +74,7 @@ test('Hotfix 12.4.1 structured output remains supported in 12.5', () => {
   assert.doesNotMatch(functions, /mimeType:\s*'application\/json'/);
 });
 
-test('Frontend and Functions are versioned as Ajuste 12.5', () => {
+test('Frontend stays on Ajuste 12.5 while Functions carry Hotfix 12.5.1', () => {
   const runtime = read('js/config/runtime-config.js');
   const appConfig = read('js/config/app-config.js');
   const index = read('index.html');
@@ -82,5 +82,5 @@ test('Frontend and Functions are versioned as Ajuste 12.5', () => {
   assert.match(runtime, /release: '12\.5\.0'/);
   assert.match(appConfig, /0\.12\.5-lienzos-ai-usage/);
   assert.match(index, /bootstrap\.js\?v=12\.5\.0/);
-  assert.equal(pkg.version, '12.5.0');
+  assert.equal(pkg.version, '12.5.1');
 });

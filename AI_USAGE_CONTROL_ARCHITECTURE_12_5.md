@@ -85,11 +85,12 @@ Es un semáforo de observación, no una cuota ni un bloqueo.
 El backend usa una tabla versionada por modelo. Para 12.5:
 
 ```text
+gemini-3.1-flash-lite: input 0.25 USD / 1M, output 1.50 USD / 1M
 gemini-2.5-flash-lite: input 0.10 USD / 1M, output 0.40 USD / 1M
 gemini-2.5-flash:      input 0.30 USD / 1M, output 2.50 USD / 1M
 ```
 
-Los tokens de razonamiento reportados se incluyen en el componente de salida. El costo de WonkUp es **estimado** y se usa para producto/operación; la factura de Google Cloud prevalece para conciliación financiera.
+Los tokens de razonamiento reportados se incluyen en el componente de salida. Desde el Hotfix 12.5.1, si un evento histórico quedó con `estimatedCostUsd = 0` por no existir todavía una tarifa local para su modelo, el resumen administrativo recalcula el costo a partir de `model` + tokens sin modificar el evento original. Los eventos que ya tienen un costo mayor a cero conservan su estimación histórica. El costo de WonkUp es **estimado** y se usa para producto/operación; la factura de Google Cloud prevalece para conciliación financiera.
 
 ## Presupuesto
 

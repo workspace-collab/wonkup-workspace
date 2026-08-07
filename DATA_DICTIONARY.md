@@ -627,7 +627,7 @@ Ruta: `aiUsageEvents/{interactionId}`. Cada documento representa una interacció
 | outputTokens | number | Tokens de salida |
 | thinkingTokens | number | Tokens de razonamiento |
 | totalTokens | number | Tokens totales |
-| estimatedCostUsd | number | Costo estimado de la interacción |
+| estimatedCostUsd | number | Costo estimado de la interacción; si quedó en 0 por una tarifa local faltante, el resumen 12.5.1 puede recalcularlo desde modelo + tokens sin reescribir el evento |
 | suggestionsProposed | number | Propuestas de nota generadas |
 | acceptedNotes | number | Propuestas aceptadas e insertadas |
 | success | boolean | Resultado técnico de la consulta |

@@ -98,14 +98,14 @@ firebase functions:secrets:set GEMINI_API_KEY --project wonkup-workspace
 firebase deploy --only functions,firestore:rules --project wonkup-workspace
 ```
 
-Modelo predeterminado desde el Ajuste 12.5: `gemini-2.5-flash-lite`. El contenido propuesto por IA siempre requiere validación humana antes de agregarse al Lienzo.
+Modelo operativo del piloto desde el Hotfix 12.5.1: `gemini-3.1-flash-lite`. El contenido propuesto por IA siempre requiere validación humana antes de agregarse al Lienzo.
 
 
 ## Ajuste 12.5 — Lienzos y control de uso de IA
 
 - La interfaz orientada al usuario usa **Lienzo/Lienzos**; las rutas y claves internas `canvas` se conservan para compatibilidad.
 - WonkUp no impone límite de consultas por usuario durante el piloto. Los límites técnicos o de facturación del proveedor Gemini siguen aplicando.
-- El modelo predeterminado pasa a `gemini-2.5-flash-lite`.
+- El modelo operativo del piloto es `gemini-3.1-flash-lite`; el Hotfix 12.5.1 incorpora su tarifa al estimador de costos y recompone eventos históricos con costo cero.
 - Cada interacción registra tokens, costo estimado, usuario, workspace, proyecto, Lienzo, acción y estado de éxito/error.
 - Cuando el usuario incorpora propuestas al Lienzo, se registra cuántas notas fueron aceptadas para calcular la tasa de aceptación.
 - El superadministrador dispone de **Administración → IA y consumo** con filtros, ranking por usuario, indicadores Normal/Intensivo/Excepcional, costo estimado mensual y presupuesto de referencia.

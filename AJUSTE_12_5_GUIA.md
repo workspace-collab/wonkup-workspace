@@ -18,7 +18,7 @@ Este ajuste convierte el piloto de WonkUp AI Coach en una etapa de observación 
 Modelo predeterminado:
 
 ```text
-gemini-2.5-flash-lite
+gemini-3.1-flash-lite
 ```
 
 La clave `GEMINI_API_KEY` ya configurada en Firebase Secret Manager se reutiliza. **No debes crear ni volver a pegar la API key.**
@@ -96,12 +96,12 @@ cd ~/wonkup-workspace
 git pull
 cd functions
 npm install
-printf 'GEMINI_MODEL=gemini-2.5-flash-lite\n' > .env.wonkup-workspace
+printf 'GEMINI_MODEL=gemini-3.1-flash-lite\n' > .env.wonkup-workspace
 cd ..
 firebase deploy --only functions,firestore:rules --project wonkup-workspace
 ```
 
-El archivo `.env.wonkup-workspace` contiene únicamente el nombre del modelo, no la API key. Esto evita que Cloud Shell conserve el valor anterior `gemini-2.5-flash` de un despliegue previo.
+El archivo `.env.wonkup-workspace` contiene únicamente el nombre del modelo, no la API key. Esto fija explícitamente el modelo operativo actual y evita que Cloud Shell reutilice valores obsoletos de despliegues previos.
 
 No vuelvas a configurar `GEMINI_API_KEY`; continúa almacenada en Secret Manager.
 

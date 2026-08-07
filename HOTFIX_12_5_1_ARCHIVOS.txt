@@ -1,0 +1,26 @@
+HOTFIX 12.5.1 — COSTEO REAL DE IA
+
+Archivos funcionales:
+- functions/index.js
+- functions/package.json
+
+Pruebas:
+- tests/ai-coach-12-4.test.mjs
+- tests/ai-cost-12-5-1.test.mjs
+
+Documentación:
+- HOTFIX_12_5_1_GUIA.md
+- TEST_RESULTS_12_5_1.md
+- AI_USAGE_CONTROL_ARCHITECTURE_12_5.md
+- AJUSTE_12_5_GUIA.md
+- DATA_DICTIONARY.md
+- PROJECT_STATE.md
+- CHANGELOG.md
+- README.md
+
+No cambia:
+- Firestore Rules
+- Realtime Database Rules
+- frontend visual
+- API key de Gemini
+- datos de Lienzos
